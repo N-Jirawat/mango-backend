@@ -6,10 +6,10 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.applications import EfficientNetV2S
 from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
-from sklearn.metrics.pairwise import cosine_similarity
 import cloudinary
 import cloudinary.uploader
 import os
+import gdown
 import checkMango
 
 app = Flask(__name__)
@@ -19,7 +19,6 @@ CORS(app)
 # CONFIG
 # -------------------------------
 IMG_SIZE = (224, 224)
-THRESHOLD = 0.85
 USE_FILTER = True  # True = เช็คว่าเป็นใบมะม่วงก่อนทำนาย, False = ทำนายเลยไม่กรอง
 
 # ค่า confidence สำหรับเช็คใบมะม่วงและโรค
@@ -44,10 +43,18 @@ cloudinary.config(
 )
 
 # -------------------------------
-# Local model path configuration
+# โหลดโมเดลจาก Google Drive
 # -------------------------------
-# ใส่ path ของโมเดลในเครื่องของคุณ
-MODEL_PATH = os.path.join("models", "VGG16", "model_vgg16_80_10_10_R4.keras")
+model_path = "Model/model_efficientnetv2s_224_R1.keras"
+model_file_id = "1cf-SSC8SdcgbJYhqn_-fu7hDhmgUcCST"  # ใส่ ID จริง
+model_url = f"https://drive.google.com/uc?id={model_file_id}"
+
+if not os.path.exists(model_path):
+    print("📥 Downloading model...")
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    gdown.download(model_url, model_path, quiet=False)
+else:
+    print("✅ Model already exists.")
 
 def verify_model_file(model_path):
     """ตรวจสอบความถูกต้องของไฟล์โมเดล"""
@@ -73,48 +80,51 @@ def verify_model_file(model_path):
     return True, "File appears valid"
 
 # -------------------------------
-# โหลดโมเดลจากไฟล์ในเครื่อง
+# โหลดโมเดลหลัก
 # -------------------------------
-print(f"Checking model file: {MODEL_PATH}")
-is_valid, message = verify_model_file(MODEL_PATH)
+print(f"Checking model file: {model_path}")
+is_valid, message = verify_model_file(model_path)
 if not is_valid:
     print(f"❌ Model file issue: {message}")
-    print(f"📝 Please ensure your model file is located at: {os.path.abspath(MODEL_PATH)}")
+    print(f"📝 Please ensure your model file is located at: {os.path.abspath(model_path)}")
     print("   Supported formats: .keras, .h5")
     raise RuntimeError(f"Model file not found or invalid: {message}")
 
 try:
     print("Loading model...")
-    model = load_model(MODEL_PATH)
-    print(f"✅ Model loaded successfully from {MODEL_PATH}")
+    model = load_model(model_path)
+    print(f"✅ Model loaded successfully from {model_path}")
     print(f"   Model input shape: {model.input_shape}")
     print(f"   Model output shape: {model.output_shape}")
 except Exception as e:
     print(f"❌ Error loading model: {e}")
-    raise RuntimeError(f"Failed to load model from {MODEL_PATH}: {e}")
+    raise RuntimeError(f"Failed to load model from {model_path}: {e}")
 
-# โหลด embedding model
-try:
-    checkMango.embedding_model = EfficientNetV2S(include_top=False, weights="imagenet", pooling="avg")
-    print("✅ EfficientNetV2S embedding model loaded successfully")
-except Exception as e:
-    print(f"❌ Failed to load embedding model: {e}")
-    raise RuntimeError(f"Failed to load embedding model: {e}")
-
-# โหลด reference embeddings จากไฟล์ .npy (ใช้ relative path)
+# -------------------------------
+# โหลด embedding model และ reference embeddings
+# -------------------------------
 if USE_FILTER:
-    # ใช้ relative path แทน absolute path
-    embedding_path = r"C:\Users\Asus\mango-app\backend\mango_reference_embeddings.npy"
-    
+    # โหลด embedding model
     try:
-        if os.path.exists(embedding_path):
-            checkMango.mango_embeddings = np.load(embedding_path)
-            print(f"✅ Loaded {embedding_path} with shape {checkMango.mango_embeddings.shape}")
-        else:
-            print(f"⚠️  Warning: Embedding file not found: {embedding_path}")
-            print(f"   Looking for file at: {os.path.abspath(embedding_path)}")
-            print("   Mango leaf filtering will be disabled")
-            checkMango.mango_embeddings = np.array([])
+        checkMango.embedding_model = EfficientNetV2S(include_top=False, weights="imagenet", pooling="avg")
+        print("✅ EfficientNetV2S embedding model loaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to load embedding model: {e}")
+        raise RuntimeError(f"Failed to load embedding model: {e}")
+
+    # โหลด reference embeddings จาก Google Drive
+    embedding_path = "Model/mango_reference_embeddings.npy"
+    embedding_file_id = "1mBCsEXT7yF8xJ8K72SLHyC134Qt2Zkgo"  # เปลี่ยนเป็น ID จริง
+    embedding_url = f"https://drive.google.com/uc?id={embedding_file_id}"
+
+    try:
+        if not os.path.exists(embedding_path):
+            print("📥 Downloading mango_reference_embeddings.npy from Google Drive...")
+            os.makedirs(os.path.dirname(embedding_path), exist_ok=True)
+            gdown.download(embedding_url, embedding_path, quiet=False)
+        
+        checkMango.mango_embeddings = np.load(embedding_path)
+        print(f"✅ Loaded {embedding_path} with shape {checkMango.mango_embeddings.shape}")
     except Exception as e:
         print(f"❌ Error loading {embedding_path}: {e}")
         checkMango.mango_embeddings = np.array([])
@@ -267,8 +277,8 @@ def get_config():
         "img_size": IMG_SIZE,
         "model_classes": model_classes,
         "has_mango_embeddings": len(checkMango.mango_embeddings) > 0 if hasattr(checkMango, 'mango_embeddings') else False,
-        "model_path": MODEL_PATH,
-        "embedding_path": "mango_reference_embeddings.npy" if USE_FILTER else None
+        "model_path": model_path,
+        "embedding_path": "Model/mango_reference_embeddings.npy" if USE_FILTER else None
     })
 
 @app.route('/config', methods=['POST'])
@@ -305,8 +315,8 @@ if __name__ == '__main__':
     print("\n" + "="*50)
     print("🥭 Mango Disease Detection API")
     print("="*50)
-    print(f"📂 Model file: {os.path.abspath(MODEL_PATH)}")
-    print(f"📂 Embedding file: {os.path.abspath('mango_reference_embeddings.npy') if USE_FILTER else 'Not used'}")
+    print(f"📂 Model file: {os.path.abspath(model_path)}")
+    print(f"📂 Embedding file: {os.path.abspath('Model/mango_reference_embeddings.npy') if USE_FILTER else 'Not used'}")
     print(f"🔍 Mango leaf filtering: {'Enabled' if USE_FILTER else 'Disabled'}")
     print(f"🎯 Mango leaf threshold: {MANGO_LEAF_THRESHOLD}")
     print(f"🎯 Disease confidence threshold: {DISEASE_CONFIDENCE_THRESHOLD}")
