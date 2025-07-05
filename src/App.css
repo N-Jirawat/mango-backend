@@ -1,0 +1,190 @@
+/* ตั้งค่าพื้นฐาน */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* กำหนดให้ root container ใช้ flexbox */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* App container */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ส่วน Header */
+header {
+  background: linear-gradient(180deg, #109d00, #79f6a7);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+  display: flex;
+  align-items: flex-end;
+}
+
+.logo img {
+  height: 50px;
+  margin-right: 10px;
+}
+
+.logo h1 {
+  font-size: 24px;
+  margin: 0;
+  color: #fff;
+}
+
+/* แถบนำทาง */
+nav {
+  background-color: #dbe9fa;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 10px 0;
+  align-items: center;
+}
+
+nav a {
+  text-decoration: none;
+  color: #000;
+  font-size: 14px;
+  text-align: center;
+  padding: 10px 15px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+nav a img {
+  width: 30px;
+  margin-bottom: 5px;
+}
+
+nav a:hover {
+  background-color: #c9e7b8;
+  transition: background-color 0.3s;
+}
+
+/* Main content - ขยายเต็มพื้นที่ที่เหลือ */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* เนื้อหาการ์ด */
+.content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+}
+
+.card {
+  background-color: #e7f3ff;
+  padding: 20px 30px;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  padding-right: 60px;
+  margin: 40px auto;
+}
+
+.card .profile-avatar {
+  width: 80px;
+  margin-bottom: 20px;
+}
+
+.card input {
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.card button {
+  background-color: #ffcc5c;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card button img {
+  width: 20px;
+  margin-left: 5px;
+}
+
+/* Footer - จะติดด้านล่างเสมอ */
+footer {
+  background-color: #388c21;
+  padding: 20px;
+  text-align: center;
+  color: #fff;
+  font-size: 16px;
+  width: 100%;
+  margin-top: auto; /* ดัน footer ไปด้านล่างสุด */
+}
+
+/* Loading container */
+.loading-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  header {
+    padding: 10px 15px;
+  }
+  
+  .logo h1 {
+    font-size: 20px;
+  }
+  
+  nav {
+    gap: 10px;
+    padding: 8px 0;
+  }
+  
+  nav a, .nav-btn-tab {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+  
+  .card {
+    width: 90%;
+    padding: 15px 20px;
+    margin: 20px auto;
+  }
+  
+  footer {
+    padding: 15px;
+    font-size: 14px;
+  }
+}

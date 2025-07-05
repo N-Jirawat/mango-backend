@@ -1,0 +1,65 @@
+/* General container styles */
+.admin-manage-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: #f9f9f9; /* สีพื้นหลังกรอบ */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* เงากรอบ */
+}
+
+/* Title styles */
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #388c21;
+  margin-bottom: 30px;
+}
+
+/* Button wrapper to add margin */
+.button-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* เพิ่มระยะห่างระหว่างปุ่ม */
+}
+
+/* Button container styles */
+.button-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Link styles */
+.admin-link {
+  text-decoration: none; /* Remove underline from the link */
+  width: 100%;
+}
+
+/* Button styles */
+.admin-button {
+  padding: 12px 25px;
+  font-size: 16px;
+  background-color: #bfffb8;
+  color: rgb(0, 0, 0);
+  border: 2px solid #f3f3f3; /* กรอบปุ่ม */
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%; /* ให้ปุ่มเต็มความกว้าง */
+}
+
+/* Button hover effect */
+.admin-button:hover {
+  background-color: #fbfffd;
+  border-color: #79f6a7; /* เปลี่ยนกรอบเมื่อ hover */
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .admin-button {
+    font-size: 14px;
+  }
+}

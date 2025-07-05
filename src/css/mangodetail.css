@@ -1,0 +1,175 @@
+/* สไตล์เฉพาะสำหรับหน้า MangoDetail.js */
+
+/* หัวข้อโรค */
+.disease-detail-container h2 {
+  text-align: center;
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #2c5530;
+}
+
+/* รายละเอียดโรค */
+.disease-detail-container p {
+  font-size: 18px;
+  line-height: 1.6;
+  margin: 15px 0;
+  color: #333;
+}
+
+.disease-detail-container p strong {
+  color: #2c5530;
+  font-weight: bold;
+}
+
+/* รูปภาพโรค */
+.disease-image {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  object-fit: contain;
+  margin: 20px auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: block;
+}
+
+/* การจัดเรียงปุ่ม 3 ปุ่มในแถวเดียวกัน */
+.button-group {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+/* ปุ่มย้อนกลับ */
+.button-back {
+  padding: 12px 20px;
+  font-size: 16px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button-back:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+/* ปุ่มแก้ไข */
+.edit-btn {
+  padding: 12px 20px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.edit-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+/* ปุ่มลบ */
+.delete-btn {
+  padding: 12px 20px;
+  font-size: 16px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+/* ข้อความเมื่อไม่มีข้อมูล */
+.no-data-message {
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+  font-style: italic;
+  padding: 40px 20px;
+}
+
+/* ข้อความไม่มีรูปภาพ */
+.no-image-message {
+  text-align: center;
+  font-size: 16px;
+  color: #888;
+  font-style: italic;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+/* สถานะการโหลด */
+.loading-detail {
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+  padding: 40px 20px;
+}
+
+.loading-detail::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive สำหรับหน้าจอเล็ก */
+@media (max-width: 600px) {
+  .disease-detail-container {
+    margin: 10px;
+    padding: 15px;
+  }
+  
+  .disease-detail-container h2 {
+    font-size: 24px;
+  }
+  
+  .disease-detail-container p {
+    font-size: 16px;
+  }
+  
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .button-group button {
+    width: 100%;
+  }
+  
+  .disease-image {
+    max-width: 90%;
+  }
+}

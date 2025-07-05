@@ -1,0 +1,83 @@
+/* ทำให้กล่องอยู่ตรงกลางของหน้าจอ */
+.card {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  margin: 50px auto; /* จัดให้อยู่กึ่งกลางแนวนอน และเว้นระยะบนล่าง */
+  text-align: left; /* ให้ข้อความเรียงซ้าย */
+  font-family: "Sarabun", sans-serif;
+}
+
+/* หัวข้อ */
+.card h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #109d00;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* ข้อมูลผู้ใช้ */
+.card p {
+  font-size: 18px;
+  margin: 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ddd; /* เส้นคั่นแต่ละบรรทัด */
+}
+
+/* จัดตำแหน่ง role ให้สีเขียว */
+.role-green {
+  color: rgb(70, 138, 255);
+  font-weight: normal;
+}
+
+/* กล่องปุ่ม */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+/* ปุ่ม */
+.button-container button {
+  flex: 1;
+  padding: 10px 0;
+  margin: 0 5px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+/* ปุ่มสีเทา */
+.button-container button:first-child {
+  background-color: #ccc;
+  color: black;
+}
+
+/* ปุ่มสีฟ้า */
+.button-container button:last-child {
+  background-color: #007bff;
+  color: white;
+}
+
+/* hover effect */
+.button-container button:hover {
+  opacity: 0.8;
+}
+
+/* สำหรับลิงก์ที่อยู่ในปุ่ม ให้เต็มพื้นที่ */
+.button-container a {
+  flex: 1;
+  margin: 0 5px;
+  text-decoration: none;
+}
+
+.link-container {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+}

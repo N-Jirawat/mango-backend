@@ -1,0 +1,195 @@
+.edit-user {
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 40px;
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e0e0e0;
+    margin-top: 30px;
+}
+
+.edit-user h2 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 30px;
+    font-size: 28px;
+    font-weight: 600;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 15px;
+}
+
+.edit-user form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.edit-user input,
+.edit-user select {
+    padding: 15px 20px;
+    margin: 8px 0;
+    border: 2px solid #e1e8ed;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+    min-height: 50px;
+    box-sizing: border-box;
+}
+
+.edit-user input:focus,
+.edit-user select:focus {
+    outline: none;
+    border-color: #3498db;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    transform: translateY(-2px);
+}
+
+.edit-user input:hover,
+.edit-user select:hover {
+    border-color: #bdc3c7;
+    background-color: #ffffff;
+}
+
+.edit-user select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 20px;
+    padding-right: 50px;
+}
+
+.edit-user select:disabled {
+    background-color: #ecf0f1;
+    color: #95a5a6;
+    cursor: not-allowed;
+}
+
+.location-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.location-container select {
+    flex: 1;
+}
+
+.edit-user .button-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+}
+
+.edit-user button {
+    padding: 15px 30px;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.edit-user button:hover:not([disabled]) {
+    background-color: #229954;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.edit-user button[disabled] {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* ปุ่ม "ย้อนกลับ" */
+.edit-user button.back-button {
+    background-color: #f39c12;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+}
+
+.edit-user button.back-button:hover:not([disabled]) {
+    background-color: #e67e22;
+    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+/* ปุ่ม "ลบบัญชี" */
+.edit-user button.delete-button {
+    background-color: #e74c3c;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.edit-user button.delete-button:hover:not([disabled]) {
+    background-color: #c0392b;
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    text-align: center;
+    padding: 50px;
+    font-size: 20px;
+    color: #2c3e50;
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin: 50px auto;
+    max-width: 400px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .edit-user {
+        max-width: 95%;
+        margin: 20px auto;
+        padding: 25px;
+    }
+    
+    .edit-user h2 {
+        font-size: 24px;
+    }
+    
+    .location-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .edit-user .button-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .edit-user button {
+        width: 100%;
+        padding: 12px 20px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .edit-user {
+        padding: 20px;
+    }
+    
+    .edit-user input,
+    .edit-user select {
+        padding: 12px 15px;
+        font-size: 14px;
+        min-height: 45px;
+    }
+}

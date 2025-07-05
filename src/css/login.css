@@ -1,0 +1,96 @@
+/* สไตล์สำหรับ LoginPage */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh; /* เพิ่มความสูงให้สมดุล */
+  background-color: #f4f6f9;
+  padding: 20px;
+}
+
+h3 {
+  font-size: 32px;
+  font-weight: bold;
+  color: #4CAF50;
+  margin-bottom: 25px; /* เพิ่มช่องว่างด้านล่าง */
+}
+
+form {
+  background-color: white;
+  padding: 35px 30px; /* ลด padding ด้านข้างนิดหน่อย */
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 450px;
+  box-sizing: border-box;
+}
+
+input {
+  width: 100%;
+  padding: 14px 16px; /* เพิ่ม padding ด้านใน ให้ดูพอดีและกดง่าย */
+  margin: 12px 0; /* เพิ่มระยะห่างระหว่างช่อง input */
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border 0.3s ease;
+  box-sizing: border-box;
+}
+
+input:focus {
+  border-color: #4CAF50;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  padding: 14px 16px; /* เพิ่ม padding ให้ปุ่มใหญ่ขึ้นเล็กน้อย */
+  font-size: 16px;
+  background-color: #47b362;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-sizing: border-box;
+  margin-top: 10px; /* เว้นระยะห่างจาก input */
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+button:disabled {
+  background-color: #dcdcdc;
+  cursor: not-allowed;
+}
+
+p {
+  margin-top: 20px;
+  font-size: 16px;
+  text-align: center;
+  color: #555;
+  line-height: 1.4;
+}
+
+.login-footer-links {
+  display: flex;
+  justify-content: space-between; /* ซ้าย-ขวา */
+  margin-top: 12px;
+  font-size: 14px;
+  max-width: 400px; /* เท่ากับฟอร์ม */
+  width: 100%;
+}
+
+.footer-link {
+  color: #4caf50;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+    text-decoration: underline; /* เพิ่มขีดเส้นใต้ */
+  transition: color 0.3s ease;
+}
+
+.footer-link:hover {
+  color: #357abd;
+}

@@ -1,0 +1,48 @@
+.admin-manage-container-dashbord {
+  max-width: 500px;      /* ขยายความกว้างสูงสุด */
+  width: 80%;            /* หรือใช้ 80% ของความกว้างหน้าจอ */
+  margin: 40px auto;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.title-dashbord {
+  color: #109d00;
+  font-size: 28px;
+  margin-bottom: 30px;
+  font-weight: 700;
+}
+
+.button-wrapper-dashbord {
+  display: flex;
+  flex-direction: column; /* ปุ่มอยู่บรรทัดละปุ่ม */
+  gap: 20px; /* เว้นช่องว่างระหว่างปุ่ม */
+}
+
+.button-container-dashbord {
+  width: 100%;
+}
+
+.admin-link-dashbord {
+  text-decoration: none;
+}
+
+.admin-button-dashbord {
+  width: 100%;
+  padding: 14px 0;
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background-color: #90ee90; /* สีเขียวอ่อน */
+  color: #004d00;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.admin-button-dashbord:hover {
+  background-color: #76c776; /* สีเขียวเข้มขึ้น */
+}

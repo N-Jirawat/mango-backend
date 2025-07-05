@@ -1,0 +1,223 @@
+/* StatisticsUser.css */
+
+.statistics-user-container {
+  padding: 30px;
+  max-width: 900px;
+  margin: auto;
+  line-height: 1.6;
+}
+
+.statistics-user-container h2 {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.user-stat-section {
+  margin-bottom: 40px;
+}
+
+.user-stat-section p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.user-stat-section img {
+  max-width: 100%;
+  height: auto;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* เพิ่มส่วนใหม่สำหรับสถิติ */
+.user-manual-container {
+  padding: 30px;
+  max-width: 900px;
+  margin: auto;
+  line-height: 1.6;
+}
+
+.statistics-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-box {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 1px solid #e0e0e0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stat-box h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #2196F3;
+  margin: 10px 0;
+}
+
+.stat-unit {
+  color: #666;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.disease-stats {
+  text-align: left;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.disease-item {
+  margin: 10px 0;
+}
+
+.disease-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.disease-name {
+  font-weight: bold;
+  color: #333;
+}
+
+.disease-count {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.disease-bar {
+  background: #f0f0f0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.disease-fill {
+  background: linear-gradient(90deg, #4CAF50, #2196F3);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.no-data {
+  color: #999;
+  font-style: italic;
+  margin: 0;
+}
+
+.last-active {
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.action-buttons {
+  margin-top: 30px;
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  background: #2196F3;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-button:hover {
+  background: #1976D2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.nav-button:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .statistics-user-container,
+  .user-manual-container {
+    padding: 20px;
+  }
+  
+  .statistics-section {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .stat-box {
+    padding: 20px;
+  }
+  
+  .stat-number {
+    font-size: 2rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .nav-button {
+    width: 100%;
+    max-width: 250px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .statistics-user-container,
+  .user-manual-container {
+    padding: 15px;
+  }
+  
+  .stat-box {
+    padding: 15px;
+  }
+  
+  .stat-number {
+    font-size: 1.8rem;
+  }
+  
+  .disease-info {
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .disease-count {
+    font-size: 0.8rem;
+  }
+}

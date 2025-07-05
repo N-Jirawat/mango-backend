@@ -1,0 +1,86 @@
+/* สไตล์เฉพาะสำหรับหน้า Mango.js */
+
+/* ปุ่มเพิ่มข้อมูล */
+.card button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.card button:hover {
+  background-color: #45a049;
+}
+
+/* รายการโรค */
+.disease-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.disease-item {
+  background-color: #f8f8f8;
+  padding: 20px;
+  border: 2px solid #109d00;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.disease-item:hover {
+  background-color: #e0ffe0;
+  border-color: #079d00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.disease-item h3 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  font-weight: bold;
+  color: #2c5530;
+}
+
+.disease-item p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ข้อความเมื่อไม่มีข้อมูล */
+.disease-list p {
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+  font-style: italic;
+  padding: 40px 20px;
+}
+
+/* สถานะการโหลด */
+.loading-message {
+  text-align: center;
+  font-size: 18px;
+  color: #666;
+  padding: 40px 20px;
+}
+
+.error-message {
+  text-align: center;
+  font-size: 18px;
+  color: #e74c3c;
+  padding: 40px 20px;
+  background-color: #ffeaea;
+  border: 1px solid #f5c6cb;
+  border-radius: 5px;
+  margin: 20px 0;
+}

@@ -1,0 +1,51 @@
+.predict-page-container {
+  width: 700px;
+  margin: 40px auto;
+  padding: 24px;
+  border: none; /* ลบเส้นกรอบ */
+  border-radius: 12px; /* มุมโค้งมน */
+  background-color: #ffffff; /* พื้นหลังขาว */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); /* เงาเบาๆ แทนขอบ */
+  transition: box-shadow 0.3s ease;
+}
+
+.predict-page-container:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* เงาชัดขึ้นเล็กน้อยตอน hover */
+}
+
+.back-button {
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.back-button:hover {
+  background-color: #388e3c;
+  transform: scale(1.05);
+}
+
+.back-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(72, 180, 97, 0.6);
+}
+
+.back-button svg {
+  margin-right: 6px;
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.predict-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}

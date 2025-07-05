@@ -1,0 +1,18 @@
+/* จัดจังหวัด อำเภอ ตำบล ให้อยู่ในแถวเดียวกัน */
+.location-container {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    margin-top: 15px;
+  }
+  
+  .location-container select {
+    flex: 1;
+    padding: 8px;
+    border: 2px solid #109d00;
+    border-radius: 8px;
+    background-color: #f9fff0;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  

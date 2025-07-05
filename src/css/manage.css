@@ -1,0 +1,112 @@
+/* General container styles */
+.manage-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* ทำให้เนื้อหากลางแนวตั้ง */
+    min-height: 50vh; /* ให้ความสูงเต็มจอ */
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f9f9f9; /* สีพื้นหลัง */
+  }
+  
+  /* Title styles */
+  .title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #388c21;
+    margin-bottom: 20px;
+  }
+  
+  /* User list container */
+  .users-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    width: 50%;
+    max-width: 400px;
+  }
+  
+  /* User card styles */
+  .user-card {
+    background-color: #c5fdb6;
+    color: white;
+    padding: 12px 20px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+  }
+  
+  .user-card:hover {
+    background-color: #9eff83;
+  }
+  
+  /* No user message */
+  .no-users {
+    color: red;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: center;
+    margin-top: 10px;
+  }
+  
+  /* Button group */
+  .button-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  /* Button styles */
+  .btn {
+    padding: 10px 15px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: 0.3s ease;
+  }
+  
+  .btn-gray {
+    background: gray;
+    color: white;
+  }
+  
+  .btn-gray:hover {
+    background: #5a5a5a;
+  }
+  
+  .btn-green {
+    background: green;
+    color: white;
+  }
+  
+  .btn-green:hover {
+    background: #0f7b33;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 480px) {
+    .manage-container {
+      width: 100%;
+      padding: 15px;
+    }
+  
+    .user-card {
+      font-size: 16px;
+      max-width: 250px;
+    }
+  
+    .btn {
+      font-size: 14px;
+      padding: 8px 12px;
+    }
+  }
+  

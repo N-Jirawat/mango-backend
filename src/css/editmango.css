@@ -1,0 +1,148 @@
+/* สไตล์เฉพาะสำหรับหน้า EditMango.js */
+
+/* หัวข้อหน้า */
+.disease-detail-container h3 {
+  text-align: center;
+  font-size: 26px;
+  font-weight: bold;
+  color: #2c5530;
+  margin-bottom: 25px;
+}
+
+/* ฟอร์มแก้ไข */
+.edit-form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* ปุ่มในฟอร์มแก้ไข */
+.button-container {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ปุ่มบันทึก */
+.button-container button[type="submit"] {
+  background-color: #007bff;
+  color: white;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 100px;
+}
+
+.button-container button[type="submit"]:hover:not(:disabled) {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.button-container button[type="submit"]:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ปุ่มลบ - สไตล์พิเศษ */
+.button-container .delete-button {
+  background-color: #dc3545;
+  color: white;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 100px;
+  margin-top: 0;
+  margin-left: 0;
+}
+
+.button-container .delete-button:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+/* ป้องกันการ submit ขณะลบ */
+.deleting-state {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ข้อความยืนยันการลบ */
+.delete-confirmation {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 15px;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  margin: 15px 0;
+  text-align: center;
+}
+
+/* รูปภาพในฟอร์มแก้ไข */
+.image-preview-edit {
+  text-align: center;
+  margin: 15px 0;
+}
+
+.image-preview-edit img {
+  max-width: 200px;
+  height: auto;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* สถานะการโหลดสำหรับปุ่มแก้ไข */
+.loading-edit::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+/* สถานะการลบ */
+.deleting::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive สำหรับหน้าจอเล็ก */
+@media (max-width: 600px) {
+  .button-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .button-container button {
+    width: 100%;
+    margin: 0;
+  }
+  
+  .disease-detail-container {
+    margin: 10px;
+    padding: 15px;
+  }
+}

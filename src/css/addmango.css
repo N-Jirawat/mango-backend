@@ -1,0 +1,200 @@
+/* สไตล์เฉพาะสำหรับหน้า AddMango.js */
+
+/* คอนเทนเนอร์หลัก */
+.disease-detail-container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  min-height: calc(100vh - 100px);
+  overflow-x: hidden;
+}
+
+/* Header พร้อมปุ่มย้อนกลับ */
+.addmango-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.back-button {
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.back-button:hover {
+  background-color: #388e3c;
+  transform: scale(1.05);
+}
+
+.back-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(72, 180, 97, 0.6);
+}
+
+/* หัวข้อหน้า */
+.disease-detail-container h2 {
+  text-align: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #2c5530;
+  margin-bottom: 30px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #4CAF50;
+}
+
+/* ฟอร์มคอนเทนเนอร์ */
+.boxmango {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 25px;
+  background-color: #f9fff9;
+  border-radius: 10px;
+  border: 1px solid #e8f5e8;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* สไตล์สำหรับกลุ่มอินพุต */
+.boxmango > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ป้ายข้อความ (Label) */
+.boxmango label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c5530;
+  margin-bottom: 5px;
+}
+
+/* อินพุตข้อความ */
+.boxmango input[type="text"] {
+  width: 100%;
+  max-width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.boxmango input[type="text"]:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  background-color: #fff;
+}
+
+/* การจัดการไฟล์อัปโหลด */
+.boxmango input[type="file"] {
+  width: 100%;
+  max-width: 100%;
+  padding: 12px;
+  border: 2px dashed #4CAF50;
+  border-radius: 8px;
+  background-color: #f8fff8;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.boxmango input[type="file"]:hover {
+  border-color: #45a049;
+  background-color: #f0fff0;
+}
+
+.boxmango input[type="file"]:focus {
+  outline: none;
+  border-color: #45a049;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+/* ปุ่มในฟอร์ม */
+.button-container-addmango {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.button-container-addmango button[type="submit"] {
+  padding: 10px 10px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #4CAF50;
+  color: #ffffff;
+  min-width: 100px;
+  width: auto;
+}
+
+.button-container-addmango button[type="submit"]:hover:not(:disabled) {
+  background-color: #45a049;
+  transform: translateY(-1px);
+}
+
+.button-container-addmango button[type="submit"]:disabled {
+  background-color: #81c784;
+  color: #2E7D32;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .disease-detail-container {
+    margin: 10px;
+    padding: 15px;
+  }
+  
+  .disease-detail-container h2 {
+    font-size: 24px;
+  }
+  
+  .boxmango {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .disease-detail-container {
+    margin: 5px;
+    padding: 10px;
+  }
+  
+  .disease-detail-container h2 {
+    font-size: 20px;
+  }
+  
+  .boxmango {
+    padding: 15px;
+  }
+  
+  .boxmango input[type="text"], 
+  .boxmango input[type="file"] {
+    font-size: 14px;
+    padding: 10px;
+  }
+}

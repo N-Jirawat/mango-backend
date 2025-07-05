@@ -1,0 +1,246 @@
+/* สไตล์ที่ใช้ร่วมกันในทุกหน้า */
+
+/* Container หลัก */
+.disease-detail-container {
+  max-width: 550px;
+  margin: 20px auto;
+  padding: 20px;
+  border: 2px solid #4CAF50;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  position: relative;
+}
+
+/* ปุ่มพื้นฐาน */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.button-container button {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: 0.3s;
+}
+
+/* ปุ่มย้อนกลับ */
+.back-button, 
+.button-container button:first-child {
+  background-color: #ffffff;
+  color: black;
+  border: 2px solid #ccc;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.back-button:hover,
+.button-container button:first-child:hover {
+  background-color: #f0f0f0;
+  border-color: #aaa;
+  transform: scale(1.05);
+}
+
+.back-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(72, 180, 97, 0.6);
+}
+
+/* ปุ่ม submit */
+.submit-button {
+  background-color: #008CBA;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  margin-right: 10px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.submit-button:hover {
+  background-color: #006f8e;
+}
+
+/* ปุ่มลบ */
+.delete-button {
+  background-color: #e74c3c;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+  margin-left: 10px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.delete-button:hover {
+  background-color: #c0392b;
+}
+
+/* รูปภาพ */
+.disease-image {
+  width: 200px;
+  height: 350px;
+  object-fit: contain;
+  margin-top: 10px;
+  border-radius: 10px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ฟอร์มพื้นฐาน */
+.boxmango {
+  max-width: 400px;
+  margin: auto;
+}
+
+.boxmango div {
+  margin-bottom: 15px;
+}
+
+.boxmango label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.boxmango input[type="text"],
+.boxmango input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.boxmango input[type="text"]:focus {
+  border-color: #4CAF50;
+  outline: none;
+}
+
+/* การ์ดหลัก */
+.card {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  border: 2px solid #4CAF50;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+}
+
+.card h2 {
+  text-align: center;
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* เคลียร์เงา พื้นหลัง และขอบของทุกระดับที่เกี่ยวกับ carousel */
+.carousel *,
+.carousel *:hover,
+.carousel *:focus,
+.carousel *:active {
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+  background: none !important;
+  background-color: transparent !important;
+}
+
+/* สำหรับภาพโดยเฉพาะ */
+.carousel .slide img {
+  max-width: 700px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  margin: 0 auto;
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+  background: none !important;
+  background-color: transparent !important;
+  filter: none !important;
+  margin-bottom: 30px;
+}
+
+/* เคลียร์จาก .slide ที่อาจมีพื้นหลัง */
+.carousel .slide {
+  background: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ปิด hover และ focus ทุกกรณี */
+.carousel .slide img:hover,
+.carousel .slide img:focus,
+.carousel .slide img:active {
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+  background: none !important;
+  background-color: transparent !important;
+  filter: none !important;
+}
+
+/* ปุ่มนำทาง */
+.navigate-button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  margin-bottom: 20px;
+}
+
+.navigate-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 6px 12px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: auto;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.navigate-button:hover {
+  background-color: #388E3C;
+}
+
+.navigate-button:active {
+  background-color: #2e7d32;
+}
+
+.container-button {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+/* Responsive บนมือถือ */
+@media (max-width: 600px) {
+  .carousel .slide img {
+    max-width: 90%;
+  }
+}
