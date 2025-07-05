@@ -2,7 +2,7 @@ services:
   - type: web
     name: mango-api
     env: python
-    pythonVersion: 3.10
+    pythonVersion: 3.10.13
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: ./start.sh
