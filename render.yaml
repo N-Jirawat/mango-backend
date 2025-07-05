@@ -1,10 +1,7 @@
 services:
   - type: web
-    name: mango-app
+    name: mango-api
     env: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn backend.main:app --bind 0.0.0.0:$PORT
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.9"
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "./start.sh"
