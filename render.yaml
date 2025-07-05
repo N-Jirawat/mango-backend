@@ -1,7 +1,9 @@
 services:
   - type: web
-    name: mango-api
+    name: mango-disease-api
     env: python
-    buildCommand: ""
-    startCommand: "python app.py"
-    autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.9"
