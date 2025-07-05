@@ -3,5 +3,6 @@ services:
     name: mango-api
     env: python
     rootDir: backend
+    pythonVersion: 3.10.13
     buildCommand: pip install -r requirements.txt
     startCommand: ./start.sh
