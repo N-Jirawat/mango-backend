@@ -18,7 +18,7 @@ function EditMango() {
   const [loading, setLoading] = useState(false);
   const [imagePublicId, setImagePublicId] = useState("");
   const [isDeleting, setIsDeleting] = useState(false); // สถานะการลบข้อมูล
-  const BACKEND_URL = "https://mango-app-465207.as.r.appspot.com";
+  const BACKEND_URL = "https://mango-backend-665966382004.asia-southeast1.run.app";
 
   useEffect(() => {
     const fetchMangoData = async () => {

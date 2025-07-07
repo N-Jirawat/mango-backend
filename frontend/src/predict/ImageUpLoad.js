@@ -67,7 +67,7 @@ function ImageUpload({ setPredictionResult }) {
     formData.append('image', file);
 
     try {
-      const response = await fetch('https://mango-app-465207.as.r.appspot.com/predict', {
+      const response = await fetch('https://mango-backend-665966382004.asia-southeast1.run.app/predict', {
         method: 'POST',
         body: formData,
       });

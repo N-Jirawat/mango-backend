@@ -1,40 +1,32 @@
-# Ignore frontend source code (React/Vue)
-src/
-public/
-node_modules/
-
-# Ignore frontend config files (ถ้ามี)
-package.json
-package-lock.json
-yarn.lock
-
-# Python virtual environment
+# โฟลเดอร์ Python Virtual Environments
 .venv/
 venv/
-env/
-ENV/
+tfjs_env/ # ถ้ามี venv ที่เกี่ยวข้องกับ TensorFlow.js
 
-# Python cache and compiled files
+# ไฟล์และโฟลเดอร์ที่เกี่ยวข้องกับ Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Model files (ถ้าใช้ ML)
+# ไฟล์โมเดลและ Embedding ที่จะถูกดาวน์โหลดจาก GCS
 *.h5
 *.keras
-*.ckpt
-*.tflite
 *.npy
 
-# Logs and archives
-*.log
+# โฟลเดอร์ที่เก็บโมเดลขนาดใหญ่ที่ไม่ใช้ในการ Deploy
+backend/models/ # สำคัญมาก: โฟลเดอร์นี้มีโมเดลหลายสิบอันที่คุณฝึกมา
+model/          # ถ้าโฟลเดอร์ 'model' ใน root มีโมเดลขนาดใหญ่
+
+# โฟลเดอร์และไฟล์ที่เกี่ยวข้องกับ Frontend (React App)
+node_modules/
+package-lock.json
+build/          # Output ของการ Build Frontend
+frontend/       # Source Code ของ Frontend ทั้งหมด
+
+# ไฟล์ขนาดใหญ่อื่นๆ ที่ไม่จำเป็นต้อง Deploy
+largefile       # ไฟล์ 58MB ที่คุณมี
 *.zip
 *.tar.gz
-
-# Environment files and OS metadata
-.env
-.DS_Store
-
-# Cache directories
-.cache/
+*.log
+*.ipynb         # Jupyter Notebooks

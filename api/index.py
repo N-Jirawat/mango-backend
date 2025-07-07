@@ -14,7 +14,17 @@ from google.cloud import storage # เพิ่มการ import สำหร�
 
 # สร้าง Flask App
 app = Flask(__name__)
-CORS(app)
+
+# -------------------------------
+# CORS config
+# -------------------------------
+# แทนที่ 'https://YOUR_FRONTEND_RENDER_URL' ด้วย URL จริงของ Frontend ของคุณบน Render.com
+# ตัวอย่าง: 'https://my-mango-frontend.onrender.com'
+# หากมีหลาย URL ให้ใส่ในลิสต์ เช่น ['https://url1.onrender.com', 'https://url2.onrender.com']
+# สำหรับการทดสอบเท่านั้น: หากต้องการอนุญาตทุกโดเมน (ไม่แนะนำสำหรับ Production) ให้ใช้ origins="*"
+CORS(app, origins="https://mangoleafanalyzer.onrender.com")
+# หรือสำหรับการทดสอบทุกโดเมน (ไม่แนะนำสำหรับ Production):
+# CORS(app, origins="*")
 
 # -------------------------------
 # CONFIG
@@ -151,11 +161,11 @@ def validate_image_file(image_file):
     if not any(filename.endswith(ext) for ext in allowed_extensions):
         raise ValueError("รูปแบบภาพไม่ถูกต้อง รูปแบบที่รองรับ: PNG, JPG, JPEG, GIF, BMP, WEBP")
 
-    image_file.seek(0, 2)
+    image_file.seek(0, 2) # Move to end to get size
     file_size = image_file.tell()
-    image_file.seek(0)
+    image_file.seek(0) # Reset to beginning for reading
 
-    if file_size > 10 * 1024 * 1024:
+    if file_size > 10 * 1024 * 1024: # 10 MB limit
         raise ValueError("ขนาดไฟล์ใหญ่เกินไป ขนาดสูงสุดคือ 10MB")
 
 # -------------------------------
@@ -174,12 +184,12 @@ def predict_image():
         similarity = 0.0
         if USE_FILTER and hasattr(checkMango, 'mango_embeddings') and len(checkMango.mango_embeddings) > 0:
             try:
-                image.seek(0)
+                image.seek(0) # Reset file pointer before passing to checkMango
                 is_leaf, similarity = checkMango.is_mango_leaf_from_embedding(image, checkMango.mango_embeddings)
                 if similarity < MANGO_LEAF_THRESHOLD:
                     return jsonify({
                         "prediction": "ไม่ใช่ภาพใบมะม่วง",
-                        "confidence": float(similarity),
+                        "confidence": float(similarity), # Use similarity as confidence for rejection
                         "raw_class": None,
                         "accuracy": 0,
                         "mango_leaf_confidence": float(similarity),
@@ -188,10 +198,13 @@ def predict_image():
                     })
             except Exception as e:
                 print(f"เกิดข้อผิดพลาดในการตรวจจับใบมะม่วง: {e}")
-                similarity = 0.0 # ถ้าเกิด error ในการตรวจ ให้ค่าเป็น 0 ไปก่อน หรือจะ return error เลยก็ได้
+                # ควรพิจารณาว่าจะ return error หรือทำนายต่อไปโดยไม่กรอง
+                # ในที่นี้เลือกที่จะยังคงค่า similarity เป็น 0.0 และทำนายต่อไป
+                # หรือจะ raise e อีกครั้งเพื่อหยุดการทำงานหากการกรองสำคัญมาก
+                similarity = 0.0 
 
         # ทำนายโรค
-        image.seek(0)
+        image.seek(0) # Reset file pointer again before loading for prediction
         img_array = load_and_prep_image(image)
         prediction = model.predict(img_array, verbose=0)
         class_id = int(np.argmax(prediction))
@@ -206,7 +219,7 @@ def predict_image():
                 "confidence": confidence,
                 "raw_class": class_eng,
                 "accuracy": 0,
-                "disease_threshold": DISEASE_CONFIDENCE_THRESHOLD,
+                "disease_at_threshold": DISEASE_CONFIDENCE_THRESHOLD, # Changed from disease_threshold to disease_at_threshold
                 "status": "low_confidence"
             })
 
@@ -216,7 +229,7 @@ def predict_image():
             "confidence": confidence,
             "raw_class": class_eng,
             "accuracy": 1,
-            "disease_threshold": DISEASE_CONFIDENCE_THRESHOLD,
+            "disease_at_threshold": DISEASE_CONFIDENCE_THRESHOLD, # Changed from disease_threshold to disease_at_threshold
             "status": "success"
         }
 
@@ -231,7 +244,7 @@ def predict_image():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         import traceback
-        traceback.print_exc()
+        traceback.print_exc() # Print full traceback for debugging
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 @app.route("/upload", methods=["POST"])
