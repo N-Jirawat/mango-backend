@@ -9,7 +9,7 @@ from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 import cloudinary
 import cloudinary.uploader
 import os
-import checkMango
+from . import checkMango
 from google.cloud import storage # เพิ่มการ import สำหรับ Google Cloud Storage
 
 # สร้าง Flask App
