@@ -1,10 +1,42 @@
+# Python build artifacts
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# TensorFlow/Keras model files
 *.h5
 *.keras
+*.ckpt
+*.pb
+*.tflite
 *.npy
-.env
-.venv/
+
+# Node.js / frontend
 node_modules/
+dist/
+build/
+*.js.map
+
+# ข้อมูล/ภาพ/ผลลัพธ์ขนาดใหญ่
+data/
+datasets/
+images/
+uploads/
+results/
+test_images/
+sample_data/
+
+# Logs / Dev
+*.log
+*.zip
+*.tar.gz
+*.ipynb
+.DS_Store
+.env
