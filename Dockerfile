@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # กำหนด Environment Variable สำหรับ GCS Bucket Name
-ENV GCS_BUCKET_NAME=mango-app-models-465207-bucket 
+ENV GCS_BUCKET_NAME=mango-app-models-bucket
 # << ตรวจสอบชื่อ Bucket ของคุณ
 
 # กำหนด Port ที่แอปพลิเคชันจะฟัง
