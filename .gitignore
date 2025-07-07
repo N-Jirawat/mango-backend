@@ -1,12 +1,37 @@
+# Python files that should not be committed
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Virtual environment (if you're using one)
+.venv/
+env/
+venv/
+
+# Editor/IDE specific files (VS Code example)
+.vscode/
+
+# Operating System generated files
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Local environment variables
+.env
+
+# Large files / ML models that should NOT be part of the git repo and deployment package
+# These will be fetched from GCS at runtime
 *.h5
 *.keras
 *.npy
-!/api/models/mango_reference_embeddings.npy  # แก้ไขจาก /api/Model/
-!/api/models/model_efficientnetv2s_224_R1.keras # แก้ไขจาก /api/Model/
-.env
-.venv/
-node_modules/
+*.pb  # If you have SavedModel format
+!api/index.py # Ensure this specific file is NOT ignored if it matches other patterns
+!app.yaml     # Ensure this specific file is NOT ignored if it matches other patterns
+!requirements.txt # Ensure this specific file is NOT ignored if it matches other patterns
+
+# Specific files/folders that you might want to ignore if they exist
+# data/             # If you have large datasets
+# notebooks/        # If you have Jupyter notebooks you don't want to deploy
+# logs/             # If your app generates logs locally
+# output/           # Any output directories
+node_modules

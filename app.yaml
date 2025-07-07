@@ -1,0 +1,11 @@
+runtime: python310
+entrypoint: gunicorn -b :$PORT api.index:app
+
+instance_class: F1
+automatic_scaling:
+  min_instances: 0
+  max_instances: 1
+  target_cpu_utilization: 0.65
+
+env_variables: # เพิ่มส่วนนี้
+  GCS_BUCKET_NAME: mango-app-models-bucket # เปลี่ยนเป็นชื่อ Bucket ของคุณ
