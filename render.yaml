@@ -4,4 +4,5 @@ services:
     env: python
     pythonVersion: 3.10.13
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app
+    startCommand: gunicorn app:app
+
