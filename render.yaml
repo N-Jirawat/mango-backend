@@ -3,6 +3,6 @@ services:
     name: mango-api
     env: python
     plan: free
-    pythonVersion: 3.10.13
+    pythonVersion: 3.11.9 # หรือ 3.10.13 (ลอง 3.11.9 ดูก่อน)
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn main:app --bind 0.0.0.0:$PORT
