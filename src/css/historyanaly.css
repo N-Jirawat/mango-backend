@@ -1,5 +1,6 @@
 .history-container {
-  max-width: 800px; /* เพิ่มความกว้างเพื่อรองรับการค้นหา */
+  max-width: 800px;
+  /* เพิ่มความกว้างเพื่อรองรับการค้นหา */
   width: 95%;
   margin: 40px auto;
   padding: 30px;
@@ -119,6 +120,9 @@
 
 /* รายการประวัติ */
 .history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
   margin-top: 20px;
 }
 
@@ -207,11 +211,17 @@
 /* Pagination */
 .pagination-container {
   display: flex;
+  flex-direction: row;
+  /* แนวนอน */
   justify-content: center;
   align-items: center;
-  margin-top: 35px;
-  gap: 8px;
-  flex-wrap: wrap;
+  margin-top: 30px;
+  gap: 10px;
+  flex-wrap: nowrap;
+  /* ห้ามขึ้นบรรทัดใหม่ */
+  overflow-x: auto;
+  /* ป้องกันล้นจอ */
+  padding: 10px;
 }
 
 .pagination-btn {
@@ -382,63 +392,66 @@
     width: calc(100% - 20px);
     max-width: none;
   }
-  
+
   .history-container h2 {
     font-size: 22px;
     margin-bottom: 20px;
   }
-  
+
   .search-container {
     padding: 20px;
   }
-  
+
   .search-container h3 {
     font-size: 18px;
   }
-  
+
   .date-range-container {
     flex-direction: column;
     gap: 15px;
   }
-  
+
   .date-field {
     min-width: unset;
   }
-  
+
   .search-field input {
     padding: 10px 14px;
-    font-size: 16px; /* ป้องกัน zoom ใน iOS */
+    font-size: 16px;
+    /* ป้องกัน zoom ใน iOS */
   }
-  
+
   .history-item {
     padding: 20px;
     margin-bottom: 15px;
   }
-  
+
   .history-item h3 {
     font-size: 20px;
   }
-  
+
   .history-item p {
     font-size: 14px;
   }
-  
+
   .image-thumbnail {
     width: 70px;
     height: 70px;
   }
-  
-  .view-details-btn, .delete-btn {
+
+  .view-details-btn,
+  .delete-btn {
     padding: 10px 20px;
     font-size: 14px;
   }
-  
+
   .pagination-container {
     gap: 6px;
     margin-top: 25px;
   }
-  
-  .pagination-btn, .pagination-nav {
+
+  .pagination-btn,
+  .pagination-nav {
     padding: 8px 12px;
     font-size: 13px;
     min-width: 36px;
@@ -449,63 +462,73 @@
   .history-container {
     margin: 10px 5px;
     padding: 15px;
+
   }
-  
+
+  .pagination-btn,
+  .pagination-nav {
+    padding: 8px 10px;
+    font-size: 13px;
+    min-width: 36px;
+  }
+
   .history-container h2 {
     font-size: 20px;
   }
-  
+
   .search-container {
     padding: 15px;
   }
-  
+
   .search-container h3 {
     font-size: 16px;
   }
-  
+
   .search-field label {
     font-size: 13px;
   }
-  
+
   .search-field input {
     padding: 10px 12px;
     font-size: 16px;
   }
-  
+
   .clear-search-btn {
     width: 100%;
     padding: 12px;
   }
-  
+
   .history-item {
     padding: 15px;
   }
-  
+
   .history-item h3 {
     font-size: 18px;
   }
-  
-  .view-details-btn, .delete-btn {
+
+  .view-details-btn,
+  .delete-btn {
     width: 100%;
     margin-top: 15px;
     padding: 12px;
   }
-  
+
   .pagination-container {
     gap: 4px;
   }
-  
-  .pagination-btn, .pagination-nav {
+
+  .pagination-btn,
+  .pagination-nav {
     padding: 8px 10px;
     font-size: 12px;
     min-width: 32px;
   }
-  
+
   .pagination-nav {
     font-size: 11px;
     padding: 8px;
   }
-  
+
   .back-button {
     padding: 8px 14px;
     font-size: 13px;

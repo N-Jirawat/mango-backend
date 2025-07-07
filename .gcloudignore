@@ -1,42 +1,40 @@
-# Python build artifacts
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
+# Ignore frontend source code (React/Vue)
+src/
+public/
+node_modules/
 
-# Virtual environments
+# Ignore frontend config files (ถ้ามี)
+package.json
+package-lock.json
+yarn.lock
+
+# Python virtual environment
 .venv/
 venv/
 env/
 ENV/
 
-# TensorFlow/Keras model files
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Model files (ถ้าใช้ ML)
 *.h5
 *.keras
 *.ckpt
-*.pb
 *.tflite
 *.npy
 
-# Node.js / frontend
-node_modules/
-dist/
-build/
-*.js.map
-
-# ข้อมูล/ภาพ/ผลลัพธ์ขนาดใหญ่
-data/
-datasets/
-images/
-uploads/
-results/
-test_images/
-sample_data/
-
-# Logs / Dev
+# Logs and archives
 *.log
 *.zip
 *.tar.gz
-*.ipynb
-.DS_Store
+
+# Environment files and OS metadata
 .env
+.DS_Store
+
+# Cache directories
+.cache/

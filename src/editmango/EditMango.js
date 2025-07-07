@@ -18,6 +18,7 @@ function EditMango() {
   const [loading, setLoading] = useState(false);
   const [imagePublicId, setImagePublicId] = useState("");
   const [isDeleting, setIsDeleting] = useState(false); // สถานะการลบข้อมูล
+  const BACKEND_URL = "https://mango-app-465207.as.r.appspot.com";
 
   useEffect(() => {
     const fetchMangoData = async () => {
@@ -62,10 +63,11 @@ function EditMango() {
     formData.append("folder", "mango_diseases");
 
     try {
-      const response = await fetch("http://localhost:5000/upload", {
+      const response = await fetch(`${BACKEND_URL}/upload`, {
         method: "POST",
         body: formData,
       });
+
       const data = await response.json();
       return data;
     } catch (error) {
@@ -79,10 +81,11 @@ function EditMango() {
     formData.append("public_id", publicId);
 
     try {
-      const response = await fetch("http://localhost:5000/delete", {
+      const response = await fetch(`${BACKEND_URL}/delete`, {
         method: "POST",
         body: formData,
       });
+
       const data = await response.json();
       if (data.result === "ok") {
         console.log("Image deleted successfully from Cloudinary.");
