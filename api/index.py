@@ -1,4 +1,6 @@
-from flask import Flask, request, jsonify, send_from_directory
+# api/index.py (ไฟล์นี้จะอยู่ในโฟลเดอร์ api/ ของโปรเจกต์)
+
+from flask import Flask, request, jsonify # send_from_directory ไม่จำเป็นแล้ว
 from flask_cors import CORS
 from PIL import Image
 import numpy as np
@@ -9,10 +11,12 @@ from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 import cloudinary
 import cloudinary.uploader
 import os
-import gdown
-import checkMango
+# import gdown # ไม่จำเป็นแล้ว ถ้าโมเดลอยู่ใน repo
+import checkMango # ตรวจสอบให้แน่ใจว่า checkMango.py อยู่ในโฟลเดอร์ api/ เดียวกัน
 
-app = Flask(__name__, static_folder="../build", static_url_path="/")
+# สร้าง Flask App โดยไม่ต้องระบุ static_folder หรือ static_url_path
+# เนื่องจาก Vercel จะ Serve Frontend แยกต่างหาก
+app = Flask(__name__)
 CORS(app)
 
 # -------------------------------
@@ -34,30 +38,37 @@ class_map = {
 }
 
 # -------------------------------
-# Cloudinary config (optional)
+# Cloudinary config
 # -------------------------------
+# แนะนำให้เก็บ API keys ใน Environment Variables บน Vercel
+# เช่น VERCEL_CLOUD_NAME, VERCEL_API_KEY, VERCEL_API_SECRET
+# เพื่อความปลอดภัยและง่ายต่อการจัดการ
 cloudinary.config(
-    cloud_name='dsf25dlca',
-    api_key='978124749794588',
-    api_secret='s_KmqxdLxYeW8H-dCbLkWFx_ZTQ',
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', 'dsf25dlca'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY', '978124749794588'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET', 's_KmqxdLxYeW8H-dCbLkWFx_ZTQ'),
 )
+# หากคุณใช้ Environment Variables บน Vercel ให้ไปเพิ่มค่าเหล่านี้ใน Project Settings -> Environment Variables
 
 # -------------------------------
-# โหลดโมเดลจาก Google Drive
+# โหลดโมเดลจาก Local Path
 # -------------------------------
-model_path = "Model/model_efficientnetv2s_224_R1.keras"
-model_file_id = "1cf-SSC8SdcgbJYhqn_-fu7hDhmgUcCST"  # ใส่ ID จริง
-model_url = f"https://drive.google.com/uc?id={model_file_id}"
+# ใช้ os.path.join และ os.path.dirname(__file__) เพื่อให้ Path ถูกต้องเสมอ
+# ไม่ว่าไฟล์จะถูกรันที่ไหน
+model_base_dir = os.path.join(os.path.dirname(__file__), "Model")
+model_path = os.path.join(model_base_dir, "model_efficientnetv2s_224_R1.keras")
 
-if not os.path.exists(model_path):
-    print("📥 Downloading model...")
-    os.makedirs(os.path.dirname(model_path), exist_ok=True)
-    gdown.download(model_url, model_path, quiet=False)
-else:
-    print("✅ Model already exists.")
+# gdown และ model_file_id ไม่จำเป็นแล้ว เพราะโมเดลจะอยู่ใน repo
+# model_file_id = "1cf-SSC8SdcgbJYhqn_-fu7hDhmgUcCST"
+# model_url = f"https://drive.google.com/uc?id={model_file_id}"
+
+# Vercel จะจัดการการดาวน์โหลดโมเดลอัตโนมัติจาก Git LFS (ถ้าใช้)
+# หรือถ้าเป็นไฟล์ขนาดเล็ก ก็จะอยู่ใน repo โดยตรง
+# ไม่ต้องเช็ค os.path.exists หรือ gdown.download ที่นี่แล้ว
+# เพราะมันควรจะอยู่แล้วตอน Build Time
 
 def verify_model_file(model_path):
-    """ตรวจสอบความถูกต้องของไฟล์โมเดล"""
+    """ตรวจสอบความถูกต้องของไฟล์โมเดล (รันตอน Build Time)"""
     if not os.path.exists(model_path):
         return False, f"Model file does not exist: {model_path}"
     
@@ -68,7 +79,6 @@ def verify_model_file(model_path):
     if file_size < 1024:  # ไฟล์เล็กกว่า 1KB น่าจะเป็นไฟล์ error
         return False, f"Model file too small ({file_size} bytes)"
     
-    # ลองอ่านไฟล์ดูว่าเป็น binary file ที่ถูกต้องหรือไม่
     try:
         with open(model_path, 'rb') as f:
             header = f.read(8)
@@ -80,7 +90,7 @@ def verify_model_file(model_path):
     return True, "File appears valid"
 
 # -------------------------------
-# โหลดโมเดลหลัก
+# โหลดโมเดลหลัก (จะถูกโหลดเพียงครั้งเดียวตอน Cold Start)
 # -------------------------------
 print(f"Checking model file: {model_path}")
 is_valid, message = verify_model_file(model_path)
@@ -91,17 +101,17 @@ if not is_valid:
     raise RuntimeError(f"Model file not found or invalid: {message}")
 
 try:
-    print("Loading model...")
+    print("Loading main model...")
     model = load_model(model_path)
-    print(f"✅ Model loaded successfully from {model_path}")
+    print(f"✅ Main model loaded successfully from {model_path}")
     print(f"   Model input shape: {model.input_shape}")
     print(f"   Model output shape: {model.output_shape}")
 except Exception as e:
-    print(f"❌ Error loading model: {e}")
-    raise RuntimeError(f"Failed to load model from {model_path}: {e}")
+    print(f"❌ Error loading main model: {e}")
+    raise RuntimeError(f"Failed to load main model from {model_path}: {e}")
 
 # -------------------------------
-# โหลด embedding model และ reference embeddings
+# โหลด embedding model และ reference embeddings (จะถูกโหลดเพียงครั้งเดียวตอน Cold Start)
 # -------------------------------
 if USE_FILTER:
     # โหลด embedding model
@@ -112,22 +122,19 @@ if USE_FILTER:
         print(f"❌ Failed to load embedding model: {e}")
         raise RuntimeError(f"Failed to load embedding model: {e}")
 
-    # โหลด reference embeddings จาก Google Drive
-    embedding_path = "Model/mango_reference_embeddings.npy"
-    embedding_file_id = "1mBCsEXT7yF8xJ8K72SLHyC134Qt2Zkgo"  # เปลี่ยนเป็น ID จริง
-    embedding_url = f"https://drive.google.com/uc?id={embedding_file_id}"
+    # โหลด reference embeddings จาก Local Path
+    embedding_path = os.path.join(model_base_dir, "mango_reference_embeddings.npy")
+    # embedding_file_id และ embedding_url ไม่จำเป็นแล้ว
 
     try:
-        if not os.path.exists(embedding_path):
-            print("📥 Downloading mango_reference_embeddings.npy from Google Drive...")
-            os.makedirs(os.path.dirname(embedding_path), exist_ok=True)
-            gdown.download(embedding_url, embedding_path, quiet=False)
-        
+        # ไม่ต้องเช็ค os.path.exists หรือ gdown.download ที่นี่แล้ว
         checkMango.mango_embeddings = np.load(embedding_path)
         print(f"✅ Loaded {embedding_path} with shape {checkMango.mango_embeddings.shape}")
     except Exception as e:
         print(f"❌ Error loading {embedding_path}: {e}")
-        checkMango.mango_embeddings = np.array([])
+        # ถ้าโหลดไม่ได้ ควรยกเว้น error หรือให้มันยังรันได้แต่ไม่มี filter
+        # ในที่นี้เลือก raise error เพื่อให้แน่ใจว่าระบบทำงานถูกต้อง
+        raise RuntimeError(f"Failed to load mango embeddings from {embedding_path}: {e}")
 else:
     print("🔄 Mango leaf filtering is disabled (USE_FILTER = False)")
     checkMango.mango_embeddings = np.array([])
@@ -175,7 +182,7 @@ def predict_image():
 
         # ตรวจสอบว่าเป็นใบมะม่วงหรือไม่ (ถ้า USE_FILTER = True)
         similarity = 0.0
-        if USE_FILTER and len(checkMango.mango_embeddings) > 0:
+        if USE_FILTER and hasattr(checkMango, 'mango_embeddings') and len(checkMango.mango_embeddings) > 0:
             try:
                 image.seek(0)
                 is_leaf, similarity = checkMango.is_mango_leaf_from_embedding(image, checkMango.mango_embeddings)
@@ -191,7 +198,7 @@ def predict_image():
                     })
             except Exception as e:
                 print(f"Error in mango leaf detection: {e}")
-                similarity = 0.0
+                similarity = 0.0 # ถ้าเกิด error ในการตรวจ ให้ค่าเป็น 0 ไปก่อน หรือจะ return error เลยก็ได้
 
         # ทำนายโรค
         image.seek(0)
@@ -224,7 +231,7 @@ def predict_image():
         }
 
         # เพิ่มข้อมูล mango leaf confidence ถ้ามีการใช้ filter
-        if USE_FILTER and len(checkMango.mango_embeddings) > 0:
+        if USE_FILTER and hasattr(checkMango, 'mango_embeddings') and len(checkMango.mango_embeddings) > 0:
             response_data["mango_leaf_confidence"] = float(similarity)
             response_data["mango_leaf_threshold"] = MANGO_LEAF_THRESHOLD
 
@@ -278,7 +285,7 @@ def get_config():
         "model_classes": model_classes,
         "has_mango_embeddings": len(checkMango.mango_embeddings) > 0 if hasattr(checkMango, 'mango_embeddings') else False,
         "model_path": model_path,
-        "embedding_path": "Model/mango_reference_embeddings.npy" if USE_FILTER else None
+        "embedding_path": os.path.join(model_base_dir, "mango_reference_embeddings.npy") if USE_FILTER else None # ปรับ path
     })
 
 @app.route('/config', methods=['POST'])
@@ -305,31 +312,9 @@ def health_check():
     """ตรวจสอบสถานะของระบบ"""
     return jsonify({
         "status": "healthy",
-        "model_loaded": model is not None,
+        "model_loaded": 'model' in globals() and model is not None, # ตรวจสอบตัวแปร model
         "embedding_model_loaded": hasattr(checkMango, 'embedding_model') and checkMango.embedding_model is not None,
         "mango_embeddings_loaded": len(checkMango.mango_embeddings) > 0 if hasattr(checkMango, 'mango_embeddings') else False,
         "use_filter": USE_FILTER
     })
 
-@app.route("/")
-def serve():
-    return send_from_directory(app.static_folder, "index.html")
-
-@app.route("/<path:path>")
-def static_proxy(path):
-    return send_from_directory(app.static_folder, path)
-
-if __name__ == '__main__':
-    print("\n" + "="*50)
-    print("🥭 Mango Disease Detection API")
-    print("="*50)
-    print(f"📂 Model file: {os.path.abspath(model_path)}")
-    print(f"📂 Embedding file: {os.path.abspath('Model/mango_reference_embeddings.npy') if USE_FILTER else 'Not used'}")
-    print(f"🔍 Mango leaf filtering: {'Enabled' if USE_FILTER else 'Disabled'}")
-    print(f"🎯 Mango leaf threshold: {MANGO_LEAF_THRESHOLD}")
-    print(f"🎯 Disease confidence threshold: {DISEASE_CONFIDENCE_THRESHOLD}")
-    print("="*50)
-    
-    # สำหรับ Render deployment
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
