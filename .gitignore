@@ -5,8 +5,8 @@ __pycache__/
 *.h5
 *.keras
 *.npy
-!/api/Model/mango_reference_embeddings.npy
-!/api/Model/model_efficientnetv2s_224_R1.keras
+!/api/models/mango_reference_embeddings.npy  # แก้ไขจาก /api/Model/
+!/api/models/model_efficientnetv2s_224_R1.keras # แก้ไขจาก /api/Model/
 .env
 .venv/
 node_modules/

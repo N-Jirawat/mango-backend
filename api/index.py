@@ -55,7 +55,7 @@ cloudinary.config(
 # -------------------------------
 # ใช้ os.path.join และ os.path.dirname(__file__) เพื่อให้ Path ถูกต้องเสมอ
 # ไม่ว่าไฟล์จะถูกรันที่ไหน
-model_base_dir = os.path.join(os.path.dirname(__file__), "Model")
+model_base_dir = os.path.join(os.path.dirname(__file__), "models")
 model_path = os.path.join(model_base_dir, "model_efficientnetv2s_224_R1.keras")
 
 # gdown และ model_file_id ไม่จำเป็นแล้ว เพราะโมเดลจะอยู่ใน repo
