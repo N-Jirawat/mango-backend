@@ -3,8 +3,8 @@ __pycache__/
 *.pyo
 *.pyd
 *.h5
-*.npy
-*.keras
+# *.npy
+# *.keras
 .env
 .venv/
 node_modules/
