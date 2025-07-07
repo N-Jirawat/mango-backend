@@ -3,8 +3,10 @@ __pycache__/
 *.pyo
 *.pyd
 *.h5
-# *.npy
-# *.keras
+*.keras
+*.npy
+!/api/Model/mango_reference_embeddings.npy
+!/api/Model/model_efficientnetv2s_224_R1.keras
 .env
 .venv/
 node_modules/

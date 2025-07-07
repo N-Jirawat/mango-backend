@@ -1,2 +1,2 @@
-api/Model/*.keras filter=lfs diff=lfs merge=lfs -text
-api/Model/*.npy filter=lfs diff=lfs merge=lfs -text
+/api/Model/mango_reference_embeddings.npy filter=lfs diff=lfs merge=lfs -text
+/api/Model/model_efficientnetv2s_224_R1.keras filter=lfs diff=lfs merge=lfs -text
