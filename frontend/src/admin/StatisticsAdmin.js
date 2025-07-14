@@ -114,6 +114,14 @@ function StatisticsAdmin() {
     });
   }, [districtDiseaseMap, usersMap]);
 
+  // สุ่มสีอ่อน ๆ ให้แต่ละโรค
+  const getColorFromIndex = (index) => {
+    const colors = [
+      "#4CAF50", "#2196F3", "#FFC107", "#FF5722", "#9C27B0", "#00BCD4", "#8BC34A", "#E91E63"
+    ];
+    return colors[index % colors.length];
+  };
+
   if (loading) {
     return <div className="statistics-admin-container">กำลังโหลดข้อมูลสถิติผู้ใช้ทั้งหมด...</div>;
   }
@@ -127,14 +135,14 @@ function StatisticsAdmin() {
           <h3>👥 จำนวนสมาชิก</h3>
           <div className="admin-stat-number">{memberCount}</div>
           <p className="admin-stat-unit">คน</p>
-          <small style={{color: '#666'}}>รวมทั้งหมด: {memberCount} คน</small>
+          <small className="small-text">รวมทั้งหมด: {memberCount} คน</small>
         </div>
 
         <div className="admin-stat-box">
           <h3>🖼️ จำนวนภาพที่วิเคราะห์</h3>
           <div className="admin-stat-number">{memberImageCount}</div>
           <p className="admin-stat-unit">ภาพ</p>
-          <small style={{color: '#666'}}>รวมทั้งหมด: {imageCount} ภาพ</small>
+          <small className="small-text">รวมทั้งหมด: {imageCount} ภาพ</small>
         </div>
 
         <div className="admin-stat-box">
@@ -178,7 +186,7 @@ function StatisticsAdmin() {
         <div className="district-chart-box">
           <h4>📍 โรคที่พบบ่อยในแต่ละอำเภอ</h4>
           <div className="chart-container">
-            <div className="chart-section" style={{ width: '70%', height: '400px' }}>
+            <div className="chart-section chart-container-70">
               <BarChart
                 width={600}
                 height={400}
@@ -194,7 +202,7 @@ function StatisticsAdmin() {
                     key={disease}
                     dataKey={disease}
                     stackId="a"
-                    fill={colorFromIndex(idx)}
+                    fill={getColorFromIndex(idx)}
                   />
                 ))}
               </BarChart>
@@ -205,8 +213,7 @@ function StatisticsAdmin() {
                 {Object.keys(diseaseStats).map((disease, idx) => (
                   <div key={disease} className="legend-item">
                     <div 
-                      className="legend-color" 
-                      style={{ backgroundColor: colorFromIndex(idx) }}
+                      className={`legend-color legend-color-${idx % 8}`}
                     ></div>
                     <span className="legend-text">{disease}</span>
                   </div>
@@ -216,21 +223,13 @@ function StatisticsAdmin() {
           </div>
         </div>
       ) : (
-        <div style={{ margin: '20px 0', padding: '20px', background: '#fff3cd', border: '1px solid #ffeaa7' }}>
-          <p>ไม่มีข้อมูลกราฟเพื่อแสดงผل</p>
+        <div className="warning-box">
+          <p>ไม่มีข้อมูลกราฟเพื่อแสดงผล</p>
           <p>chartData: {JSON.stringify(chartData, null, 2)}</p>
         </div>
       )}
     </div>
   );
-}
-
-// สุ่มสีอ่อน ๆ ให้แต่ละโรค
-function colorFromIndex(index) {
-  const colors = [
-    "#4CAF50", "#2196F3", "#FFC107", "#FF5722", "#9C27B0", "#00BCD4", "#8BC34A", "#E91E63"
-  ];
-  return colors[index % colors.length];
 }
 
 export default StatisticsAdmin;

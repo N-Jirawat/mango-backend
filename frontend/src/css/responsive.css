@@ -96,7 +96,6 @@ nav {
   display: block;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .hamburger-menu {
     display: flex;
@@ -105,17 +104,16 @@ nav {
   .nav-links {
     position: fixed;
     top: 0;
-    left: -70%; /* ซ่อนออกทางซ้าย */
-    width: 70%; /* ไม่เต็มจอ */
-    max-width: 300px;
+    left: -100%;  /* ซ่อนออกนอกหน้าจอเต็มที่ */
+    width: 100%;  /* เต็มหน้าจอ */
     height: 100vh;
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
     background-color: #ffffff;
     padding-top: 60px;
-    border-radius: 0 8px 8px 0;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 0;
+    box-shadow: none; /* ลบเงาเมนูถ้าอยากให้เต็ม */
     gap: 10px;
     transition: left 0.3s ease;
     z-index: 1000;
@@ -141,14 +139,13 @@ nav {
   }
 }
 
-/* Extra Small Screens */
 @media (max-width: 480px) {
   .hamburger-menu {
     left: 15px;
   }
 
   .nav-links {
-    width: 80%;
+    width: 100%; /* เต็มหน้าจอ */
   }
 
   .nav-links a,
