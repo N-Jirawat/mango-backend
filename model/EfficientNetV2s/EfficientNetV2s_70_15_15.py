@@ -12,7 +12,7 @@ from sklearn.metrics import (
 )
 from sklearn.utils import class_weight
 from tensorflow.keras import layers, models, mixed_precision
-from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
+from tensorflow.keras.applications.efficientnet_v2 import EfficientNetV2S, preprocess_input
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 # ----------------------------
@@ -28,8 +28,8 @@ training_start_datetime = datetime.now()
 
 # ----------------------------
 # สร้างโฟลเดอร์สำหรับเก็บผลลัพธ์
-# ---------------------------
-report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report2\ResNet50\ResNet50_20_R9'
+# ----------------------------
+report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report 70 15 15\EfficientNetV2S_15\EfficientNetV2s_15_R4'
 os.makedirs(report_dir, exist_ok=True)
 
 # สร้างไฟล์สำหรับบันทึกผลลัพธ์
@@ -52,12 +52,12 @@ def get_elapsed_time(start_time):
 
 # เริ่มบันทึกรายงาน
 log_and_print("="*80)
-log_and_print("🚀 ResNet50 Training Report")
+log_and_print("🚀 EfficientNetV2S Training Report ")
 log_and_print(f"📅 Start Time: {training_start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
 log_and_print("="*80)
 
 # ----------------------------
-# ฟังก์ชันช่วยเหลือ: CLAHE + ResNet50 Preprocessing
+# ฟังก์ชันช่วยเหลือ: CLAHE + EfficientNetV2 Preprocessing
 # ----------------------------
 def apply_clahe_np(image):
     image = np.array(image)
@@ -73,7 +73,7 @@ def apply_clahe_np(image):
 def apply_clahe_tf(image):
     def _clahe(image):
         image = tf.py_function(func=apply_clahe_np, inp=[image], Tout=tf.uint8)
-        image.set_shape([224, 224, 3])
+        image.set_shape([224, 224, 3])  # Fixed to 224x224
         return image
     image = tf.map_fn(_clahe, image, fn_output_signature=tf.uint8)
     return image
@@ -90,12 +90,12 @@ def preprocess_with_clahe(image, label):
 data_prep_start = time.time()
 
 AUTOTUNE = tf.data.AUTOTUNE
-IMG_SIZE = (224, 224)
-BATCH_SIZE = 16
+IMG_SIZE = (224, 224)  # Using 224x224 consistently
+BATCH_SIZE = 16  # Increased batch size since using smaller images
 
-train_dir = r'C:\Mango-Disease-70_20_10\train'
-val_dir = r'C:\Mango-Disease-70_20_10\val'
-test_dir = r'C:\Mango-Disease-70_20_10\test'
+train_dir = r'C:\Mango-Disease-70_15_15\train'
+val_dir = r'C:\Mango-Disease-70_15_15\val'
+test_dir = r'C:\Mango-Disease-70_15_15\test'
 
 # ตั้ง seed เพื่อให้ได้ลำดับข้อมูลเดิมตลอด
 tf.random.set_seed(42)
@@ -133,13 +133,15 @@ num_classes = len(class_names)
 log_and_print(f"✅ Dataset loaded successfully!")
 log_and_print(f"📋 Number of classes: {num_classes}")
 log_and_print(f"📋 Class names: {', '.join(class_names)}")
+log_and_print(f"📏 Image size: {IMG_SIZE}")
+log_and_print(f"📦 Batch size: {BATCH_SIZE}")
 
 # Cache ข้อมูลเพื่อให้ใช้ลำดับเดิมตลอด
 train_raw = train_raw.cache()
 val_raw = val_raw.cache()
 test_raw = test_raw.cache()
 
-# Map CLAHE + ResNet50 preprocess → แล้ว prefetch
+# Map CLAHE + EfficientNetV2 preprocess → แล้ว prefetch
 train_ds = train_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
 val_ds = val_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
 test_ds = test_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
@@ -169,13 +171,13 @@ for i, weight in class_weights.items():
 log_and_print(f"⏱️ Class weight calculation time: {format_time(class_weight_time)}")
 
 # ----------------------------
-# สร้างโมเดล ResNet50 พร้อม mixed precision
+# สร้างโมเดล EfficientNetV2S พร้อม mixed precision
 # ----------------------------
 model_creation_start = time.time()
 mixed_precision.set_global_policy('mixed_float16')
 
 def create_model():
-    base_model = ResNet50(
+    base_model = EfficientNetV2S(
         include_top=False,
         input_shape=IMG_SIZE + (3,),
         weights='imagenet'
@@ -201,8 +203,9 @@ def create_model():
 model, base_model = create_model()
 
 model_creation_time = time.time() - model_creation_start
-log_and_print(f"\n🏗️ ResNet50 Model created successfully!")
+log_and_print(f"\n🏗️ EfficientNetV2S Model created successfully!")
 log_and_print(f"📊 Total parameters: {model.count_params():,}")
+log_and_print(f"🔧 Trainable parameters: {sum([tf.size(var).numpy() for var in model.trainable_variables]):,}")
 log_and_print(f"⏱️ Model creation time: {format_time(model_creation_time)}")
 
 # ----------------------------
@@ -245,10 +248,9 @@ log_and_print(f"⏰ Phase 1 end time: {datetime.now().strftime('%Y-%m-%d %H:%M:%
 # ----------------------------
 base_model.trainable = True
 
-# Fine-tune จาก ResNet Block สุดท้าย ของ ResNet50
-# ResNet50 มี 5 blocks (conv1, conv2_x, conv3_x, conv4_x, conv5_x)
-# เราจะ unfreeze จาก conv5_x block (ประมาณ 20 layers สุดท้าย)
-for layer in base_model.layers[:-20]:
+# Fine-tune จาก Top layers ของ EfficientNetV2S
+# EfficientNetV2S มีหลาย stage เราจะ unfreeze เฉพาะ layers สุดท้าย
+for layer in base_model.layers[:-30]:  # Unfreeze top 30 layers สำหรับ EfficientNetV2S
     layer.trainable = False
 
 reduce_lr_phase2 = ReduceLROnPlateau(
@@ -267,6 +269,7 @@ model.compile(
 
 phase2_start = time.time()
 log_and_print("\n🚀 Starting Phase 2: Fine-tune (Unfreeze Top Layers) - 30 epochs")
+log_and_print(f"🔧 Trainable parameters after unfreezing: {sum([tf.size(var).numpy() for var in model.trainable_variables]):,}")
 log_and_print(f"⏰ Phase 2 start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 history2 = model.fit(
@@ -290,7 +293,7 @@ log_and_print(f"⏱️ Total training time: {format_time(total_training_time)}")
 # บันทึกโมเดลสุดท้าย
 # ----------------------------
 model_save_start = time.time()
-final_model_path = r'C:\Users\Asus\OneDrive\เอกสาร\Model\Resnet50\model_resnet50_20_R9.keras'
+final_model_path = r'C:\Users\Asus\OneDrive\เอกสาร\Model 70 15 15\EfficientNetV2S_15\model_efficientnetv2s_15_R4.keras'
 os.makedirs(os.path.dirname(final_model_path), exist_ok=True)
 model.save(final_model_path)
 model_save_time = time.time() - model_save_start
@@ -410,7 +413,7 @@ Max Val Accuracy: {max_val_acc:.4f}
 At Epoch: {max_val_acc_epoch}
 
 Model Configuration:
-• ResNet50 (Pretrained)
+• EfficientNetV2S (Pretrained)
 • Image Size: 224x224
 • Batch Size: 16
 • Mixed Precision: FP16
@@ -523,7 +526,7 @@ cm_display = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_na
 # Plot Confusion Matrix
 plt.figure(figsize=(12, 10))
 cm_display.plot(cmap='Blues', values_format='d', xticks_rotation=45)
-plt.title('Confusion Matrix - ResNet50 Model', fontsize=16, fontweight='bold', pad=20)
+plt.title('Confusion Matrix - EfficientNetV2S Model (224x224)', fontsize=16, fontweight='bold', pad=20)
 plt.tight_layout()
 
 # Save Confusion Matrix

@@ -12,7 +12,7 @@ from sklearn.metrics import (
 )
 from sklearn.utils import class_weight
 from tensorflow.keras import layers, models, mixed_precision
-from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
+from tensorflow.keras.applications.densenet import DenseNet121, preprocess_input
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 # ----------------------------
@@ -28,8 +28,8 @@ training_start_datetime = datetime.now()
 
 # ----------------------------
 # สร้างโฟลเดอร์สำหรับเก็บผลลัพธ์
-# ---------------------------
-report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report2\ResNet50\ResNet50_20_R9'
+# ----------------------------
+report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report2\DenseNet121\DenseNet121_20_R10'
 os.makedirs(report_dir, exist_ok=True)
 
 # สร้างไฟล์สำหรับบันทึกผลลัพธ์
@@ -52,12 +52,12 @@ def get_elapsed_time(start_time):
 
 # เริ่มบันทึกรายงาน
 log_and_print("="*80)
-log_and_print("🚀 ResNet50 Training Report")
+log_and_print("🚀 DenseNet121 Training Report")
 log_and_print(f"📅 Start Time: {training_start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
 log_and_print("="*80)
 
 # ----------------------------
-# ฟังก์ชันช่วยเหลือ: CLAHE + ResNet50 Preprocessing
+# ฟังก์ชันช่วยเหลือ: CLAHE + DenseNet121 Preprocessing
 # ----------------------------
 def apply_clahe_np(image):
     image = np.array(image)
@@ -139,7 +139,7 @@ train_raw = train_raw.cache()
 val_raw = val_raw.cache()
 test_raw = test_raw.cache()
 
-# Map CLAHE + ResNet50 preprocess → แล้ว prefetch
+# Map CLAHE + DenseNet121 preprocess → แล้ว prefetch
 train_ds = train_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
 val_ds = val_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
 test_ds = test_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
@@ -169,13 +169,13 @@ for i, weight in class_weights.items():
 log_and_print(f"⏱️ Class weight calculation time: {format_time(class_weight_time)}")
 
 # ----------------------------
-# สร้างโมเดล ResNet50 พร้อม mixed precision
+# สร้างโมเดล DenseNet121 พร้อม mixed precision
 # ----------------------------
 model_creation_start = time.time()
 mixed_precision.set_global_policy('mixed_float16')
 
 def create_model():
-    base_model = ResNet50(
+    base_model = DenseNet121(
         include_top=False,
         input_shape=IMG_SIZE + (3,),
         weights='imagenet'
@@ -201,7 +201,7 @@ def create_model():
 model, base_model = create_model()
 
 model_creation_time = time.time() - model_creation_start
-log_and_print(f"\n🏗️ ResNet50 Model created successfully!")
+log_and_print(f"\n🏗️ DenseNet121 Model created successfully!")
 log_and_print(f"📊 Total parameters: {model.count_params():,}")
 log_and_print(f"⏱️ Model creation time: {format_time(model_creation_time)}")
 
@@ -245,10 +245,9 @@ log_and_print(f"⏰ Phase 1 end time: {datetime.now().strftime('%Y-%m-%d %H:%M:%
 # ----------------------------
 base_model.trainable = True
 
-# Fine-tune จาก ResNet Block สุดท้าย ของ ResNet50
-# ResNet50 มี 5 blocks (conv1, conv2_x, conv3_x, conv4_x, conv5_x)
-# เราจะ unfreeze จาก conv5_x block (ประมาณ 20 layers สุดท้าย)
-for layer in base_model.layers[:-20]:
+# Fine-tune จาก Dense Block สุดท้าย ของ DenseNet121
+# DenseNet121 มี Dense Block 4 บล็อค เราจะ unfreeze บล็อคสุดท้าย
+for layer in base_model.layers[:-50]:  # เปลี่ยนจาก -4 เป็น -50 สำหรับ DenseNet
     layer.trainable = False
 
 reduce_lr_phase2 = ReduceLROnPlateau(
@@ -290,7 +289,7 @@ log_and_print(f"⏱️ Total training time: {format_time(total_training_time)}")
 # บันทึกโมเดลสุดท้าย
 # ----------------------------
 model_save_start = time.time()
-final_model_path = r'C:\Users\Asus\OneDrive\เอกสาร\Model\Resnet50\model_resnet50_20_R9.keras'
+final_model_path = r'C:\Users\Asus\OneDrive\เอกสาร\Model\DenseNet121\model_densenet121_20_R10.keras'
 os.makedirs(os.path.dirname(final_model_path), exist_ok=True)
 model.save(final_model_path)
 model_save_time = time.time() - model_save_start
@@ -410,7 +409,7 @@ Max Val Accuracy: {max_val_acc:.4f}
 At Epoch: {max_val_acc_epoch}
 
 Model Configuration:
-• ResNet50 (Pretrained)
+• DenseNet121 (Pretrained)
 • Image Size: 224x224
 • Batch Size: 16
 • Mixed Precision: FP16
@@ -523,7 +522,7 @@ cm_display = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_na
 # Plot Confusion Matrix
 plt.figure(figsize=(12, 10))
 cm_display.plot(cmap='Blues', values_format='d', xticks_rotation=45)
-plt.title('Confusion Matrix - ResNet50 Model', fontsize=16, fontweight='bold', pad=20)
+plt.title('Confusion Matrix - DenseNet121 Model', fontsize=16, fontweight='bold', pad=20)
 plt.tight_layout()
 
 # Save Confusion Matrix

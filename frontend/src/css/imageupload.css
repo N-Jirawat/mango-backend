@@ -5,8 +5,8 @@
   background-color: #ffffff;
   border-radius: 16px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  font-family: inherit;         /* รับมาจาก .predict-container */
-  font-size: 16px;              /* ฟอนต์คงที่ */
+  font-family: inherit;
+  font-size: 16px;
   text-align: center;
 }
 
@@ -91,3 +91,28 @@ input[type="file"]:focus {
   margin-top: -4px;
 }
 
+/* เพิ่ม Media Query สำหรับหน้าจอขนาดเล็ก */
+@media (max-width: 600px) {
+  .container {
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .button {
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+
+  .error {
+    font-size: 13px;
+  }
+
+  .warning {
+    font-size: 14px;
+  }
+}

@@ -1,43 +1,4 @@
-/* Responsive Navigation Styles */
-
-/* Hamburger Menu Button */
-.hamburger-menu {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  padding: 4px;
-  background: none;
-  border: none;
-  z-index: 1000;
-  width: 50px;
-  height: 30px;
-}
-
-.hamburger-line {
-  width: 30px;
-  height: 2px;
-  background-color: #2e7d32;
-  margin: 3px 0;
-  transition: 0.3s;
-  border-radius: 1px;
-}
-
-/* Animation for hamburger to X */
-.hamburger-menu.active .hamburger-line:nth-child(1) {
-  transform: rotate(-45deg) translate(-4px, 5px);
-}
-
-.hamburger-menu.active .hamburger-line:nth-child(2) {
-  opacity: 0;
-}
-
-.hamburger-menu.active .hamburger-line:nth-child(3) {
-  transform: rotate(45deg) translate(-4px, -5px);
-}
-
-/* Navigation Styles */
+/* Base Navigation */
 nav {
   display: flex;
   justify-content: center;
@@ -45,10 +6,9 @@ nav {
   padding: 15px 30px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
-  z-index: 1000;
+  z-index: 100;
 }
 
-/* Nav links container */
 .nav-links {
   display: flex;
   gap: 20px;
@@ -58,18 +18,16 @@ nav {
   padding: 0;
 }
 
-/* Nav links & buttons */
-/* ทำให้ปุ่มทั้งหมดใน nav-links เท่ากัน */
 .nav-links a,
 .nav-links button {
   width: 160px;
-  min-height: 44px; /* กำหนดความสูงขั้นต่ำเท่ากัน */
+  min-height: 44px;
   padding: 12px 16px;
   font-size: 16px;
   font-weight: 500;
-  display: flex;          /* ทำให้เป็น flex container */
-  justify-content: center; /* จัดแนวนอนกลาง */
-  align-items: center;     /* จัดแนวตั้งกลาง */
+  display: flex;
+  justify-content: center;
+  align-items: center;
   box-sizing: border-box;
   white-space: nowrap;
   border: none;
@@ -85,89 +43,71 @@ nav {
   color: #1b5e20;
 }
 
-/* Container ที่ครอบปุ่มโปรไฟล์ */
-.navbar-right {
-  position: relative;
-  display: flex;
+/* Hamburger Menu */
+.hamburger-menu {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  margin-left: auto;
-  margin-right: 10px;
-}
-
-/* ปุ่มโปรไฟล์ */
-.profile-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   cursor: pointer;
+  padding: 4px;
   background: none;
   border: none;
-  font-weight: 500;
-  color: #000;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
-}
-
-.profile-button:hover {
-  background-color: #e8f5e8;
-}
-
-/* กล่อง dropdown */
-.profile-dropdown {
-  position: absolute;
-  top: 48px;
-  right: 0;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 1001;
-  min-width: 200px;
-  padding: 12px;
+  width: 50px;
+  height: 30px;
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.profile-dropdown p {
-  margin: 4px 0;
+.hamburger-line {
+  width: 30px;
+  height: 2px;
+  background-color: #2e7d32;
+  margin: 3px 0;
+  transition: 0.3s;
+  border-radius: 1px;
 }
 
-.logout-button {
-  margin-top: 10px;
-  background-color: #e53935;
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
+.hamburger-menu.active .hamburger-line:nth-child(1) {
+  transform: rotate(-45deg) translate(-4px, 5px);
+}
+.hamburger-menu.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+.hamburger-menu.active .hamburger-line:nth-child(3) {
+  transform: rotate(45deg) translate(-4px, -5px);
+}
+
+/* Overlay */
+.nav-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  transition: background-color 0.2s;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 998;
+  display: none;
+}
+.nav-overlay.active {
+  display: block;
 }
 
-.logout-button:hover {
-  background-color: #c62828;
-}
-
-
-/* Mobile Navigation */
+/* Responsive */
 @media (max-width: 768px) {
-
-  /* แสดงปุ่ม hamburger */
   .hamburger-menu {
     display: flex;
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
   }
 
-  /* ซ่อน nav-links ปกติ (จะย้ายเป็น fixed แทน) */
   .nav-links {
     position: fixed;
     top: 0;
-    left: -50%;
-    /* ซ่อนเมนูไว้ซ้าย */
-    width: 50%;
-    /* ครึ่งหน้าจอ */
+    left: -70%; /* ซ่อนออกทางซ้าย */
+    width: 70%; /* ไม่เต็มจอ */
+    max-width: 300px;
     height: 100vh;
     flex-direction: column;
     justify-content: flex-start;
@@ -178,21 +118,18 @@ nav {
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     gap: 10px;
     transition: left 0.3s ease;
-    z-index: 999;
+    z-index: 1000;
   }
 
-  /* แสดงเมนูเมื่อ active */
   .nav-links.active {
     left: 0;
   }
 
-  /* ปรับลิงก์ให้เต็มความกว้างภายในเมนูมือถือ */
   .nav-links a,
   .nav-links button {
     width: 90%;
-    padding: 12px 16px;
     font-size: 18px;
-    font-weight: 500;
+    padding: 12px 16px;
     text-align: center;
   }
 
@@ -202,38 +139,21 @@ nav {
     color: white;
     transform: translateY(-1px);
   }
-
-  /* Overlay เมื่อเมนูมือถือเปิด */
-  .nav-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
-    z-index: 998;
-    display: none;
-  }
-
-  .nav-overlay.active {
-    display: block;
-  }
 }
 
-/* Extra small screens */
+/* Extra Small Screens */
 @media (max-width: 480px) {
   .hamburger-menu {
     left: 15px;
   }
 
   .nav-links {
-    width: 70%;
-    /* กว้างขึ้นอีกนิด */
+    width: 80%;
   }
 
   .nav-links a,
   .nav-links button {
     font-size: 16px;
-    padding: 10px 20px;
+    padding: 10px 16px;
   }
 }
