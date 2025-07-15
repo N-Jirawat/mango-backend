@@ -89,10 +89,11 @@ function UserDetails() {
       </div>
 
       <div className="button-container">
-        <button onClick={handleBack}>⬅️ กลับ</button>
+        
         <Link to={`/edituser/${id}`}>
           <button>✏️ แก้ไขข้อมูล</button>
         </Link>
+        <button onClick={handleBack}>⬅️ กลับ</button>
       </div>
     </div>
   );

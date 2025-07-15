@@ -262,9 +262,9 @@ function EditUser() {
                         title="กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"
                     />
                 </div>
-
+                <button type="button" onClick={handleBack} style={{ backgroundColor: "gray", color: "white" }}>ย้อนกลับ</button>
                 <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                    <button type="button" onClick={handleBack} style={{ backgroundColor: "gray", color: "white" }}>ย้อนกลับ</button>
+                    
                     <button type="button" onClick={handleDeleteAccount} style={{ backgroundColor: "red", color: "white" }}>ลบบัญชี</button>
                     <button type="submit">บันทึก</button>
                 </div>
