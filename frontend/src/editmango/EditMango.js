@@ -18,7 +18,8 @@ function EditMango() {
   const [loading, setLoading] = useState(false);
   const [imagePublicId, setImagePublicId] = useState("");
   const [isDeleting, setIsDeleting] = useState(false); // สถานะการลบข้อมูล
-  const BACKEND_URL = "http://localhost:5000";
+  const BACKEND_URL = "http://192.168.1.179:5000";
+  //const BACKEND_URL = "http://localhost:5000";
 
   useEffect(() => {
     const fetchMangoData = async () => {
