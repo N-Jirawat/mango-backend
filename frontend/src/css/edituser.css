@@ -9,6 +9,19 @@
     margin-top: 30px;
 }
 
+.edit-user .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.edit-user .form-group p {
+    margin: 0;
+    font-weight: 500;
+    color: #34495e;
+}
+
 .edit-user h2 {
     text-align: center;
     color: #2c3e50;

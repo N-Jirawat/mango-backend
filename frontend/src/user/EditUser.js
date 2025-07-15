@@ -186,59 +186,82 @@ function EditUser() {
         <div className="edit-user">
             <h2>แก้ไขข้อมูลผู้ใช้</h2>
             <form onSubmit={handleSubmit}>
-                <input 
-                    type="text" 
-                    name="fullName" 
-                    placeholder="ชื่อ-นามสกุล *" 
-                    value={userInfo.fullName} 
-                    onChange={handleChange} 
-                    required
-                />
-                <input 
-                    type="text" 
-                    name="address" 
-                    placeholder="ที่อยู่" 
-                    value={userInfo.address} 
-                    onChange={handleChange} 
-                />
-                <input 
-                    type="text" 
-                    name="village" 
-                    placeholder="หมู่บ้าน" 
-                    value={userInfo.village} 
-                    onChange={handleChange} 
-                />
+                <div className="form-group">
+                    <p>ชื่อผู้ใช้</p>
+                    <input
+                        type="text"
+                        name="fullName"
+                        placeholder="ชื่อ-นามสกุล *"
+                        value={userInfo.fullName}
+                        onChange={handleChange}
+                        required
+                    />
+                </div>
 
-                <select name="province" value={userInfo.province || ""} onChange={handleChange}>
-                    <option value="">เลือกจังหวัด</option>
-                    {provincesData.map(p => (
-                        <option key={p.id} value={p.name_th}>{p.name_th}</option>
-                    ))}
-                </select>
+                <div className="form-group">
+                    <p>ที่อยู่</p>
+                    <input
+                        type="text"
+                        name="address"
+                        placeholder="ที่อยู่"
+                        value={userInfo.address}
+                        onChange={handleChange}
+                    />
+                </div>
 
-                <select name="district" value={userInfo.district || ""} onChange={handleChange} disabled={!districtList.length}>
-                    <option value="">เลือกอำเภอ</option>
-                    {districtList.map(d => (
-                        <option key={d.id} value={d.name_th}>{d.name_th}</option>
-                    ))}
-                </select>
+                <div className="form-group">
+                    <p>ชื่อหมู่บ้าน</p>
+                    <input
+                        type="text"
+                        name="village"
+                        placeholder="หมู่บ้าน"
+                        value={userInfo.village}
+                        onChange={handleChange}
+                    />
+                </div>
 
-                <select name="subdistrict" value={userInfo.subdistrict || ""} onChange={handleChange} disabled={!subdistrictList.length}>
-                    <option value="">เลือกตำบล</option>
-                    {subdistrictList.map(s => (
-                        <option key={s.id} value={s.name_th}>{s.name_th}</option>
-                    ))}
-                </select>
+                <div className="form-group">
+                    <p>จังหวัด</p>
+                    <select name="province" value={userInfo.province || ""} onChange={handleChange}>
+                        <option value="">เลือกจังหวัด</option>
+                        {provincesData.map(p => (
+                            <option key={p.id} value={p.name_th}>{p.name_th}</option>
+                        ))}
+                    </select>
+                </div>
 
-                <input
-                    type="tel"
-                    name="tel"
-                    placeholder="หมายเลขโทรศัพท์ (10 หลัก)"
-                    value={userInfo.tel}
-                    onChange={handleChange}
-                    pattern="[0-9]{10}"
-                    title="กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"
-                />
+                <div className="form-group">
+                    <p>อำเภอ</p>
+                    <select name="district" value={userInfo.district || ""} onChange={handleChange} disabled={!districtList.length}>
+                        <option value="">เลือกอำเภอ</option>
+                        {districtList.map(d => (
+                            <option key={d.id} value={d.name_th}>{d.name_th}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <p>ตำบล</p>
+                    <select name="subdistrict" value={userInfo.subdistrict || ""} onChange={handleChange} disabled={!subdistrictList.length}>
+                        <option value="">เลือกตำบล</option>
+                        {subdistrictList.map(s => (
+                            <option key={s.id} value={s.name_th}>{s.name_th}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <p>หมายเลขโทรศัพท์</p>
+                    <input
+                        type="tel"
+                        name="tel"
+                        placeholder="หมายเลขโทรศัพท์ (10 หลัก)"
+                        value={userInfo.tel}
+                        onChange={handleChange}
+                        pattern="[0-9]{10}"
+                        title="กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"
+                    />
+                </div>
 
                 <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
                     <button type="button" onClick={handleBack} style={{ backgroundColor: "gray", color: "white" }}>ย้อนกลับ</button>
@@ -246,10 +269,6 @@ function EditUser() {
                     <button type="submit">บันทึก</button>
                 </div>
             </form>
-            
-            <div style={{ marginTop: "15px", fontSize: "14px", color: "#666" }}>
-                <p>หมายเหตุ: เฉพาะช่องที่มี * เท่านั้นที่จำเป็นต้องกรอก</p>
-            </div>
         </div>
     );
 }

@@ -70,13 +70,14 @@ function MangoDetail() {
             <p><strong>การรักษา:</strong> {disease.treatment}</p> {/* แสดงวิธีรักษา */}
             <p><strong>การป้องกัน:</strong> {disease.prevention}</p> {/* แสดงวิธีป้องกัน */}
 
-            <div className="button-container">
+            <div className="button-group">
                 <button onClick={() => navigate("/Mango")} className="button-back">
                     ⬅️ ย้อนกลับ
-                </button> {/* ปุ่มย้อนกลับไปหน้ารายการโรคมะม่วง */}
-                <button onClick={() => navigate(`/editmango/${id}`)} className="edit-btn">แก้ไข</button> {/* ปุ่มแก้ไขข้อมูล */}
-                <button onClick={handleDelete} className="delete-btn">ลบ</button> {/* ปุ่มลบข้อมูล */}
+                </button>
+                <button onClick={() => navigate(`/editmango/${id}`)} className="edit-btn">แก้ไข</button>
+                <button type="button" onClick={handleDelete} className="delete-btn-detail">ลบ</button>
             </div>
+
         </div>
     );
 }

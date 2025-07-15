@@ -51,8 +51,8 @@
 
 /* ปุ่มลบ - สไตล์พิเศษ */
 .button-container .delete-button {
-  background-color: #dc3545;
-  color: white;
+  background-color: #dc3545 !important; /* เพิ่ม !important */
+  color: white !important;
   padding: 12px 20px;
   font-size: 16px;
   font-weight: bold;

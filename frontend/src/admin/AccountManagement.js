@@ -54,6 +54,9 @@ function AccountManagement() {
   return (
     <div className="manage-container">
       <h2 className="title">บัญชีผู้ใช้</h2>
+      <button className="btn btn-green" onClick={() => navigate("/signup")}>
+          ➕ เพิ่มสมาชิก
+        </button>
 
       {/* แสดงรายการผู้ใช้ */}
       <div className="users-list">
@@ -77,9 +80,7 @@ function AccountManagement() {
         <button className="btn btn-gray" onClick={() => navigate("/")}>
           ⬅️ กลับ
         </button>
-        <button className="btn btn-green" onClick={() => navigate("/signup")}>
-          ➕ เพิ่มสมาชิก
-        </button>
+        
       </div>
     </div>
   );
