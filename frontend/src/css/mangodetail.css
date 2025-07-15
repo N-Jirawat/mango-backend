@@ -1,5 +1,21 @@
 /* สไตล์เฉพาะสำหรับหน้า MangoDetail.js */
 
+/* คอนเทนเนอร์หลักของรายละเอียดโรค */
+.disease-detail-container {
+  /* เพิ่ม box-sizing เพื่อให้ padding ไม่เพิ่มขนาดรวม */
+  box-sizing: border-box;
+  /* ให้คอนเทนเนอร์ขยายเต็มความกว้างของ parent */
+  width: 100%;
+  /* กำหนดความกว้างสูงสุดสำหรับหน้าจอใหญ่ เพื่อไม่ให้เนื้อหายืดกว้างเกินไป */
+  max-width: 900px; /* สามารถปรับค่านี้ได้ตามความเหมาะสม */
+  /* จัดกึ่งกลางคอนเทนเนอร์ */
+  margin: 20px auto; /* ปรับ margin ด้านบน-ล่าง และจัดกึ่งกลางอัตโนมัติ */
+  padding: 30px; /* เพิ่ม padding ภายในคอนเทนเนอร์ */
+  background-color: #f9f9f9; /* อาจเพิ่มสีพื้นหลังให้ดูเป็นบล็อก */
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
 /* หัวข้อโรค */
 .disease-detail-container h2 {
   text-align: center;
@@ -7,6 +23,7 @@
   font-weight: bold;
   margin-bottom: 20px;
   color: #2c5530;
+  box-sizing: border-box;
 }
 
 /* รายละเอียดโรค */
@@ -15,6 +32,7 @@
   line-height: 1.6;
   margin: 15px 0;
   color: #333;
+  box-sizing: border-box;
 }
 
 .disease-detail-container p strong {
@@ -24,14 +42,15 @@
 
 /* รูปภาพโรค */
 .disease-image {
-  width: 100%;
-  max-width: 400px;
+  width: 100%; /* ให้รูปภาพขยายเต็มความกว้างของ parent */
+  max-width: 400px; /* กำหนดความกว้างสูงสุด */
   height: auto;
   object-fit: contain;
-  margin: 20px auto;
+  margin: 20px auto; /* จัดกึ่งกลาง */
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   display: block;
+  box-sizing: border-box;
 }
 
 /* การจัดเรียงปุ่ม 3 ปุ่มในแถวเดียวกัน */
@@ -41,6 +60,7 @@
   justify-content: center;
   margin-top: 30px;
   flex-wrap: wrap;
+  box-sizing: border-box;
 }
 
 /* ปุ่มย้อนกลับ */
@@ -56,6 +76,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  box-sizing: border-box;
 }
 
 .button-back:hover {
@@ -73,6 +94,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .edit-btn:hover {
@@ -90,6 +112,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .delete-btn-detail:hover {
@@ -104,6 +127,7 @@
   color: #666;
   font-style: italic;
   padding: 40px 20px;
+  box-sizing: border-box;
 }
 
 /* ข้อความไม่มีรูปภาพ */
@@ -117,6 +141,7 @@
   border: 2px dashed #dee2e6;
   border-radius: 8px;
   margin: 20px 0;
+  box-sizing: border-box;
 }
 
 /* สถานะการโหลด */
@@ -125,6 +150,7 @@
   font-size: 18px;
   color: #666;
   padding: 40px 20px;
+  box-sizing: border-box;
 }
 
 .loading-detail::before {
@@ -148,8 +174,9 @@
 /* Responsive สำหรับหน้าจอเล็ก */
 @media (max-width: 600px) {
   .disease-detail-container {
-    margin: 10px;
-    padding: 15px;
+    /* ปรับ margin และ padding ให้เหมาะสมกับมือถือ */
+    margin: 10px; /* ลด margin รอบๆ */
+    padding: 20px; /* ปรับ padding ภายใน */
   }
   
   .disease-detail-container h2 {
@@ -170,6 +197,6 @@
   }
   
   .disease-image {
-    max-width: 90%;
+    max-width: 100%; /* ให้รูปภาพขยายเต็มความกว้างที่มีบนมือถือ */
   }
 }
