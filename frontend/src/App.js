@@ -102,10 +102,14 @@ function App() {
     );
   }
 
+  const navigateToHome = () => {
+    navigate("/");
+  };
+
   return (
     <div className="app-container">
       <header>
-        <div className="logo">
+        <div className="logo" onClick={navigateToHome} style={{ cursor: 'pointer' }}>
           <img src="/img/leaf.png" alt="Logo" />
           <h1>LeafAnalyzer</h1>
         </div>
@@ -241,7 +245,7 @@ function App() {
             }
           />
           <Route path="/staticsuser" element={<StaticsUser />} />
-          
+
           {/* Protected Routes for All Authenticated Users */}
           <Route
             path="/imageupload"
