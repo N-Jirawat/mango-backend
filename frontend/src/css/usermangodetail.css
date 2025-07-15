@@ -1,12 +1,17 @@
 /* UserMangoDetail Component Styles */
 
 .user-disease-detail-container {
-    width: 90vw;  /* ใช้ 90% ของ viewport width */
+    /* ใช้ width: 100% เพื่อให้ขยายเต็มพื้นที่ที่มีอยู่ */
+    width: 100%; 
+    /* กำหนด max-width เพื่อไม่ให้เนื้อหายืดกว้างเกินไปบนจอใหญ่ */
     max-width: 1400px;
-    min-width: 500px; /* หรือขนาดที่เหมาะสม */
-    margin: 0 auto;
-    padding: 20px;
-    box-sizing: border-box;
+    /* ลบ min-width ออก เพื่อให้ยืดหยุ่นบนจอเล็ก */
+    /* min-width: 500px; */ 
+    margin: 0 auto; /* จัดกึ่งกลาง */
+    padding: 20px; /* เพิ่ม padding ภายใน */
+    box-sizing: border-box; /* สำคัญมากสำหรับการคำนวณขนาด */
+    /* เพิ่ม overflow-y: auto; หากเนื้อหาภายในสูงเกินกว่าพื้นที่ที่เหลือ */
+    /* overflow-y: auto; */
 }
 
 
@@ -16,8 +21,9 @@
     font-weight: 700;
     color: #2d3748;
     margin: 30px 0;
-    background-clip: text;
+    /* background-clip: text; อันนี้ปกติใช้กับ text-shadow หรือ gradient text */
     padding: 10px 0;
+    box-sizing: border-box;
 }
 
 .user-img-disease {
@@ -30,6 +36,7 @@
     display: block;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box;
 }
 
 .user-img-disease:hover {
@@ -46,7 +53,8 @@
     margin-top: 20px;
     transition: transform 0.3s ease;
     width: 100%;
-    max-width: none;
+    max-width: none; /* อันนี้ถูกต้องแล้ว */
+    box-sizing: border-box;
 }
 
 .user-boxmango:hover {
@@ -54,26 +62,27 @@
 }
 
 .back-button {
-  padding: 8px 16px;
-  font-size: 14px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  display: inline-flex;
-  align-items: center;
+    padding: 8px 16px;
+    font-size: 14px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
 }
 
 .back-button:hover {
-  background-color: #388e3c;
-  transform: scale(1.05);
+    background-color: #388e3c;
+    transform: scale(1.05);
 }
 
 .back-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(72, 180, 97, 0.6);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(72, 180, 97, 0.6);
 }
 
 .user-boxmango p {
@@ -87,6 +96,7 @@
     border-radius: 12px;
     border-left: 4px solid #4ae24c;
     transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
 .user-boxmango p:hover {
@@ -117,13 +127,14 @@
     margin: 50px auto;
     max-width: 400px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box; /* เพิ่ม box-sizing */
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     .user-disease-detail-container {
         padding: 15px;
-        margin: 0;
+        margin: 0 auto; /* จัดกึ่งกลางบนมือถือด้วย */
     }
     
     .user-namedisease {
@@ -146,7 +157,7 @@
         padding: 12px;
     }
     
-    .user-back-button {
+    .back-button { /* เปลี่ยนจาก .user-back-button เป็น .back-button */
         padding: 10px 16px;
         font-size: 14px;
     }
