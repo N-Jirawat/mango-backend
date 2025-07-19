@@ -12,7 +12,7 @@ from sklearn.metrics import (
 )
 from sklearn.utils import class_weight
 from tensorflow.keras import layers, models, mixed_precision
-from tensorflow.keras.applications.vgg16 import VGG16, preprocess_input
+from tensorflow.keras.applications.vgg16 import VGG16, preprocess_input # เปลี่ยนเป็น VGG16
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 # ----------------------------
@@ -29,12 +29,13 @@ training_start_datetime = datetime.now()
 # ----------------------------
 # สร้างโฟลเดอร์สำหรับเก็บผลลัพธ์
 # ----------------------------
-report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report_Model\VGG16\VGG16_80_R10'
+# ใช้ timestamp เพื่อให้แต่ละการรันมีโฟลเดอร์รายงานเฉพาะ
+timestamp_dir = datetime.now().strftime("%Y%m%d_%H%M%S")
+report_dir = rf'C:\Users\Asus\OneDrive\เอกสาร\Report_Model\VGG16\VGG16_80_R10_{timestamp_dir}'
 os.makedirs(report_dir, exist_ok=True)
 
 # สร้างไฟล์สำหรับบันทึกผลลัพธ์
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-report_file = os.path.join(report_dir, f'training_report_{timestamp}.txt')
+report_file = os.path.join(report_dir, f'training_report_{timestamp_dir}.txt')
 
 def log_and_print(message):
     """ฟังก์ชันสำหรับแสดงผลและบันทึกข้อความ"""
@@ -45,10 +46,6 @@ def log_and_print(message):
 def format_time(seconds):
     """แปลงวินาทีเป็นรูปแบบ HH:MM:SS"""
     return str(timedelta(seconds=int(seconds)))
-
-def get_elapsed_time(start_time):
-    """คำนวณเวลาที่ผ่านไปจากเวลาเริ่มต้น"""
-    return time.time() - start_time
 
 # เริ่มบันทึกรายงาน
 log_and_print("="*80)
@@ -71,17 +68,27 @@ def apply_clahe_np(image):
     return final
 
 def apply_clahe_tf(image):
-    def _clahe(image):
-        image = tf.py_function(func=apply_clahe_np, inp=[image], Tout=tf.uint8)
-        image.set_shape([224, 224, 3])
-        return image
-    image = tf.map_fn(_clahe, image, fn_output_signature=tf.uint8)
-    return image
+    # tf.map_fn จะทำการวนลูปและส่งภาพแต่ละภาพ (ในรูปแบบ tensor) เข้าไปใน _clahe
+    def _clahe(single_image_tensor):
+        # แปลง tensor เป็น numpy array, ใช้ .numpy() ได้เมื่ออยู่ใน tf.py_function
+        single_image_np = tf.cast(single_image_tensor, tf.uint8).numpy()
+        processed_image_np = apply_clahe_np(single_image_np)
+        # แปลง numpy array กลับเป็น tensor
+        return tf.convert_to_tensor(processed_image_np, dtype=tf.uint8)
+    
+    # ใช้ tf.map_fn เพื่อประมวลผลแต่ละภาพใน batch ผ่าน tf.py_function
+    # tf.py_function ใช้สำหรับเรียกฟังก์ชัน Python ธรรมดาภายในกราฟ TensorFlow
+    processed_batch_images = tf.map_fn(
+        lambda x: tf.py_function(func=_clahe, inp=[x], Tout=tf.uint8),
+        image, # image ในที่นี้คือ batch ของรูปภาพ
+        fn_output_signature=tf.TensorSpec(shape=IMG_SIZE + (3,), dtype=tf.uint8) # กำหนดรูปร่างของ output ที่คาดว่าจะได้
+    )
+    return processed_batch_images
 
 def preprocess_with_clahe(image, label):
     image = apply_clahe_tf(image)
     image = tf.cast(image, tf.float32)
-    image = preprocess_input(image)
+    image = preprocess_input(image) # ใช้ preprocess_input ของ VGG16
     return image, label
 
 # ----------------------------
@@ -133,6 +140,9 @@ num_classes = len(class_names)
 log_and_print(f"✅ Dataset loaded successfully!")
 log_and_print(f"📋 Number of classes: {num_classes}")
 log_and_print(f"📋 Class names: {', '.join(class_names)}")
+log_and_print(f"📏 Image size: {IMG_SIZE[0]}x{IMG_SIZE[1]}")
+log_and_print(f"📦 Batch size: {BATCH_SIZE}")
+
 
 # Cache ข้อมูลเพื่อให้ใช้ลำดับเดิมตลอด
 train_raw = train_raw.cache()
@@ -165,7 +175,7 @@ class_weights = dict(enumerate(class_weights))
 class_weight_time = time.time() - class_weight_start
 log_and_print("✅ Class weights calculated:")
 for i, weight in class_weights.items():
-    log_and_print(f"   {class_names[i]}: {weight:.4f}")
+    log_and_print(f"   {class_names[i]}: {weight:.4f}")
 log_and_print(f"⏱️ Class weight calculation time: {format_time(class_weight_time)}")
 
 # ----------------------------
@@ -175,7 +185,7 @@ model_creation_start = time.time()
 mixed_precision.set_global_policy('mixed_float16')
 
 def create_model():
-    base_model = VGG16(
+    base_model = VGG16( # เปลี่ยนเป็น VGG16
         include_top=False,
         input_shape=IMG_SIZE + (3,),
         weights='imagenet'
@@ -185,9 +195,9 @@ def create_model():
     inputs = tf.keras.Input(shape=IMG_SIZE + (3,))
     x = base_model(inputs, training=False)
     x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dropout(0.5)(x)
+    x = layers.Dropout(0.4)(x) # ปรับลด Dropout จาก 0.5 เป็น 0.4
     x = layers.Dense(512, activation='relu')(x)
-    x = layers.Dropout(0.3)(x)
+    x = layers.Dropout(0.2)(x) # ปรับลด Dropout จาก 0.3 เป็น 0.2
     outputs = layers.Dense(num_classes, activation='softmax', dtype='float32')(x)
     
     model = models.Model(inputs, outputs)
@@ -199,6 +209,7 @@ model, base_model = create_model()
 model_creation_time = time.time() - model_creation_start
 log_and_print(f"\n🏗️ VGG16 Model created successfully!")
 log_and_print(f"📊 Total parameters: {model.count_params():,}")
+log_and_print(f"🔧 Trainable parameters: {sum([tf.size(var).numpy() for var in model.trainable_variables]):,}")
 log_and_print(f"⏱️ Model creation time: {format_time(model_creation_time)}")
 
 # ----------------------------
@@ -242,6 +253,7 @@ log_and_print(f"⏰ Phase 1 end time: {datetime.now().strftime('%Y-%m-%d %H:%M:%
 base_model.trainable = True
 
 # Fine-tune จาก layer สุดท้าย ของ VGG16
+# base_model.layers[:-4] หมายถึงการ Unfreeze 4 เลเยอร์สุดท้าย ซึ่งครอบคลุม Conv Block สุดท้าย
 for layer in base_model.layers[:-4]:
     layer.trainable = False
 
@@ -249,7 +261,7 @@ reduce_lr_phase2 = ReduceLROnPlateau(
     monitor='val_loss',
     factor=0.2,
     patience=8,
-    min_lr=1e-8,
+    min_lr=1e-9, # ปรับลด min_lr ลงจาก 1e-8 เป็น 1e-9 สำหรับการ Fine-tune ที่ละเอียดขึ้น
     verbose=1
 )
 
@@ -261,13 +273,14 @@ model.compile(
 
 phase2_start = time.time()
 log_and_print("\n🚀 Starting Phase 2: Fine-tune (Unfreeze Top Layers) - 30 epochs")
+log_and_print(f"🔧 Trainable parameters after unfreezing: {sum([tf.size(var).numpy() for var in model.trainable_variables]):,}")
 log_and_print(f"⏰ Phase 2 start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 history2 = model.fit(
     train_ds,
     validation_data=val_ds,
-    epochs=50,
-    initial_epoch=20,
+    epochs=50, # รวมเป็น 50 epochs (20+30)
+    initial_epoch=history1.epoch[-1] + 1 if history1.epoch else 20, # เริ่มต้นจาก epoch สุดท้ายของ Phase 1
     class_weight=class_weights,
     callbacks=[reduce_lr_phase2],
     verbose=1
@@ -284,7 +297,8 @@ log_and_print(f"⏱️ Total training time: {format_time(total_training_time)}")
 # บันทึกโมเดลสุดท้าย
 # ----------------------------
 model_save_start = time.time()
-final_model_path = r'C:\Users\Asus\mango-app\backend\models\VGG16\model_vgg16_80_10_10_R10.keras'
+# ใช้ timestamp เดียวกันกับ report_dir เพื่อให้สอดคล้องกัน
+final_model_path = rf'C:\Users\Asus\OneDrive\เอกสาร\Model\VGG16\model_vgg16_80_R10_{timestamp_dir}.keras'
 os.makedirs(os.path.dirname(final_model_path), exist_ok=True)
 model.save(final_model_path)
 model_save_time = time.time() - model_save_start
@@ -306,11 +320,13 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
     def combine(metric):
         return safe_get(h1, metric) + safe_get(h2, metric)
 
-    if not (combine('accuracy') or combine('val_accuracy') or combine('loss') or combine('val_loss')):
-        log_and_print("⚠️ No history data available for plotting")
+    # ตรวจสอบว่ามีข้อมูลใน history หรือไม่
+    combined_loss = combine('loss')
+    if not combined_loss:
+        log_and_print("⚠️ No history data available for plotting. Skipping plot generation.")
         return {}
 
-    epochs = range(1, len(combine('loss')) + 1)
+    epochs = range(1, len(combined_loss) + 1)
     
     # สร้างกราฟขนาดใหญ่
     plt.figure(figsize=(20, 12))
@@ -319,7 +335,7 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
     plt.subplot(2, 3, 1)
     plt.plot(epochs, combine('accuracy'), 'b-', label='Train Accuracy', linewidth=2, marker='o', markersize=3)
     plt.plot(epochs, combine('val_accuracy'), 'r-', label='Val Accuracy', linewidth=2, marker='s', markersize=3)
-    plt.axvline(x=20, color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2') # ปรับตำแหน่งเส้นแบ่ง Phase
     plt.title('Model Accuracy', fontsize=14, fontweight='bold')
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
@@ -328,9 +344,9 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
     
     # กราฟ Loss
     plt.subplot(2, 3, 2)
-    plt.plot(epochs, combine('loss'), 'b-', label='Train Loss', linewidth=2, marker='o', markersize=3)
+    plt.plot(epochs, combined_loss, 'b-', label='Train Loss', linewidth=2, marker='o', markersize=3)
     plt.plot(epochs, combine('val_loss'), 'r-', label='Val Loss', linewidth=2, marker='s', markersize=3)
-    plt.axvline(x=20, color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
     plt.title('Model Loss', fontsize=14, fontweight='bold')
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Loss', fontsize=12)
@@ -341,18 +357,18 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
     plt.subplot(2, 3, 3)
     plt.plot(epochs, combine('top_k_categorical_accuracy'), 'b-', label='Train Top-2 Acc', linewidth=2, marker='o', markersize=3)
     plt.plot(epochs, combine('val_top_k_categorical_accuracy'), 'r-', label='Val Top-2 Acc', linewidth=2, marker='s', markersize=3)
-    plt.axvline(x=20, color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
     plt.title('Top-2 Accuracy', fontsize=14, fontweight='bold')
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Top-2 Accuracy', fontsize=12)
     plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
     
-    # กราฎ Learning Rate (ถ้ามี)
+    # กราฟ Learning Rate (ถ้ามี)
     plt.subplot(2, 3, 4)
     if combine('lr'):
         plt.plot(epochs, combine('lr'), 'orange', linewidth=2, marker='d', markersize=3)
-        plt.axvline(x=20, color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+        plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
         plt.title('Learning Rate Schedule', fontsize=14, fontweight='bold')
         plt.xlabel('Epoch', fontsize=12)
         plt.ylabel('Learning Rate', fontsize=12)
@@ -361,15 +377,15 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
         plt.grid(True, alpha=0.3)
     else:
         plt.text(0.5, 0.5, 'Learning Rate\nHistory\nNot Available', 
-                ha='center', va='center', transform=plt.gca().transAxes,
-                fontsize=14, bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgray"))
+                 ha='center', va='center', transform=plt.gca().transAxes,
+                 fontsize=14, bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgray"))
         plt.title('Learning Rate Schedule', fontsize=14, fontweight='bold')
     
     # สรุปผลการฝึกพร้อมเวลา
     plt.subplot(2, 3, 5)
     final_train_acc = combine('accuracy')[-1] if combine('accuracy') else 0
     final_val_acc = combine('val_accuracy')[-1] if combine('val_accuracy') else 0
-    final_train_loss = combine('loss')[-1] if combine('loss') else 0
+    final_train_loss = combined_loss[-1] if combined_loss else 0
     final_val_loss = combine('val_loss')[-1] if combine('val_loss') else 0
     final_top2_acc = combine('val_top_k_categorical_accuracy')[-1] if combine('val_top_k_categorical_accuracy') else 0
     
@@ -388,36 +404,42 @@ Total: {format_time(time_info['total_training_time'])}
 """
     
     plt.text(0.1, 0.9, summary_text, transform=plt.gca().transAxes, fontsize=11,
-            verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
+             verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
     plt.axis('off')
     plt.title('Training Summary', fontsize=14, fontweight='bold')
     
     # แสดงค่าสูงสุดของ validation accuracy
     plt.subplot(2, 3, 6)
+    max_val_acc = 0
+    max_val_acc_epoch = 0
     if combine('val_accuracy'):
         max_val_acc = max(combine('val_accuracy'))
-        max_val_acc_epoch = combine('val_accuracy').index(max_val_acc) + 1
-        
-        performance_text = f"""Best Performance:
-        
+        max_val_acc_epoch = [i for i, j in enumerate(combine('val_accuracy')) if j == max_val_acc][-1] + 1
+    
+    total_epochs_run = len(combined_loss) if combined_loss else 50 # Fallback if history is empty
+    avg_time_per_epoch = time_info['total_training_time'] / total_epochs_run if total_epochs_run > 0 else 0
+
+    performance_text = f"""Best Performance:
+    
 Max Val Accuracy: {max_val_acc:.4f}
 At Epoch: {max_val_acc_epoch}
 
 Model Configuration:
 • VGG16 (Pretrained)
-• Image Size: 224x224
-• Batch Size: 16
+• Image Size: {IMG_SIZE[0]}x{IMG_SIZE[1]}
+• Batch Size: {BATCH_SIZE}
 • Mixed Precision: FP16
-• CLAHE Enhancement
+• CLAHE Enhancement: Yes
+• Data Augmentation: No
 • Class Weights: Balanced
 
 Time Efficiency:
-• Avg Time/Epoch: {format_time(time_info['total_training_time']/50)}
+• Avg Time/Epoch: {format_time(avg_time_per_epoch)}
 • Total Training: {format_time(time_info['total_training_time'])}
 """
         
-        plt.text(0.1, 0.9, performance_text, transform=plt.gca().transAxes, fontsize=11,
-                verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgreen", alpha=0.8))
+    plt.text(0.1, 0.9, performance_text, transform=plt.gca().transAxes, fontsize=11,
+             verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgreen", alpha=0.8))
     
     plt.axis('off')
     plt.title('Best Performance', fontsize=14, fontweight='bold')
@@ -425,7 +447,7 @@ Time Efficiency:
     plt.tight_layout()
     
     # บันทึกกราฟ
-    graph_path = os.path.join(save_dir, f'training_history_{timestamp}.png')
+    graph_path = os.path.join(save_dir, f'training_history_{timestamp_dir}.png')
     plt.savefig(graph_path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.show()
     
@@ -439,8 +461,8 @@ Time Efficiency:
         'final_train_loss': final_train_loss,
         'final_val_loss': final_val_loss,
         'final_top2_acc': final_top2_acc,
-        'max_val_acc': max_val_acc if combine('val_accuracy') else 0,
-        'max_val_acc_epoch': max_val_acc_epoch if combine('val_accuracy') else 0
+        'max_val_acc': max_val_acc,
+        'max_val_acc_epoch': max_val_acc_epoch
     }
 
 # สร้างและบันทึกกราฟ
@@ -471,7 +493,7 @@ for batch_idx, (images, labels) in enumerate(test_ds):
     y_true.extend(np.argmax(labels.numpy(), axis=1))
     
     if batch_idx == 0:  # Log timing for first batch
-        log_and_print(f"   First batch ({len(images)} samples) inference time: {batch_time:.4f} seconds")
+        log_and_print(f"   First batch ({len(images)} samples) inference time: {batch_time:.4f} seconds")
 
 total_inference_time = time.time() - inference_start
 
@@ -521,7 +543,7 @@ plt.title('Confusion Matrix - VGG16 Model', fontsize=16, fontweight='bold', pad=
 plt.tight_layout()
 
 # Save Confusion Matrix
-cm_path = os.path.join(report_dir, f'confusion_matrix_{timestamp}.png')
+cm_path = os.path.join(report_dir, f'confusion_matrix_{timestamp_dir}.png')
 plt.savefig(cm_path, dpi=300, bbox_inches='tight', facecolor='white')
 plt.show()
 

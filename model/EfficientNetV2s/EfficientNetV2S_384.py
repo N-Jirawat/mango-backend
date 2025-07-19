@@ -29,12 +29,13 @@ training_start_datetime = datetime.now()
 # ----------------------------
 # สร้างโฟลเดอร์สำหรับเก็บผลลัพธ์
 # ----------------------------
-report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report2\EfficientNetV2S_20\EfficientNetV2s_20_R10'
+# ใช้ f-string เพื่อเพิ่มความยืดหยุ่นในการตั้งชื่อ
+timestamp_dir = datetime.now().strftime("%Y%m%d_%H%M%S")
+report_dir = rf'C:\Users\Asus\OneDrive\เอกสาร\Report2\EfficientNetV2S_20\EfficientNetV2s_20_R10_{timestamp_dir}'
 os.makedirs(report_dir, exist_ok=True)
 
 # สร้างไฟล์สำหรับบันทึกผลลัพธ์
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-report_file = os.path.join(report_dir, f'training_report_{timestamp}.txt')
+report_file = os.path.join(report_dir, f'training_report_{timestamp_dir}.txt')
 
 def log_and_print(message):
     """ฟังก์ชันสำหรับแสดงผลและบันทึกข้อความ"""
@@ -45,10 +46,6 @@ def log_and_print(message):
 def format_time(seconds):
     """แปลงวินาทีเป็นรูปแบบ HH:MM:SS"""
     return str(timedelta(seconds=int(seconds)))
-
-def get_elapsed_time(start_time):
-    """คำนวณเวลาที่ผ่านไปจากเวลาเริ่มต้น"""
-    return time.time() - start_time
 
 # เริ่มบันทึกรายงาน
 log_and_print("="*80)
@@ -71,14 +68,19 @@ def apply_clahe_np(image):
     return final
 
 def apply_clahe_tf(image):
-    def _clahe(image):
-        image = tf.py_function(func=apply_clahe_np, inp=[image], Tout=tf.uint8)
-        image.set_shape([224, 224, 3])  # Fixed to 224x224
-        return image
-    image = tf.map_fn(_clahe, image, fn_output_signature=tf.uint8)
+    def _clahe(image_tensor): # เปลี่ยนชื่อตัวแปรให้ชัดเจนขึ้น
+        # Ensure image_tensor is convertible to numpy and uint8
+        image_np = tf.cast(image_tensor, tf.uint8).numpy()
+        processed_image_np = apply_clahe_np(image_np)
+        return tf.convert_to_tensor(processed_image_np, dtype=tf.uint8)
+
+    # tf.map_fn สำหรับประมวลผลทั้ง Batch
+    image = tf.py_function(func=_clahe, inp=[image], Tout=tf.uint8)
+    image.set_shape([224, 224, 3]) # Fixed to 224x224
     return image
 
 def preprocess_with_clahe(image, label):
+    # สำหรับ validation และ test sets ที่ไม่ต้องการ augmentation
     image = apply_clahe_tf(image)
     image = tf.cast(image, tf.float32)
     image = preprocess_input(image)
@@ -90,8 +92,8 @@ def preprocess_with_clahe(image, label):
 data_prep_start = time.time()
 
 AUTOTUNE = tf.data.AUTOTUNE
-IMG_SIZE = (224, 224)  # Using 224x224 consistently
-BATCH_SIZE = 16  # Increased batch size since using smaller images
+IMG_SIZE = (224, 224)
+BATCH_SIZE = 16
 
 train_dir = r'C:\Mango-Disease-70_20_10\train'
 val_dir = r'C:\Mango-Disease-70_20_10\val'
@@ -141,7 +143,7 @@ train_raw = train_raw.cache()
 val_raw = val_raw.cache()
 test_raw = test_raw.cache()
 
-# Map CLAHE + EfficientNetV2 preprocess → แล้ว prefetch
+# Map CLAHE + EfficientNetV2 preprocess → แล้ว prefetch (ไม่มี augmentation)
 train_ds = train_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
 val_ds = val_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
 test_ds = test_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
@@ -150,7 +152,7 @@ data_prep_time = time.time() - data_prep_start
 log_and_print(f"⏱️ Data preparation time: {format_time(data_prep_time)}")
 
 # ----------------------------
-# คำนวณ Class Weights
+# คำนวณ Class Weights (ยังคงใช้ เพราะถึงแม้ข้อมูลจะสมดุลในภาพรวม แต่ก็ช่วยเสริมได้)
 # ----------------------------
 class_weight_start = time.time()
 log_and_print("\n⚖️ Calculating class weights...")
@@ -167,7 +169,7 @@ class_weights = dict(enumerate(class_weights))
 class_weight_time = time.time() - class_weight_start
 log_and_print("✅ Class weights calculated:")
 for i, weight in class_weights.items():
-    log_and_print(f"   {class_names[i]}: {weight:.4f}")
+    log_and_print(f"   {class_names[i]}: {weight:.4f}")
 log_and_print(f"⏱️ Class weight calculation time: {format_time(class_weight_time)}")
 
 # ----------------------------
@@ -188,12 +190,12 @@ def create_model():
     x = base_model(inputs, training=False)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.5)(x)
+    x = layers.Dropout(0.4)(x) # ปรับลด Dropout จาก 0.5 เป็น 0.4
     x = layers.Dense(1024, activation='relu')(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.3)(x)
+    x = layers.Dropout(0.25)(x) # ปรับลด Dropout จาก 0.3 เป็น 0.25
     x = layers.Dense(512, activation='relu')(x)
-    x = layers.Dropout(0.2)(x)
+    x = layers.Dropout(0.15)(x) # ปรับลด Dropout จาก 0.2 เป็น 0.15
     outputs = layers.Dense(num_classes, activation='softmax', dtype='float32')(x)
     
     model = models.Model(inputs, outputs)
@@ -232,7 +234,7 @@ log_and_print(f"⏰ Phase 1 start time: {datetime.now().strftime('%Y-%m-%d %H:%M
 history1 = model.fit(
     train_ds,
     validation_data=val_ds,
-    epochs=20,
+    epochs=20, # กำหนด 20 epochs
     class_weight=class_weights,
     callbacks=[reduce_lr],
     verbose=1
@@ -249,15 +251,16 @@ log_and_print(f"⏰ Phase 1 end time: {datetime.now().strftime('%Y-%m-%d %H:%M:%
 base_model.trainable = True
 
 # Fine-tune จาก Top layers ของ EfficientNetV2S
-# EfficientNetV2S มีหลาย stage เราจะ unfreeze เฉพาะ layers สุดท้าย
-for layer in base_model.layers[:-30]:  # Unfreeze top 30 layers สำหรับ EfficientNetV2S
+# Unfreeze top ~30 layers โดยประมาณ (ซึ่งเป็นค่าเริ่มต้นที่ดีสำหรับ EfficientNetV2S)
+# คุณสามารถลองปรับค่านี้ได้ เช่น base_model.layers[:-40] หรือ base_model.trainable = True (พร้อม LR ที่ต่ำมาก)
+for layer in base_model.layers[:-30]:
     layer.trainable = False
 
 reduce_lr_phase2 = ReduceLROnPlateau(
     monitor='val_loss',
     factor=0.2,
     patience=8,
-    min_lr=1e-8,
+    min_lr=1e-9, # ปรับลด min_lr ลงจาก 1e-8 เป็น 1e-9 สำหรับการ Fine-tune ที่ละเอียดขึ้น
     verbose=1
 )
 
@@ -275,8 +278,8 @@ log_and_print(f"⏰ Phase 2 start time: {datetime.now().strftime('%Y-%m-%d %H:%M
 history2 = model.fit(
     train_ds,
     validation_data=val_ds,
-    epochs=50,
-    initial_epoch=20,
+    epochs=50, # รวมเป็น 50 epochs (20+30)
+    initial_epoch=history1.epoch[-1] + 1 if history1.epoch else 20, # เริ่มต้นจาก epoch สุดท้ายของ Phase 1
     class_weight=class_weights,
     callbacks=[reduce_lr_phase2],
     verbose=1
@@ -293,7 +296,8 @@ log_and_print(f"⏱️ Total training time: {format_time(total_training_time)}")
 # บันทึกโมเดลสุดท้าย
 # ----------------------------
 model_save_start = time.time()
-final_model_path = r'C:\Users\Asus\OneDrive\เอกสาร\Model\EfficientNetV2S_20\model_efficientnetv2s_20_R10.keras'
+# ใช้ timestamp เดียวกันกับ report_dir เพื่อให้สอดคล้องกัน
+final_model_path = rf'C:\Users\Asus\OneDrive\เอกสาร\Model\EfficientNetV2S_20\model_efficientnetv2s_20_R10_{timestamp_dir}.keras'
 os.makedirs(os.path.dirname(final_model_path), exist_ok=True)
 model.save(final_model_path)
 model_save_time = time.time() - model_save_start
@@ -315,11 +319,13 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
     def combine(metric):
         return safe_get(h1, metric) + safe_get(h2, metric)
 
-    if not (combine('accuracy') or combine('val_accuracy') or combine('loss') or combine('val_loss')):
-        log_and_print("⚠️ No history data available for plotting")
+    # ตรวจสอบว่ามีข้อมูลใน history หรือไม่
+    combined_loss = combine('loss')
+    if not combined_loss:
+        log_and_print("⚠️ No history data available for plotting. Skipping plot generation.")
         return {}
 
-    epochs = range(1, len(combine('loss')) + 1)
+    epochs = range(1, len(combined_loss) + 1)
     
     # สร้างกราฟขนาดใหญ่
     plt.figure(figsize=(20, 12))
@@ -328,7 +334,7 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
     plt.subplot(2, 3, 1)
     plt.plot(epochs, combine('accuracy'), 'b-', label='Train Accuracy', linewidth=2, marker='o', markersize=3)
     plt.plot(epochs, combine('val_accuracy'), 'r-', label='Val Accuracy', linewidth=2, marker='s', markersize=3)
-    plt.axvline(x=20, color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2') # ปรับตำแหน่งเส้นแบ่ง Phase
     plt.title('Model Accuracy', fontsize=14, fontweight='bold')
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
@@ -337,9 +343,9 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
     
     # กราฟ Loss
     plt.subplot(2, 3, 2)
-    plt.plot(epochs, combine('loss'), 'b-', label='Train Loss', linewidth=2, marker='o', markersize=3)
+    plt.plot(epochs, combined_loss, 'b-', label='Train Loss', linewidth=2, marker='o', markersize=3)
     plt.plot(epochs, combine('val_loss'), 'r-', label='Val Loss', linewidth=2, marker='s', markersize=3)
-    plt.axvline(x=20, color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
     plt.title('Model Loss', fontsize=14, fontweight='bold')
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Loss', fontsize=12)
@@ -350,18 +356,18 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
     plt.subplot(2, 3, 3)
     plt.plot(epochs, combine('top_k_categorical_accuracy'), 'b-', label='Train Top-2 Acc', linewidth=2, marker='o', markersize=3)
     plt.plot(epochs, combine('val_top_k_categorical_accuracy'), 'r-', label='Val Top-2 Acc', linewidth=2, marker='s', markersize=3)
-    plt.axvline(x=20, color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
     plt.title('Top-2 Accuracy', fontsize=14, fontweight='bold')
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Top-2 Accuracy', fontsize=12)
     plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
     
-    # กราฎ Learning Rate (ถ้ามี)
+    # กราฟ Learning Rate (ถ้ามี)
     plt.subplot(2, 3, 4)
     if combine('lr'):
         plt.plot(epochs, combine('lr'), 'orange', linewidth=2, marker='d', markersize=3)
-        plt.axvline(x=20, color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+        plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
         plt.title('Learning Rate Schedule', fontsize=14, fontweight='bold')
         plt.xlabel('Epoch', fontsize=12)
         plt.ylabel('Learning Rate', fontsize=12)
@@ -370,15 +376,15 @@ def plot_and_save_history(h1, h2, save_dir, time_info):
         plt.grid(True, alpha=0.3)
     else:
         plt.text(0.5, 0.5, 'Learning Rate\nHistory\nNot Available', 
-                ha='center', va='center', transform=plt.gca().transAxes,
-                fontsize=14, bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgray"))
+                 ha='center', va='center', transform=plt.gca().transAxes,
+                 fontsize=14, bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgray"))
         plt.title('Learning Rate Schedule', fontsize=14, fontweight='bold')
     
     # สรุปผลการฝึกพร้อมเวลา
     plt.subplot(2, 3, 5)
     final_train_acc = combine('accuracy')[-1] if combine('accuracy') else 0
     final_val_acc = combine('val_accuracy')[-1] if combine('val_accuracy') else 0
-    final_train_loss = combine('loss')[-1] if combine('loss') else 0
+    final_train_loss = combine('loss')[-1] if combined_loss else 0
     final_val_loss = combine('val_loss')[-1] if combine('val_loss') else 0
     final_top2_acc = combine('val_top_k_categorical_accuracy')[-1] if combine('val_top_k_categorical_accuracy') else 0
     
@@ -397,7 +403,7 @@ Total: {format_time(time_info['total_training_time'])}
 """
     
     plt.text(0.1, 0.9, summary_text, transform=plt.gca().transAxes, fontsize=11,
-            verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
+             verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
     plt.axis('off')
     plt.title('Training Summary', fontsize=14, fontweight='bold')
     
@@ -405,8 +411,25 @@ Total: {format_time(time_info['total_training_time'])}
     plt.subplot(2, 3, 6)
     if combine('val_accuracy'):
         max_val_acc = max(combine('val_accuracy'))
-        max_val_acc_epoch = combine('val_accuracy').index(max_val_acc) + 1
-        
+        # ต้องหา index จาก combined history
+        max_val_acc_epoch = combined_loss.index(min(combined_loss)) + 1 # หาจาก min val_loss ก็ได้
+        if 'val_accuracy' in h2.history and len(h2.history['val_accuracy']) > 0:
+            max_val_acc_epoch_h2 = np.argmax(h2.history['val_accuracy']) + (len(safe_get(h1, 'accuracy')) + 1)
+            # เอาค่า Epoch ที่ให้ Val Accuracy สูงสุด
+            if max(h2.history['val_accuracy']) > max_val_acc:
+                max_val_acc = max(h2.history['val_accuracy'])
+                max_val_acc_epoch = max_val_acc_epoch_h2
+        elif 'val_accuracy' in h1.history and len(h1.history['val_accuracy']) > 0:
+            max_val_acc = max(h1.history['val_accuracy'])
+            max_val_acc_epoch = np.argmax(h1.history['val_accuracy']) + 1
+        else:
+             max_val_acc = 0
+             max_val_acc_epoch = 0
+
+        total_epochs_run = len(combined_loss) if combined_loss else 50 # Fallback if history is empty
+        avg_time_per_epoch = time_info['total_training_time'] / total_epochs_run if total_epochs_run > 0 else 0
+
+
         performance_text = f"""Best Performance:
         
 Max Val Accuracy: {max_val_acc:.4f}
@@ -414,19 +437,20 @@ At Epoch: {max_val_acc_epoch}
 
 Model Configuration:
 • EfficientNetV2S (Pretrained)
-• Image Size: 224x224
-• Batch Size: 16
+• Image Size: {IMG_SIZE[0]}x{IMG_SIZE[1]}
+• Batch Size: {BATCH_SIZE}
 • Mixed Precision: FP16
-• CLAHE Enhancement
+• CLAHE Enhancement: {'Yes' if True else 'No'}
+• Data Augmentation: No
 • Class Weights: Balanced
 
 Time Efficiency:
-• Avg Time/Epoch: {format_time(time_info['total_training_time']/50)}
+• Avg Time/Epoch: {format_time(avg_time_per_epoch)}
 • Total Training: {format_time(time_info['total_training_time'])}
 """
         
         plt.text(0.1, 0.9, performance_text, transform=plt.gca().transAxes, fontsize=11,
-                verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgreen", alpha=0.8))
+                 verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgreen", alpha=0.8))
     
     plt.axis('off')
     plt.title('Best Performance', fontsize=14, fontweight='bold')
@@ -434,7 +458,7 @@ Time Efficiency:
     plt.tight_layout()
     
     # บันทึกกราฟ
-    graph_path = os.path.join(save_dir, f'training_history_{timestamp}.png')
+    graph_path = os.path.join(save_dir, f'training_history_{timestamp_dir}.png')
     plt.savefig(graph_path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.show()
     
@@ -480,7 +504,7 @@ for batch_idx, (images, labels) in enumerate(test_ds):
     y_true.extend(np.argmax(labels.numpy(), axis=1))
     
     if batch_idx == 0:  # Log timing for first batch
-        log_and_print(f"   First batch ({len(images)} samples) inference time: {batch_time:.4f} seconds")
+        log_and_print(f"   First batch ({len(images)} samples) inference time: {batch_time:.4f} seconds")
 
 total_inference_time = time.time() - inference_start
 
@@ -530,7 +554,7 @@ plt.title('Confusion Matrix - EfficientNetV2S Model (224x224)', fontsize=16, fon
 plt.tight_layout()
 
 # Save Confusion Matrix
-cm_path = os.path.join(report_dir, f'confusion_matrix_{timestamp}.png')
+cm_path = os.path.join(report_dir, f'confusion_matrix_{timestamp_dir}.png')
 plt.savefig(cm_path, dpi=300, bbox_inches='tight', facecolor='white')
 plt.show()
 

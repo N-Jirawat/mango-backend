@@ -1,17 +1,101 @@
 import os
-import re
-os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
-
+import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+import cv2
+import time
+from datetime import datetime, timedelta
+
+from sklearn.metrics import (
+    classification_report, confusion_matrix, ConfusionMatrixDisplay,
+    precision_recall_fscore_support, roc_curve, auc, roc_auc_score
+)
 from sklearn.utils import class_weight
-import seaborn as sns
+from tensorflow.keras import layers, models, mixed_precision
+from tensorflow.keras.applications.densenet import DenseNet121, preprocess_input
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 # ----------------------------
-# เตรียมข้อมูล
+# ตั้งค่า GPU Growth
 # ----------------------------
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+
+# ----------------------------
+# เริ่มจับเวลาการทำงานทั้งหมด
+# ----------------------------
+script_start_time = time.time()
+training_start_datetime = datetime.now()
+
+# ----------------------------
+# สร้างโฟลเดอร์สำหรับเก็บผลลัพธ์
+# ----------------------------
+# ใช้ f-string เพื่อเพิ่มความยืดหยุ่นในการตั้งชื่อและรวม timestamp ใน report_dir
+report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report 70 15 15\DenseNet121\DenseNet121_15_R11'
+os.makedirs(report_dir, exist_ok=True)
+
+# สร้างไฟล์สำหรับบันทึกผลลัพธ์
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+report_file = os.path.join(report_dir, f'training_report_{timestamp}.txt')
+
+def log_and_print(message):
+    """ฟังก์ชันสำหรับแสดงผลและบันทึกข้อความ"""
+    print(message)
+    with open(report_file, 'a', encoding='utf-8') as f:
+        f.write(message + '\n')
+
+def format_time(seconds):
+    """แปลงวินาทีเป็นรูปแบบ HH:MM:SS"""
+    return str(timedelta(seconds=int(seconds)))
+
+# เริ่มบันทึกรายงาน
+log_and_print("="*80)
+log_and_print("🚀 DenseNet121 Training Report")
+log_and_print(f"📅 Start Time: {training_start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+log_and_print("="*80)
+
+# ----------------------------
+# ฟังก์ชันช่วยเหลือ: CLAHE + DenseNet121 Preprocessing
+# ----------------------------
+def apply_clahe_np(image):
+    image = np.array(image)
+    img_uint8 = image.astype(np.uint8)
+    lab = cv2.cvtColor(img_uint8, cv2.COLOR_RGB2LAB)
+    l, a, b = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    cl = clahe.apply(l)
+    limg = cv2.merge((cl, a, b))
+    final = cv2.cvtColor(limg, cv2.COLOR_LAB2RGB)
+    return final
+
+def apply_clahe_tf(image):
+    # tf.map_fn จะทำการวนลูปและส่งภาพแต่ละภาพ (ในรูปแบบ tensor) เข้าไปใน _clahe
+    def _clahe(single_image_tensor):
+        # แปลง tensor เป็น numpy array, ใช้ .numpy() ได้เมื่ออยู่ใน tf.py_function
+        single_image_np = tf.cast(single_image_tensor, tf.uint8).numpy()
+        processed_image_np = apply_clahe_np(single_image_np)
+        # แปลง numpy array กลับเป็น tensor
+        return tf.convert_to_tensor(processed_image_np, dtype=tf.uint8)
+    
+    # ใช้ tf.map_fn เพื่อประมวลผลแต่ละภาพใน batch ผ่าน tf.py_function
+    # tf.py_function ใช้สำหรับเรียกฟังก์ชัน Python ธรรมดาภายในกราฟ TensorFlow
+    processed_batch_images = tf.map_fn(
+        lambda x: tf.py_function(func=_clahe, inp=[x], Tout=tf.uint8),
+        image, # image ในที่นี้คือ batch ของรูปภาพ
+        fn_output_signature=tf.TensorSpec(shape=IMG_SIZE + (3,), dtype=tf.uint8) # กำหนดรูปร่างของ output ที่คาดว่าจะได้
+    )
+    return processed_batch_images
+
+def preprocess_with_clahe(image, label):
+    image = apply_clahe_tf(image)
+    image = tf.cast(image, tf.float32)
+    image = preprocess_input(image)
+    return image, label
+
+# ----------------------------
+# เตรียมข้อมูล (Data Pipeline)
+# ----------------------------
+data_prep_start = time.time()
+
 AUTOTUNE = tf.data.AUTOTUNE
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 16
@@ -20,62 +104,67 @@ train_dir = r'C:\Mango-Disease-70_15_15\train'
 val_dir = r'C:\Mango-Disease-70_15_15\val'
 test_dir = r'C:\Mango-Disease-70_15_15\test'
 
+# ตั้ง seed เพื่อให้ได้ลำดับข้อมูลเดิมตลอด
+tf.random.set_seed(42)
+np.random.seed(42)
+
+log_and_print("\n📊 Loading Dataset...")
+
 train_raw = tf.keras.utils.image_dataset_from_directory(
-    train_dir, image_size=IMG_SIZE, batch_size=BATCH_SIZE,
-    label_mode='categorical', shuffle=True
+    train_dir,
+    image_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    label_mode='categorical',
+    shuffle=True,
+    seed=42
 )
-class_names = train_raw.class_names
-train_ds = train_raw.prefetch(AUTOTUNE)
-
 val_raw = tf.keras.utils.image_dataset_from_directory(
-    val_dir, image_size=IMG_SIZE, batch_size=BATCH_SIZE,
-    label_mode='categorical'
+    val_dir,
+    image_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    label_mode='categorical',
+    shuffle=True,
+    seed=42
 )
-val_ds = val_raw.prefetch(AUTOTUNE)
-
 test_raw = tf.keras.utils.image_dataset_from_directory(
-    test_dir, image_size=IMG_SIZE, batch_size=BATCH_SIZE,
-    label_mode='categorical'
+    test_dir,
+    image_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    label_mode='categorical',
+    shuffle=False
 )
-test_ds = test_raw.prefetch(AUTOTUNE)
 
+class_names = train_raw.class_names
 num_classes = len(class_names)
 
-# ----------------------------
-# สร้างโมเดล (ฟังก์ชัน) พร้อม EfficientNetV2S + mixed precision
-# ----------------------------
-from tensorflow.keras.applications.densenet import DenseNet121, preprocess_input
-from tensorflow.keras import layers, models, mixed_precision
+log_and_print(f"✅ Dataset loaded successfully!")
+log_and_print(f"📋 Number of classes: {num_classes}")
+log_and_print(f"📋 Class names: {', '.join(class_names)}")
+log_and_print(f"📏 Image size: {IMG_SIZE[0]}x{IMG_SIZE[1]}")
+log_and_print(f"📦 Batch size: {BATCH_SIZE}")
 
-mixed_precision.set_global_policy('mixed_float16')
 
-def create_model():
-    base_model = DenseNet121(
-        include_top=False,
-        input_shape=IMG_SIZE + (3,),
-        weights='imagenet'
-    )
-    base_model.trainable = False  # เริ่มต้น freeze base model
-    
-    inputs = tf.keras.Input(shape=IMG_SIZE + (3,))
-    x = preprocess_input(inputs)
-    x = base_model(x, training=False)
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dropout(0.3)(x)
-    x = layers.Dense(num_classes, activation='softmax', dtype='float32')(x)
-    
-    model = models.Model(inputs, x)
-    return model, base_model
+# Cache ข้อมูลเพื่อให้ใช้ลำดับเดิมตลอด
+train_raw = train_raw.cache()
+val_raw = val_raw.cache()
+test_raw = test_raw.cache()
 
-# สร้างโมเดลครั้งแรก
-model, base_model = create_model()
+# Map CLAHE + DenseNet121 preprocess → แล้ว prefetch
+train_ds = train_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+val_ds = val_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+test_ds = test_raw.map(preprocess_with_clahe, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+
+data_prep_time = time.time() - data_prep_start
+log_and_print(f"⏱️ Data preparation time: {format_time(data_prep_time)}")
 
 # ----------------------------
-# คำนวณ class weights
+# คำนวณ Class Weights
 # ----------------------------
-y_train = np.concatenate([y.numpy() for x, y in train_raw])
+class_weight_start = time.time()
+log_and_print("\n⚖️ Calculating class weights...")
+
+y_train = np.concatenate([y.numpy() for _, y in train_raw], axis=0)
 y_labels = np.argmax(y_train, axis=1)
-
 class_weights = class_weight.compute_class_weight(
     class_weight='balanced',
     classes=np.unique(y_labels),
@@ -83,20 +172,60 @@ class_weights = class_weight.compute_class_weight(
 )
 class_weights = dict(enumerate(class_weights))
 
-# ----------------------------
-# Phase 1: Pretrain
-# ----------------------------
-checkpoint_dir1 = r'C:\Users\Asus\mango-app\backend\models\DenseNet121\checkpoints15\pretrain'
-os.makedirs(checkpoint_dir1, exist_ok=True)
-latest_ckpt1 = tf.train.latest_checkpoint(checkpoint_dir1)
+class_weight_time = time.time() - class_weight_start
+log_and_print("✅ Class weights calculated:")
+for i, weight in class_weights.items():
+    log_and_print(f"   {class_names[i]}: {weight:.4f}")
+log_and_print(f"⏱️ Class weight calculation time: {format_time(class_weight_time)}")
 
-initial_epoch1 = 0
-if latest_ckpt1:
-    print(f"🔄 Loading Phase 1 weights from {latest_ckpt1}")
-    model.load_weights(latest_ckpt1)
-    match = re.search(r'ckpt-(\d+)', latest_ckpt1)
-    if match:
-        initial_epoch1 = int(match.group(1))
+# ----------------------------
+# สร้างโมเดล DenseNet121 พร้อม mixed precision
+# ----------------------------
+model_creation_start = time.time()
+mixed_precision.set_global_policy('mixed_float16')
+
+def create_model():
+    base_model = DenseNet121( # เปลี่ยนเป็น DenseNet121
+        include_top=False,
+        input_shape=IMG_SIZE + (3,),
+        weights='imagenet'
+    )
+    base_model.trainable = False  # freeze base model ใน Phase 1
+    
+    inputs = tf.keras.Input(shape=IMG_SIZE + (3,))
+    x = base_model(inputs, training=False)
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(0.4)(x) # ปรับลด Dropout จาก 0.5 เป็น 0.4
+    x = layers.Dense(1024, activation='relu')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(0.25)(x) # ปรับลด Dropout จาก 0.3 เป็น 0.25
+    x = layers.Dense(512, activation='relu')(x)
+    x = layers.Dropout(0.15)(x) # ปรับลด Dropout จาก 0.2 เป็น 0.15
+    outputs = layers.Dense(num_classes, activation='softmax', dtype='float32')(x)
+    
+    model = models.Model(inputs, outputs)
+    return model, base_model
+
+# สร้างโมเดลครั้งแรก
+model, base_model = create_model()
+
+model_creation_time = time.time() - model_creation_start
+log_and_print(f"\n🏗️ DenseNet121 Model created successfully!")
+log_and_print(f"📊 Total parameters: {model.count_params():,}")
+log_and_print(f"🔧 Trainable parameters: {sum([tf.size(var).numpy() for var in model.trainable_variables]):,}")
+log_and_print(f"⏱️ Model creation time: {format_time(model_creation_time)}")
+
+# ----------------------------
+# Phase 1: Pretrain (Freeze Base Model) - 20 epochs
+# ----------------------------
+reduce_lr = ReduceLROnPlateau(
+    monitor='val_loss',
+    factor=0.5,
+    patience=5,
+    min_lr=1e-7,
+    verbose=1
+)
 
 model.compile(
     optimizer=tf.keras.optimizers.Adam(1e-3),
@@ -104,98 +233,90 @@ model.compile(
     metrics=['accuracy', tf.keras.metrics.TopKCategoricalAccuracy(k=2)]
 )
 
-checkpoint_cb1 = tf.keras.callbacks.ModelCheckpoint(
-    filepath=os.path.join(checkpoint_dir1, 'ckpt-{epoch:02d}'),
-    save_weights_only=True,
-    save_freq='epoch'
-)
-earlystop_cb1 = tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True)
+phase1_start = time.time()
+log_and_print("\n🚀 Starting Phase 1: Pretrain (Freeze Base Model) - 20 epochs")
+log_and_print(f"⏰ Phase 1 start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 history1 = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=20,
-    initial_epoch=initial_epoch1,
     class_weight=class_weights,
-    callbacks=[checkpoint_cb1, earlystop_cb1]
+    callbacks=[reduce_lr],
+    verbose=1
 )
 
-model_path_phase1 = r'C:\Users\Asus\mango-app\backend\models\DenseNet121\checkpoints15\model_DenseNet121_70_15_15_phase1.keras'
-model.save(model_path_phase1)
-print(f"✅ บันทึกโมเดล Phase 1 สำเร็จที่: {model_path_phase1}")
+phase1_time = time.time() - phase1_start
+log_and_print("✅ Phase 1 completed!")
+log_and_print(f"⏱️ Phase 1 training time: {format_time(phase1_time)}")
+log_and_print(f"⏰ Phase 1 end time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # ----------------------------
-# Phase 2: Fine-tune
+# Phase 2: Fine-tune (Unfreeze Base Model) - 30 epochs
 # ----------------------------
-# โหลดโมเดลที่บันทึกจาก Phase 1
-model = tf.keras.models.load_model(model_path_phase1)
+base_model.trainable = True
 
-# เปิดให้ base_model trainable
-# ต้องหา base_model ในโมเดลที่โหลดมาใหม่
-for layer in model.layers:
-    if isinstance(layer, tf.keras.Model):  # กรณี base_model ถูกฝังเป็น Model
-        base_model = layer
-        break
-else:
-    base_model = None
+# Fine-tune จาก Dense Block สุดท้าย ของ DenseNet121
+# DenseNet121 มี Dense Block 4 บล็อค เราจะ unfreeze บล็อคสุดท้าย (~50 layers)
+# คุณได้ตั้งค่าเป็น layers[:-50] ซึ่งเป็นค่าเริ่มต้นที่ดีสำหรับ DenseNet121
+for layer in base_model.layers[:-50]: 
+    layer.trainable = False
 
-if base_model is None:
-    # ถ้าไม่เจอ ให้ลองวิธีอื่น หรือกำหนด trainable ทั้งโมเดล
-    print("❗️ไม่พบ base_model ในโมเดลที่โหลดมา, เปิด trainable ทั้งโมเดลแทน")
-    model.trainable = True
-else:
-    base_model.trainable = True
-
-checkpoint_dir2 = r'C:\Users\Asus\mango-app\backend\models\DenseNet121\checkpoints15\finetune'
-os.makedirs(checkpoint_dir2, exist_ok=True)
-
-latest_ckpt2 = tf.train.latest_checkpoint(checkpoint_dir2)
-initial_epoch2 = 0
-if latest_ckpt2:
-    print(f"🔄 Loading Phase 2 weights from {latest_ckpt2}")
-    model.load_weights(latest_ckpt2)
-    match = re.search(r'ckpt-(\d+)', latest_ckpt2)
-    if match:
-        initial_epoch2 = int(match.group(1))
+reduce_lr_phase2 = ReduceLROnPlateau(
+    monitor='val_loss',
+    factor=0.2,
+    patience=8,
+    min_lr=1e-9, # ปรับลด min_lr ลงจาก 1e-7 เป็น 1e-9 สำหรับการ Fine-tune ที่ละเอียดขึ้น
+    verbose=1
+)
 
 model.compile(
-    optimizer=tf.keras.optimizers.Adam(1e-4),
+    optimizer=tf.keras.optimizers.Adam(1e-5),  # ลด learning rate สำหรับ fine-tune
     loss='categorical_crossentropy',
     metrics=['accuracy', tf.keras.metrics.TopKCategoricalAccuracy(k=2)]
 )
 
-checkpoint_cb2 = tf.keras.callbacks.ModelCheckpoint(
-    filepath=os.path.join(checkpoint_dir2, 'ckpt-{epoch:02d}'),
-    save_weights_only=True,
-    save_freq='epoch'
-)
-
-best_model_path = r'C:\Users\Asus\mango-app\backend\models\DenseNet121\model_densenet121_70_15_15.keras'
-best_model_cb = tf.keras.callbacks.ModelCheckpoint(
-    filepath=best_model_path,
-    monitor='val_accuracy',
-    mode='max',
-    save_best_only=True,
-    save_weights_only=False
-)
-
-earlystop_cb2 = tf.keras.callbacks.EarlyStopping(
-    patience=5, restore_best_weights=True
-)
+phase2_start = time.time()
+log_and_print("\n🚀 Starting Phase 2: Fine-tune (Unfreeze Top Layers) - 30 epochs")
+log_and_print(f"🔧 Trainable parameters after unfreezing: {sum([tf.size(var).numpy() for var in model.trainable_variables]):,}")
+log_and_print(f"⏰ Phase 2 start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 history2 = model.fit(
     train_ds,
     validation_data=val_ds,
-    epochs=50,
-    initial_epoch=initial_epoch2,
+    epochs=50, # รวมเป็น 50 epochs (20+30)
+    initial_epoch=history1.epoch[-1] + 1 if history1.epoch else 20, # เริ่มต้นจาก epoch สุดท้ายของ Phase 1
     class_weight=class_weights,
-    callbacks=[checkpoint_cb2, earlystop_cb2, best_model_cb]
+    callbacks=[reduce_lr_phase2],
+    verbose=1
 )
 
+phase2_time = time.time() - phase2_start
+total_training_time = phase1_time + phase2_time
+log_and_print("✅ Phase 2 completed!")
+log_and_print(f"⏱️ Phase 2 training time: {format_time(phase2_time)}")
+log_and_print(f"⏰ Phase 2 end time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+log_and_print(f"⏱️ Total training time: {format_time(total_training_time)}")
+
 # ----------------------------
-# รวมกราฟ
+# บันทึกโมเดลสุดท้าย
 # ----------------------------
-def plot_history(h1, h2):
+model_save_start = time.time()
+# ใช้ timestamp เดียวกันกับ report_dir เพื่อให้สอดคล้องกัน
+final_model_path = r'C:\Users\Asus\OneDrive\เอกสาร\Model 70 15 15\Model\DenseNet121\model_densenet121_15_R11.keras'
+os.makedirs(os.path.dirname(final_model_path), exist_ok=True)
+model.save(final_model_path)
+model_save_time = time.time() - model_save_start
+
+log_and_print(f"\n✅ Final model saved: {final_model_path}")
+log_and_print(f"⏱️ Model save time: {format_time(model_save_time)}")
+
+# ----------------------------
+# สร้างกราฟ Training History
+# ----------------------------
+def plot_and_save_history(h1, h2, save_dir, time_info):
+    plot_start = time.time()
+    
     def safe_get(history_obj, metric):
         if history_obj is None:
             return []
@@ -204,54 +325,255 @@ def plot_history(h1, h2):
     def combine(metric):
         return safe_get(h1, metric) + safe_get(h2, metric)
 
-    if not (combine('accuracy') or combine('val_accuracy') or combine('loss') or combine('val_loss')):
-        print("⚠️ ไม่มีข้อมูลใน history สำหรับ plot กราฟ")
-        return
+    # ตรวจสอบว่ามีข้อมูลใน history หรือไม่
+    combined_loss = combine('loss')
+    if not combined_loss:
+        log_and_print("⚠️ No history data available for plotting. Skipping plot generation.")
+        return {}
 
-    epochs = range(1, len(combine('loss')) + 1)
-    plt.figure(figsize=(12, 5))
+    epochs = range(1, len(combined_loss) + 1)
+    
+    # สร้างกราฟขนาดใหญ่
+    plt.figure(figsize=(20, 12))
+    
+    # กราฟ Accuracy
+    plt.subplot(2, 3, 1)
+    plt.plot(epochs, combine('accuracy'), 'b-', label='Train Accuracy', linewidth=2, marker='o', markersize=3)
+    plt.plot(epochs, combine('val_accuracy'), 'r-', label='Val Accuracy', linewidth=2, marker='s', markersize=3)
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2') # ปรับตำแหน่งเส้นแบ่ง Phase
+    plt.title('Model Accuracy', fontsize=14, fontweight='bold')
+    plt.xlabel('Epoch', fontsize=12)
+    plt.ylabel('Accuracy', fontsize=12)
+    plt.legend(fontsize=10)
+    plt.grid(True, alpha=0.3)
+    
+    # กราฟ Loss
+    plt.subplot(2, 3, 2)
+    plt.plot(epochs, combined_loss, 'b-', label='Train Loss', linewidth=2, marker='o', markersize=3)
+    plt.plot(epochs, combine('val_loss'), 'r-', label='Val Loss', linewidth=2, marker='s', markersize=3)
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+    plt.title('Model Loss', fontsize=14, fontweight='bold')
+    plt.xlabel('Epoch', fontsize=12)
+    plt.ylabel('Loss', fontsize=12)
+    plt.legend(fontsize=10)
+    plt.grid(True, alpha=0.3)
+    
+    # กราฟ Top-2 Accuracy
+    plt.subplot(2, 3, 3)
+    plt.plot(epochs, combine('top_k_categorical_accuracy'), 'b-', label='Train Top-2 Acc', linewidth=2, marker='o', markersize=3)
+    plt.plot(epochs, combine('val_top_k_categorical_accuracy'), 'r-', label='Val Top-2 Acc', linewidth=2, marker='s', markersize=3)
+    plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+    plt.title('Top-2 Accuracy', fontsize=14, fontweight='bold')
+    plt.xlabel('Epoch', fontsize=12)
+    plt.ylabel('Top-2 Accuracy', fontsize=12)
+    plt.legend(fontsize=10)
+    plt.grid(True, alpha=0.3)
+    
+    # กราฟ Learning Rate (ถ้ามี)
+    plt.subplot(2, 3, 4)
+    if combine('lr'):
+        plt.plot(epochs, combine('lr'), 'orange', linewidth=2, marker='d', markersize=3)
+        plt.axvline(x=len(safe_get(h1, 'loss')), color='green', linestyle='--', alpha=0.7, linewidth=2, label='Phase 1 → Phase 2')
+        plt.title('Learning Rate Schedule', fontsize=14, fontweight='bold')
+        plt.xlabel('Epoch', fontsize=12)
+        plt.ylabel('Learning Rate', fontsize=12)
+        plt.yscale('log')
+        plt.legend(fontsize=10)
+        plt.grid(True, alpha=0.3)
+    else:
+        plt.text(0.5, 0.5, 'Learning Rate\nHistory\nNot Available', 
+                 ha='center', va='center', transform=plt.gca().transAxes,
+                 fontsize=14, bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgray"))
+        plt.title('Learning Rate Schedule', fontsize=14, fontweight='bold')
+    
+    # สรุปผลการฝึกพร้อมเวลา
+    plt.subplot(2, 3, 5)
+    final_train_acc = combine('accuracy')[-1] if combine('accuracy') else 0
+    final_val_acc = combine('val_accuracy')[-1] if combine('val_accuracy') else 0
+    final_train_loss = combine('loss')[-1] if combined_loss else 0
+    final_val_loss = combine('val_loss')[-1] if combine('val_loss') else 0
+    final_top2_acc = combine('val_top_k_categorical_accuracy')[-1] if combine('val_top_k_categorical_accuracy') else 0
+    
+    summary_text = f"""Final Training Results:
+    
+Train Accuracy: {final_train_acc:.4f}
+Val Accuracy: {final_val_acc:.4f}
+Train Loss: {final_train_loss:.4f}
+Val Loss: {final_val_loss:.4f}
+Val Top-2 Acc: {final_top2_acc:.4f}
 
-    plt.subplot(1, 2, 1)
-    plt.plot(epochs, combine('accuracy'), label='Train Accuracy')
-    plt.plot(epochs, combine('val_accuracy'), label='Val Accuracy')
-    plt.title('Model Accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend()
+Training Time:
+Phase 1: {format_time(time_info['phase1_time'])}
+Phase 2: {format_time(time_info['phase2_time'])}
+Total: {format_time(time_info['total_training_time'])}
+"""
+    
+    plt.text(0.1, 0.9, summary_text, transform=plt.gca().transAxes, fontsize=11,
+             verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
+    plt.axis('off')
+    plt.title('Training Summary', fontsize=14, fontweight='bold')
+    
+    # แสดงค่าสูงสุดของ validation accuracy
+    plt.subplot(2, 3, 6)
+    max_val_acc = 0
+    max_val_acc_epoch = 0
+    if combine('val_accuracy'):
+        max_val_acc = max(combine('val_accuracy'))
+        max_val_acc_epoch = [i for i, j in enumerate(combine('val_accuracy')) if j == max_val_acc][-1] + 1
+    
+    total_epochs_run = len(combined_loss) if combined_loss else 50 # Fallback if history is empty
+    avg_time_per_epoch = time_info['total_training_time'] / total_epochs_run if total_epochs_run > 0 else 0
 
-    plt.subplot(1, 2, 2)
-    plt.plot(epochs, combine('loss'), label='Train Loss')
-    plt.plot(epochs, combine('val_loss'), label='Val Loss')
-    plt.title('Model Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
 
+    performance_text = f"""Best Performance:
+    
+Max Val Accuracy: {max_val_acc:.4f}
+At Epoch: {max_val_acc_epoch}
+
+Model Configuration:
+• DenseNet121 (Pretrained)
+• Image Size: {IMG_SIZE[0]}x{IMG_SIZE[1]}
+• Batch Size: {BATCH_SIZE}
+• Mixed Precision: FP16
+• CLAHE Enhancement: {'Yes' if True else 'No'}
+• Data Augmentation: No
+• Class Weights: Balanced
+
+Time Efficiency:
+• Avg Time/Epoch: {format_time(avg_time_per_epoch)}
+• Total Training: {format_time(time_info['total_training_time'])}
+"""
+        
+    plt.text(0.1, 0.9, performance_text, transform=plt.gca().transAxes, fontsize=11,
+             verticalalignment='top', bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgreen", alpha=0.8))
+    
+    plt.axis('off')
+    plt.title('Best Performance', fontsize=14, fontweight='bold')
+    
     plt.tight_layout()
+    
+    # บันทึกกราฟ
+    graph_path = os.path.join(save_dir, f'training_history_{timestamp_dir}.png')
+    plt.savefig(graph_path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.show()
+    
+    plot_time = time.time() - plot_start
+    log_and_print(f"✅ Training history graph saved: {graph_path}")
+    log_and_print(f"⏱️ Plot generation time: {format_time(plot_time)}")
+    
+    return {
+        'final_train_acc': final_train_acc,
+        'final_val_acc': final_val_acc,
+        'final_train_loss': final_train_loss,
+        'final_val_loss': final_val_loss,
+        'final_top2_acc': final_top2_acc,
+        'max_val_acc': max_val_acc,
+        'max_val_acc_epoch': max_val_acc_epoch
+    }
 
-plot_history(history1, history2)
+# สร้างและบันทึกกราฟ
+time_info = {
+    'phase1_time': phase1_time,
+    'phase2_time': phase2_time,
+    'total_training_time': total_training_time
+}
+training_summary = plot_and_save_history(history1, history2, report_dir, time_info)
 
 # ----------------------------
-# ประเมินผล Test Set
+# ประเมินผลโมเดลบน Test Set
 # ----------------------------
-# โหลดโมเดลที่ดีที่สุดจาก Phase 2
-model = tf.keras.models.load_model(best_model_path)
+log_and_print("\n🔍 Evaluating model on Test Set...")
 
 y_true = []
 y_pred = []
+y_pred_proba = []
 
-for images, labels in test_ds:
-    preds = model.predict(images)
+inference_start = time.time()
+for batch_idx, (images, labels) in enumerate(test_ds):
+    batch_start = time.time()
+    preds = model.predict(images, verbose=0)
+    batch_time = time.time() - batch_start
+    
+    y_pred_proba.extend(preds)
     y_pred.extend(np.argmax(preds, axis=1))
     y_true.extend(np.argmax(labels.numpy(), axis=1))
+    
+    if batch_idx == 0:  # Log timing for first batch
+        log_and_print(f"   First batch ({len(images)} samples) inference time: {batch_time:.4f} seconds")
 
-print("\nClassification Report:")
-print(classification_report(y_true, y_pred, target_names=class_names))
+total_inference_time = time.time() - inference_start
 
+y_true = np.array(y_true)
+y_pred = np.array(y_pred)
+y_pred_proba = np.array(y_pred_proba)
+
+# สร้าง Classification Report
+evaluation_start = time.time()
+log_and_print("\n" + "="*80)
+log_and_print("📊 TEST SET EVALUATION RESULTS")
+log_and_print("="*80)
+
+report = classification_report(y_true, y_pred, target_names=class_names, output_dict=True)
+report_str = classification_report(y_true, y_pred, target_names=class_names)
+log_and_print(report_str)
+
+test_accuracy = np.mean(y_true == y_pred)
+log_and_print(f"\n🏆 Test Accuracy: {test_accuracy:.4f}")
+log_and_print(f"⏱️ Total Inference Time: {format_time(total_inference_time)}")
+log_and_print(f"⚡ Average Time per Sample: {total_inference_time/len(y_true):.6f} seconds")
+log_and_print(f"🔢 Total Test Samples: {len(y_true)}")
+log_and_print(f"📊 Inference Speed: {len(y_true)/total_inference_time:.2f} samples/second")
+
+# คำนวณ Top-2 Accuracy
+top2_predictions = np.argsort(y_pred_proba, axis=1)[:, -2:]
+top2_accuracy = np.mean([y_true[i] in top2_predictions[i] for i in range(len(y_true))])
+log_and_print(f"🎯 Top-2 Test Accuracy: {top2_accuracy:.4f}")
+
+evaluation_time = time.time() - evaluation_start
+log_and_print(f"⏱️ Evaluation computation time: {format_time(evaluation_time)}")
+
+# ----------------------------
+# สร้าง Confusion Matrix
+# ----------------------------
+confusion_start = time.time()
+log_and_print("\n🔍 Creating Confusion Matrix...")
+
+# สร้าง Confusion Matrix
 cm = confusion_matrix(y_true, y_pred)
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
-disp.plot(cmap='Blues', xticks_rotation=45)
-plt.title("Confusion Matrix")
+cm_display = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+
+# Plot Confusion Matrix
+plt.figure(figsize=(12, 10))
+cm_display.plot(cmap='Blues', values_format='d', xticks_rotation=45)
+plt.title('Confusion Matrix - DenseNet121 Model', fontsize=16, fontweight='bold', pad=20)
 plt.tight_layout()
+
+# Save Confusion Matrix
+cm_path = os.path.join(report_dir, f'confusion_matrix_{timestamp_dir}.png')
+plt.savefig(cm_path, dpi=300, bbox_inches='tight', facecolor='white')
 plt.show()
+
+confusion_time = time.time() - confusion_start
+log_and_print(f"✅ Confusion Matrix saved: {cm_path}")
+log_and_print(f"⏱️ Confusion Matrix generation time: {format_time(confusion_time)}")
+
+# ----------------------------
+# สรุปรายงานสุดท้าย
+# ----------------------------
+total_script_time = time.time() - script_start_time
+script_end_datetime = datetime.now()
+
+log_and_print("\n" + "="*80)
+log_and_print("🎉 TRAINING COMPLETED SUCCESSFULLY!")
+log_and_print("="*80)
+log_and_print(f"📅 End Time: {script_end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+log_and_print(f"⏱️ Total Script Runtime: {format_time(total_script_time)}")
+log_and_print(f"📊 Final Test Accuracy: {test_accuracy:.4f}")
+log_and_print(f"🎯 Final Top-2 Accuracy: {top2_accuracy:.4f}")
+log_and_print(f"💾 Model saved at: {final_model_path}")
+log_and_print(f"📁 Reports saved in: {report_dir}")
+log_and_print("="*80)
+
+print("\n🏁 Script execution completed successfully!")
+print(f"📋 Check the report file: {report_file}")
+print(f"📊 Check the graphs and confusion matrix in: {report_dir}")
