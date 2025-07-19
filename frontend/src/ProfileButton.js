@@ -25,27 +25,27 @@ function ProfileButton({ user, onUserUpdate }) {
   // ฟังก์ชันสำหรับแสดงที่อยู่
   const formatAddress = () => {
     const addressParts = [];
-    
+
     if (currentUser.address && currentUser.address.trim()) {
       addressParts.push(currentUser.address.trim());
     }
-    
+
     if (currentUser.village && currentUser.village.trim()) {
       addressParts.push(`บ้าน ${currentUser.village.trim()}`);
     }
-    
+
     if (currentUser.subdistrict && currentUser.subdistrict.trim()) {
       addressParts.push(`ตำบล ${currentUser.subdistrict.trim()}`);
     }
-    
+
     if (currentUser.district && currentUser.district.trim()) {
       addressParts.push(`อำเภอ ${currentUser.district.trim()}`);
     }
-    
+
     if (currentUser.province && currentUser.province.trim()) {
       addressParts.push(`จังหวัด ${currentUser.province.trim()}`);
     }
-    
+
     return addressParts.length > 0 ? addressParts.join(", ") : "ไม่ได้ระบุ";
   };
 
@@ -60,7 +60,7 @@ function ProfileButton({ user, onUserUpdate }) {
             ...user,
             ...userData
           });
-          
+
           // ส่งข้อมูลที่อัปเดตกลับไปให้ parent component
           if (onUserUpdate) {
             onUserUpdate({
@@ -132,18 +132,18 @@ function ProfileButton({ user, onUserUpdate }) {
 
       {showDropdown && (
         <div className="dropdown-menu" ref={dropdownRef}>
-          <Link to={`/userdetails/${currentUser.uid}`}>
+          <Link to={`/userdetails/${currentUser.uid}`} onClick={() => setShowDropdown(false)}>
             <span>แก้ไขรายละเอียด</span>
           </Link>
-          
+
           <p><strong>ชื่อเต็ม:</strong> {currentUser.fullName || "ไม่ได้ระบุ"}</p>
-          
+
           <p><strong>ที่อยู่:</strong> {formatAddress()}</p>
-          
+
           <p><strong>โทรศัพท์:</strong> {currentUser.tel && currentUser.tel.trim() ? currentUser.tel : "ไม่ได้ระบุ"}</p>
-          
+
           <p><strong>อีเมล:</strong> {currentUser.email || "ไม่ได้ระบุ"}</p>
-          
+
           <button onClick={handleSignOut}>ออกจากระบบ</button>
         </div>
       )}
