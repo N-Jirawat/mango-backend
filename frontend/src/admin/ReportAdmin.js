@@ -18,7 +18,7 @@ pdfMake.fonts = {
     }
 };
 
-function AdminReport() {
+function ReportAdmin() {
     const [usersReport, setUsersReport] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -232,4 +232,4 @@ function AdminReport() {
     );
 }
 
-export default AdminReport;
+export default ReportAdmin;
