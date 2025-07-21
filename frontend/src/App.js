@@ -31,8 +31,9 @@ import HistoryDetail from "./history/HistoryDetail";
 import UserManual from "./UserManual";
 import ResponsiveNav from "./ResponsiveNav";
 import ForgotPasswordPage from "./user/ForgotPasswordPage";
-import StaticsUser from "./user/StatisticsUser";
+import ReportUser from "./user/ReportUser";
 import StatisticsAdmin from "./admin/StatisticsAdmin";
+import ReportAdmin from "./admin/ReportAdmin";
 
 // CSS
 import "./css/allstyle.css";
@@ -215,6 +216,16 @@ function App() {
               />
             }
           />
+          <Route
+            path="/Reportadmin"
+            element={
+              <PrivateRoute
+                currentUser={currentUser}
+                requiredRole="admin"
+                element={<ReportAdmin />}
+              />
+            }
+          />
 
           {/* Protected User Routes */}
           <Route
@@ -244,7 +255,7 @@ function App() {
               />
             }
           />
-          <Route path="/staticsuser" element={<StaticsUser />} />
+          <Route path="/Reportuser" element={<ReportUser />} />
 
           {/* Protected Routes for All Authenticated Users */}
           <Route

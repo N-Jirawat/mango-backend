@@ -29,7 +29,7 @@ training_start_datetime = datetime.now()
 # ----------------------------
 # สร้างโฟลเดอร์สำหรับเก็บผลลัพธ์
 # ----------------------------
-report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report 70 15 15\VGG16\VGG16_15_R7'
+report_dir = r'C:\Users\Asus\OneDrive\เอกสาร\Report 70 15 15\VGG16\VGG16_15_R10'
 os.makedirs(report_dir, exist_ok=True)
 
 # สร้างไฟล์สำหรับบันทึกผลลัพธ์
@@ -284,7 +284,7 @@ log_and_print(f"⏱️ Total training time: {format_time(total_training_time)}")
 # บันทึกโมเดลสุดท้าย
 # ----------------------------
 model_save_start = time.time()
-final_model_path = r'C:\Users\Asus\OneDrive\เอกสาร\Model 70 15 15\VGG16\model_vgg16_15_R7.keras'
+final_model_path = r'C:\Users\Asus\OneDrive\เอกสาร\Model 70 15 15\VGG16\model_vgg16_15_R10.keras'
 os.makedirs(os.path.dirname(final_model_path), exist_ok=True)
 model.save(final_model_path)
 model_save_time = time.time() - model_save_start

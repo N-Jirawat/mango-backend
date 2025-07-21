@@ -16,12 +16,13 @@
 /* ปุ่มโปรไฟล์ */
 .profile-button {
   display: flex;
-  align-items: center;
+  flex-direction: column;       /* เปลี่ยนจากแนวนอนเป็นแนวตั้ง */
+  align-items: center;          /* จัดให้อยู่กลาง */
   background-color: transparent;
   border: none;
   cursor: pointer;
   color: #000;
-  font-size: 16px;
+  font-size: 14px;              /* ปรับขนาดตัวอักษรลงเล็กน้อย */
   padding: 5px 10px;
   border-radius: 20px;
   transition: background-color 0.3s ease;
@@ -34,7 +35,7 @@
 .profile-button img {
   width: 30px;
   height: 30px;
-  margin-right: 5px;
+  margin: 0 0 4px 0; /* บน-ขวา-ล่าง-ซ้าย: ให้ชื่ออยู่ห่างจากรูป */
 }
 
 /* dropdown-menu ที่ถูกแสดงผ่าน Portal */

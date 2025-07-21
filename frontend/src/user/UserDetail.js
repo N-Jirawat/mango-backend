@@ -83,18 +83,25 @@ function UserDetails() {
       <p><strong>เบอร์โทร:</strong> {userInfo.tel ? userInfo.tel.toString() : "-"}</p>
       <p><strong>อีเมล:</strong> {userInfo.email || "-"}</p>
       <div className="link-container">
-        <Link to={`/staticsuser`}>
-          <span>ข้อมูลการใช้งาน</span>
+        <Link to="/Reportuser" className="report-link">
+          ข้อมูลการใช้งาน
         </Link>
+
+        {role === "admin" && (
+          <Link to="/ReportAdmin" className="report-link report-admin-link">
+            รายงานข้อมูลสมาชิก
+          </Link>
+        )}
       </div>
 
       <div className="button-container">
-        
-        <Link to={`/edituser/${id}`}>
-          <button>✏️ แก้ไขข้อมูล</button>
-        </Link>
         <button onClick={handleBack}>⬅️ กลับ</button>
+
+        <Link to={`/edituser/${id}`}>
+          <button className="edit-user-detail">✏️ แก้ไขข้อมูล</button>
+        </Link>
       </div>
+
     </div>
   );
 }

@@ -1,0 +1,126 @@
+/* reportadmin.css */
+
+/* container หลัก */
+.admin-report-container {
+  max-width: 1200px;
+  margin: 30px auto;
+  padding: 20px;
+  font-family: "Sarabun", sans-serif;
+  box-sizing: border-box;
+}
+
+/* ตารางรายงาน */
+.admin-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 15px;
+  background-color: white;
+}
+
+.admin-report-table th,
+.admin-report-table td {
+  border: 1px solid #ddd;
+  padding: 10px 8px;
+  word-wrap: break-word;
+}
+
+.admin-report-table th {
+  background-color: #007bff;
+  color: white;
+  white-space: nowrap;
+}
+
+.admin-report-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.admin-report-table tr:hover {
+  background-color: #d0e7ff;
+  cursor: pointer;
+}
+
+/* ปุ่มสร้างรายงาน PDF – ปรับขนาดเล็กลง */
+.generate-report-btn {
+  margin-bottom: 15px;
+  background-color: #007bff;
+  color: white;
+  padding: 6px 14px;                 /* ขนาดพอดี */
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;                   /* ขนาดตัวอักษรกลางๆ */
+  transition: background-color 0.3s ease;
+  max-width: 200px;                  /* จำกัดความยาวสูงสุด */
+  white-space: nowrap;              /* ไม่ให้ขึ้นบรรทัด */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.generate-report-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Pagination – ปรับให้เรียงแนวนอนในบรรทัดเดียว */
+.pagination {
+  display: flex;
+  flex-wrap: nowrap; /* ✅ ห้ามขึ้นบรรทัดใหม่ */
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  gap: 8px;
+  font-size: 15px;
+  flex-direction: row;
+}
+
+.pagination button {
+  padding: 6px 14px;                /* กลับไปใช้ขนาดพอดี */
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 14px;                  /* กลับมาขนาดตัวอักษรเดิม */
+  max-width: 120px;                 /* จำกัดความยาวปุ่ม */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pagination button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.pagination span {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .admin-report-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .pagination button {
+    width: 100%;
+  }
+}
+
+/* wrapper สำหรับตาราง scroll แนวนอน */
+.table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+}

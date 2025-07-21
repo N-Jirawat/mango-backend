@@ -52,16 +52,24 @@
   transition: opacity 0.3s ease;
 }
 
-/* ปุ่มสีเทา */
-.button-container button:first-child {
-  background-color: #ccc;
-  color: black;
+/* ปุ่มกลับ สีเขียว */
+.button-container button:first-child,
+.button-container a:first-child button {
+  background-color: #28a745; /* สีเขียว */
+  color: white;
 }
 
-/* ปุ่มสีฟ้า */
-.button-container button:last-child {
-  background-color: #007bff;
+/* ปุ่มแก้ไข สีฟ้า */
+.button-container button:last-child,
+.button-container a:last-child button {
+  background-color: #007bff; /* สีฟ้า */
   color: white;
+}
+
+/* hover effect */
+.button-container button:hover,
+.button-container a button:hover {
+  opacity: 0.8;
 }
 
 /* hover effect */
@@ -80,4 +88,47 @@
   margin-top: 30px;
   display: flex;
   justify-content: center;
+}
+
+.black-user-detail {
+  background-color: rgb(223, 241, 235);
+}
+
+/* ปรับลิงก์ให้ดูเหมือนปุ่ม */
+.report-link {
+  display: block;
+  padding: 12px 20px;
+  margin: 10px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  font-family: "Sarabun", sans-serif;
+}
+
+/* ปุ่มลิงก์ของแอดมินใช้สีเขียว */
+.report-admin-link {
+  background-color: #28a745;
+}
+
+/* เมื่อ hover ให้เปลี่ยนสี */
+.report-link:hover {
+  background-color: #0056b3;
+}
+
+.report-admin-link:hover {
+  background-color: #1e7e34;
+}
+
+/* จัดตำแหน่งให้อยู่กลาง */
+.link-container {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
 }
