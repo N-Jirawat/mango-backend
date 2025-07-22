@@ -49,7 +49,7 @@ cloudinary.config(
 # -------------------------------
 
 # ระบุ path ของโมเดลตรงๆ เลย
-MODEL_PATH = r'C:\Users\Asus\mango-app\backend\models\Resnet50\model_resnet50_80_10_10_R1.keras'  # เปลี่ยน path นี้ตามที่ต้องการ
+MODEL_PATH = r'C:\Users\Asus\mango-app\backend\models\EfficientNetV2S\model_efficientnetv2s_224_R1.keras'  # เปลี่ยน path นี้ตามที่ต้องการ
 EMBEDDING_PATH = r'C:\Users\Asus\mango-app\api\models\mango_reference_embeddings.npy'  # เปลี่ยน path นี้ตามที่ต้องการ
 
 # หรือจะใช้ environment variable ก็ได้
