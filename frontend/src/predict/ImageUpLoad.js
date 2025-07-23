@@ -87,21 +87,21 @@ function ImageUpload({ setPredictionResult }) {
       if (data.prediction && data.confidence >= 0.5) {
         setPredictionResult({
           prediction: data.prediction,
-          confidence: Number(data.confidence.toFixed(4)),
-          accuracy: Number(data.accuracy.toFixed(4)),
+          confidence: Number((data.confidence * 100).toFixed(4)),
+          accuracy: Number((data.accuracy * 100).toFixed(4)),
         });
 
         navigate('/resultanaly', {
           state: {
             prediction: data.prediction,
-            confidence: Number(data.confidence.toFixed(4)),
-            accuracy: Number(data.accuracy.toFixed(4)),
+            confidence: Number((data.confidence * 100).toFixed(4)),
+            accuracy: Number((data.accuracy * 100).toFixed(4)),
             imagePreview: preview,
             imageFile: file,
           },
         });
       } else {
-        setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence).toFixed(4)}%)`);
+        setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence * 100).toFixed(4)}%)`);
       }
 
     } catch (err) {
