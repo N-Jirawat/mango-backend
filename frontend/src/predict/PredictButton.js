@@ -24,7 +24,9 @@ function PredictPage() {
       {predictionResult && (
         <div style={{ marginTop: '20px' }}>
           <h3>ผลการทำนาย:</h3>
-          <pre>{JSON.stringify(predictionResult, null, 2)}</pre>
+          <p>โรค: {predictionResult.prediction}</p>
+          <p>ความมั่นใจ: {predictionResult.confidence}%</p>
+          <p>ความแม่นยำ: {predictionResult.accuracy}%</p>
         </div>
       )}
     </div>

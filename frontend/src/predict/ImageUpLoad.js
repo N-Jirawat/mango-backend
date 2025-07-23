@@ -83,15 +83,19 @@ function ImageUpload({ setPredictionResult }) {
       console.log('Confidence from backend:', data.confidence);
       console.log('Accuracy from backend:', data.accuracy);
 
+      // ใน handleUpload() ตรงนี้
       if (data.prediction && data.confidence >= 0.5) {
-        setPredictionResult(data.prediction);
+        setPredictionResult({
+          prediction: data.prediction,
+          confidence: Number((data.confidence * 100).toFixed(4)),
+          accuracy: Number((data.accuracy * 100).toFixed(4)),
+        });
 
-        // ส่งผลลัพธ์ไปที่หน้า ResultAnaly
         navigate('/resultanaly', {
           state: {
             prediction: data.prediction,
-            confidence: Number((data.confidence * 100).toFixed(4)),  // แปลงเป็นเลขทศนิยม 4 ตำแหน่ง
-            accuracy: Number((data.accuracy * 100).toFixed(4)),      // เช่นกัน
+            confidence: Number((data.confidence * 100).toFixed(4)),
+            accuracy: Number((data.accuracy * 100).toFixed(4)),
             imagePreview: preview,
             imageFile: file,
           },
@@ -99,6 +103,7 @@ function ImageUpload({ setPredictionResult }) {
       } else {
         setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence * 100).toFixed(4)}%)`);
       }
+
     } catch (err) {
       console.error('Error:', err);
       setError(err.message);
