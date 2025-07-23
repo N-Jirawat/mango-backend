@@ -104,6 +104,9 @@ function ImageUpload({ setPredictionResult }) {
     }
   };
 
+  console.log('Confidence from backend:', data.confidence);
+  console.log('Accuracy from backend:', data.accuracy);
+
   // ล้าง object URL เมื่อ component unmount
   useEffect(() => {
     return () => {
