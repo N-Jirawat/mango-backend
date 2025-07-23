@@ -20,13 +20,12 @@ function PredictPage() {
       </div>
 
       <ImageUpload setPredictionResult={setPredictionResult} />
-
       {predictionResult && (
         <div style={{ marginTop: '20px' }}>
           <h3>ผลการทำนาย:</h3>
           <p>โรค: {predictionResult.prediction}</p>
-          <p>ความมั่นใจ: {predictionResult.confidence}%</p>
-          <p>ความแม่นยำ: {predictionResult.accuracy}%</p>
+          <p>ความมั่นใจ: {(predictionResult.confidence * 100).toFixed(4)}%</p>
+          <p>ความแม่นยำ: {(predictionResult.accuracy * 100).toFixed(4)}%</p>
         </div>
       )}
     </div>
