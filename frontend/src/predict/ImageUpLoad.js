@@ -87,14 +87,14 @@ function ImageUpload({ setPredictionResult }) {
         navigate('/resultanaly', {
           state: {
             prediction: data.prediction,
-            confidence: data.confidence,
-            accuracy: data.accuracy,
+            confidence: Number((data.confidence * 100).toFixed(4)),  // แปลงเป็นเลขทศนิยม 4 ตำแหน่ง
+            accuracy: Number((data.accuracy * 100).toFixed(4)),      // เช่นกัน
             imagePreview: preview,
-            imageFile: file, // ✅ เพิ่ม File object ที่ต้องการ
+            imageFile: file,
           },
         });
       } else {
-        setError(`ไม่พบข้อมูล (ความมั่นใจ: ${Math.round(data.confidence * 100)}%)`);
+        setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence * 100).toFixed(4)}%)`);
       }
     } catch (err) {
       console.error('Error:', err);

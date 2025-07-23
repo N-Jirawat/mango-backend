@@ -160,10 +160,10 @@ function ResultAnaly() {
                 <strong>ชื่อโรค:</strong> {prediction}
             </div>
             <div className="result-item">
-                <strong>ความมั่นใจ (confidence):</strong> {Math.round(confidence * 100)}%
+                <strong>ความมั่นใจ (confidence):</strong> {(confidence * 100).toFixed(4)}%
             </div>
             <div className="result-item">
-                <strong>ความแม่นยำ (accuracy):</strong> {Math.round(accuracy * 100)}%
+                <strong>ความแม่นยำ (accuracy):</strong> {(accuracy * 100).toFixed(4)}%
             </div>
 
             {resultInfo ? (
@@ -177,7 +177,7 @@ function ResultAnaly() {
                     <div className="result-item">
                         <strong>วิธีการรักษา:</strong> {resultInfo.treatment || "ไม่มีข้อมูลวิธีการรักษา"}
                     </div>
-                    
+
                     {/* แสดงปุ่มบันทึกเฉพาะเมื่อ login แล้ว */}
                     {isLoggedIn ? (
                         <button onClick={handleSaveData} className="save-btn" disabled={loading}>
@@ -185,13 +185,13 @@ function ResultAnaly() {
                         </button>
                     ) : (
                         <div className="login-prompt">
-                            <p>หากต้องการบันทึกผลการวิเคราะห์ กรุณาเข้าสู่ระบบ<button 
+                            <p>หากต้องการบันทึกผลการวิเคราะห์ กรุณาเข้าสู่ระบบ<button
                                 onClick={() => navigate("/login", {
                                     state: {
                                         message: "กรุณาเข้าสู่ระบบเพื่อบันทึกข้อมูล",
                                         redirectTo: "/resultanaly"
                                     }
-                                })} 
+                                })}
                                 className="login-link-btn"
                             >เข้าสู่ระบบ</button></p>
                         </div>
