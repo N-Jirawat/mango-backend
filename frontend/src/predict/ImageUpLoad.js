@@ -94,8 +94,8 @@ function ImageUpload({ setPredictionResult }) {
         navigate('/resultanaly', {
           state: {
             prediction: data.prediction,
-            confidence: Number((data.confidence * 100).toFixed(4)),
-            accuracy: Number((data.accuracy * 100).toFixed(4)),
+            confidence: Number(data.confidence.toFixed(4)),
+            accuracy: Number(data.accuracy.toFixed(4)),
             imagePreview: preview,
             imageFile: file,
           },
