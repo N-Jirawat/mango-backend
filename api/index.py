@@ -19,8 +19,8 @@ app = Flask(__name__)
 # CORS config
 # -------------------------------
 
-#CORS(app, origins="https://mangoleafanalyzer.onrender.com")
-CORS(app, origins="*")
+CORS(app, origins="https://mangoleafanalyzer.onrender.com")
+#CORS(app, origins="*")
 
 
 # หรือสำหรับการทดสอบทุกโดเมน (ไม่แนะนำสำหรับ Production):
@@ -67,7 +67,7 @@ MODEL_GCS_PATH = "model_efficientnetv2s_224_R1.keras"
 # กำหนด Path ที่จะเก็บไฟล์ชั่วคราวใน App Engine (หรือในเครื่อง)
 # /tmp/ เป็นโฟลเดอร์ที่เขียนได้ใน App Engine Standard Environment
 LOCAL_MODEL_DIR = "/tmp/models"
-LOCAL_MODEL_PATH = os.path.join(LOCAL_MODEL_DIR, "model_efficientnetv2s_224_R1.keras")
+LOCAL_MODEL_PATH = os.path.join(LOCAL_MODEL_DIR, "model_efficientnetv2s_224_R2.keras")
 LOCAL_EMBEDDING_PATH = os.path.join(LOCAL_MODEL_DIR, "mango_reference_embeddings.npy")
 
 def download_from_gcs(bucket_name, source_blob_name, destination_file_name):
