@@ -80,6 +80,9 @@ function ImageUpload({ setPredictionResult }) {
 
       const data = await response.json();
 
+      console.log('Confidence from backend:', data.confidence);
+      console.log('Accuracy from backend:', data.accuracy);
+
       if (data.prediction && data.confidence >= 0.5) {
         setPredictionResult(data.prediction);
 
@@ -103,9 +106,6 @@ function ImageUpload({ setPredictionResult }) {
       setLoading(false);
     }
   };
-
-  console.log('Confidence from backend:', data.confidence);
-  console.log('Accuracy from backend:', data.accuracy);
 
   // ล้าง object URL เมื่อ component unmount
   useEffect(() => {
