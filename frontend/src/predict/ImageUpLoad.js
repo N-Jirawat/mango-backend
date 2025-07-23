@@ -87,68 +87,67 @@ function ImageUpload({ setPredictionResult }) {
       if (data.prediction && data.confidence >= 0.5) {
         setPredictionResult({
           prediction: data.prediction,
-          confidence: Number(data.confidence.toFixed(4)),  // ไม่คูณ 100
-          accuracy: Number(data.accuracy.toFixed(4)),      // ไม่คูณ 100
+          confidence: Number(data.confidence.toFixed(4)),
+          accuracy: Number(data.accuracy.toFixed(4)),
         });
+
+        navigate('/resultanaly', {
+          state: {
+            prediction: data.prediction,
+            confidence: Number((data.confidence * 100).toFixed(4)),
+            accuracy: Number((data.accuracy * 100).toFixed(4)),
+            imagePreview: preview,
+            imageFile: file,
+          },
+        });
+      } else {
+        setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence * 100).toFixed(4)}%)`);
       }
 
-      navigate('/resultanaly', {
-        state: {
-          prediction: data.prediction,
-          confidence: Number((data.confidence * 100).toFixed(4)),
-          accuracy: Number((data.accuracy * 100).toFixed(4)),
-          imagePreview: preview,
-          imageFile: file,
-        },
-      });
-    } else {
-      setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence * 100).toFixed(4)}%)`);
-    }
-
-  } catch (err) {
-    console.error('Error:', err);
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-// ล้าง object URL เมื่อ component unmount
-useEffect(() => {
-  return () => {
-    if (preview && preview.startsWith('blob:')) {
-      URL.revokeObjectURL(preview);
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
-}, [preview]);
 
-return (
-  <div className="container">
-    <h2 className="title">อัปโหลดภาพโรคมะม่วง</h2>
-    <input
-      type="file"
-      accept="image/*"
-      onChange={handleFileChange}
-      className="file-input"
-    />
-    <p className='warning'>คำแนะนำ : ควรเป็นภาพของใบมะม่วงที่มีลักษณะโรคชัดเจน</p>
-    {preview && (
-      <div className="preview-container">
-        <img src={preview} alt="Preview" className="preview-image" />
-      </div>
-    )}
-    {isUploaded && (
-      <button
-        onClick={handleUpload}
-        className="button"
-        disabled={loading}
-      >
-        {loading ? 'กำลังทำนาย...' : 'ทำนาย'}
-      </button>
-    )}
-    {error && <p className="error">{error}</p>}
-  </div>
-);
+  // ล้าง object URL เมื่อ component unmount
+  useEffect(() => {
+    return () => {
+      if (preview && preview.startsWith('blob:')) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
+  return (
+    <div className="container">
+      <h2 className="title">อัปโหลดภาพโรคมะม่วง</h2>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="file-input"
+      />
+      <p className='warning'>คำแนะนำ : ควรเป็นภาพของใบมะม่วงที่มีลักษณะโรคชัดเจน</p>
+      {preview && (
+        <div className="preview-container">
+          <img src={preview} alt="Preview" className="preview-image" />
+        </div>
+      )}
+      {isUploaded && (
+        <button
+          onClick={handleUpload}
+          className="button"
+          disabled={loading}
+        >
+          {loading ? 'กำลังทำนาย...' : 'ทำนาย'}
+        </button>
+      )}
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
 }
 
 export default ImageUpload;
