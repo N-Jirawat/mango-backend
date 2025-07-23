@@ -101,7 +101,7 @@ function ImageUpload({ setPredictionResult }) {
           },
         });
       } else {
-        setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence * 100).toFixed(4)}%)`);
+        setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence).toFixed(4)}%)`);
       }
 
     } catch (err) {
