@@ -169,8 +169,8 @@ function History() {
                     />
                   </div>
                 )}
-                <p><strong>ความมั่นใจ:</strong> {predictionResult.confidence.toFixed(4)}%</p>
-                <p><strong>ความแม่นยำ:</strong> {predictionResult.accuracy.toFixed(4)}%</p>
+                <p><strong>ความมั่นใจ:</strong> {prediction.confidence.toFixed(4)}%</p>
+                <p><strong>ความแม่นยำ:</strong> {prediction.accuracy.toFixed(4)}%</p>
                 <p><strong>วันที่:</strong> {
                   prediction.timestamp?.seconds
                     ? new Date(prediction.timestamp.seconds * 1000).toLocaleString("th-TH")
