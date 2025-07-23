@@ -23,6 +23,7 @@ app = Flask(__name__)
 # หากมีหลาย URL ให้ใส่ในลิสต์ เช่น ['https://url1.onrender.com', 'https://url2.onrender.com']
 # สำหรับการทดสอบเท่านั้น: หากต้องการอนุญาตทุกโดเมน (ไม่แนะนำสำหรับ Production) ให้ใช้ origins="*"
 CORS(app, origins="https://mangoleafanalyzer.onrender.com")
+
 # หรือสำหรับการทดสอบทุกโดเมน (ไม่แนะนำสำหรับ Production):
 # CORS(app, origins="*")
 

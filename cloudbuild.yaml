@@ -1,0 +1,19 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'asia-southeast1-docker.pkg.dev/mango-app-465207/mango-app/mango-api', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-southeast1-docker.pkg.dev/mango-app-465207/mango-app/mango-api']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      [
+        'run', 'deploy', 'mango-api',
+        '--image', 'asia-southeast1-docker.pkg.dev/mango-app-465207/mango-app/mango-api',
+        '--region', 'asia-southeast1',
+        '--platform', 'managed',
+        '--allow-unauthenticated',
+        '--set-env-vars', 'GCS_BUCKET_NAME=mango-app-models-bucket',
+        '--quiet'
+      ]
