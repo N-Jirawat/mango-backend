@@ -18,11 +18,10 @@ app = Flask(__name__)
 # -------------------------------
 # CORS config
 # -------------------------------
-# แทนที่ 'https://YOUR_FRONTEND_RENDER_URL' ด้วย URL จริงของ Frontend ของคุณบน Render.com
-# ตัวอย่าง: 'https://my-mango-frontend.onrender.com'
-# หากมีหลาย URL ให้ใส่ในลิสต์ เช่น ['https://url1.onrender.com', 'https://url2.onrender.com']
-# สำหรับการทดสอบเท่านั้น: หากต้องการอนุญาตทุกโดเมน (ไม่แนะนำสำหรับ Production) ให้ใช้ origins="*"
-CORS(app, origins="https://mangoleafanalyzer.onrender.com")
+
+#CORS(app, origins="https://mangoleafanalyzer.onrender.com")
+CORS(app, origins="*")
+
 
 # หรือสำหรับการทดสอบทุกโดเมน (ไม่แนะนำสำหรับ Production):
 # CORS(app, origins="*")
