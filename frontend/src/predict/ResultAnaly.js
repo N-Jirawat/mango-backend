@@ -160,10 +160,10 @@ function ResultAnaly() {
                 <strong>ชื่อโรค:</strong> {prediction}
             </div>
             <div className="result-item">
-                <strong>ความมั่นใจ (confidence):</strong> {(confidence * 100).toFixed(4)}%
+                <strong>ความมั่นใจ (confidence):</strong> {confidence.toFixed(4)}%
             </div>
             <div className="result-item">
-                <strong>ความแม่นยำ (accuracy):</strong> {(accuracy * 100).toFixed(4)}%
+                <strong>ความแม่นยำ (accuracy):</strong> {accuracy.toFixed(4)}%
             </div>
 
             {resultInfo ? (

@@ -157,14 +157,12 @@ function HistoryDetail() {
         <strong>ชื่อโรค:</strong> {diseaseName}
       </div>
       <div className="details-item">
-        <strong>ความมั่นใจ (confidence):</strong> {Math.round(confidence * 100)}%
+        <strong>ความมั่นใจ (confidence):</strong> {typeof confidence === 'number' ? confidence.toFixed(4) : 'ไม่มีข้อมูล'}%
       </div>
       <div className="details-item">
-        <strong>ความแม่นยำ (accuracy):</strong>{" "}
-        {typeof accuracy === "number"
-          ? `${Math.round(accuracy * 100)}%`
-          : "ไม่มีข้อมูล"}
+        <strong>ความแม่นยำ (accuracy):</strong> {typeof accuracy === 'number' ? accuracy.toFixed(4) : 'ไม่มีข้อมูล'}%
       </div>
+
       <div className="details-item">
         <strong>รายละเอียดโรค:</strong> {symptoms || "ไม่มีข้อมูลรายละเอียดโรค"}
       </div>
