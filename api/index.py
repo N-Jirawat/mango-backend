@@ -60,7 +60,7 @@ cloudinary.config(
 # กำหนดค่าสำหรับ Google Cloud Storage (GCS)
 # -------------------------------
 # เปลี่ยน 'your-mango-app-models-bucket' เป็นชื่อ Bucket GCS ของคุณที่สร้างไว้
-GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', 'mango-app-models-465207-bucket') # ควรตั้งเป็น Environment Variable ด้วย
+GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', 'mango-app-models-bucket') # ควรตั้งเป็น Environment Variable ด้วย
 EMBEDDINGS_GCS_PATH = "mango_reference_embeddings.npy"
 MODEL_GCS_PATH = "model_efficientnetv2s_224_R1.keras"
 
