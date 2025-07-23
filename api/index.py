@@ -62,7 +62,7 @@ cloudinary.config(
 # เปลี่ยน 'your-mango-app-models-bucket' เป็นชื่อ Bucket GCS ของคุณที่สร้างไว้
 GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', 'mango-app-models-bucket') # ควรตั้งเป็น Environment Variable ด้วย
 EMBEDDINGS_GCS_PATH = "mango_reference_embeddings.npy"
-MODEL_GCS_PATH = "model_efficientnetv2s_224_R1.keras"
+MODEL_GCS_PATH = "model_efficientnetv2s_224_R2.keras"
 
 # กำหนด Path ที่จะเก็บไฟล์ชั่วคราวใน App Engine (หรือในเครื่อง)
 # /tmp/ เป็นโฟลเดอร์ที่เขียนได้ใน App Engine Standard Environment
