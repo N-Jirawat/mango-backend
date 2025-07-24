@@ -67,7 +67,7 @@ const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
   const navigationItems = [
     { path: '/', label: 'หน้าหลัก', type: 'link' },
     { path: '/showmango', label: 'โรคใบมะม่วง', type: 'link' },
-    { path: '/predict', label: 'อัปโหลดรูปภาพ', type: 'link' },
+    { path: '/predict', label: 'วิเคราะห์โรค', type: 'link' },
     { path: '/history', label: 'ประวัติการวิเคราะห์', type: 'protected' },
     { path: '/usermanual', label: 'คู่มือการใช้งาน', type: 'link' }
   ];
