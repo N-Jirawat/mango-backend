@@ -67,8 +67,6 @@ function ImageUpload({ setPredictionResult }) {
     formData.append('image', file);
 
     try {
-      //const response = await fetch('https://64d724a09771.ngrok-free.app/predict', {
-      //const response = await fetch('http://localhost:5000/predict', {
       const response = await fetch('https://mango-backend-665966382004.asia-southeast1.run.app/predict', {
         method: 'POST',
         body: formData,
@@ -80,22 +78,18 @@ function ImageUpload({ setPredictionResult }) {
 
       const data = await response.json();
 
-      console.log('Confidence from backend:', data.confidence);
       console.log('Accuracy from backend:', data.accuracy);
 
-      // ใน handleUpload() ตรงนี้
       if (data.prediction && data.confidence >= 0.5) {
         setPredictionResult({
           prediction: data.prediction,
           confidence: Number((data.confidence * 100).toFixed(4)),
-          accuracy: Number((data.accuracy * 100).toFixed(4)),
         });
 
         navigate('/resultanaly', {
           state: {
             prediction: data.prediction,
             confidence: Number((data.confidence * 100).toFixed(4)),
-            accuracy: Number((data.accuracy * 100).toFixed(4)),
             imagePreview: preview,
             imageFile: file,
           },

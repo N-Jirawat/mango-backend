@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ImageUpload from './ImageUpLoad'; // import ImageUpload component
+import ImageUpload from './ImageUpLoad';
 import { useNavigate } from 'react-router-dom';
 import '../css/predictbutton.css';
 
@@ -20,12 +20,12 @@ function PredictPage() {
       </div>
 
       <ImageUpload setPredictionResult={setPredictionResult} />
+
       {predictionResult && (
         <div style={{ marginTop: '20px' }}>
           <h3>ผลการทำนาย:</h3>
           <p>โรค: {predictionResult.prediction}</p>
           <p>ความมั่นใจ: {predictionResult.confidence.toFixed(4)}%</p>
-          <p>ความแม่นยำ: {predictionResult.accuracy.toFixed(4)}%</p>
         </div>
       )}
 

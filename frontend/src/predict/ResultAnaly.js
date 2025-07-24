@@ -8,7 +8,7 @@ import "../css/resultanaly.css";
 
 function ResultAnaly() {
     const { state } = useLocation();
-    const { prediction, confidence, accuracy, imagePreview, imageFile } = state || {};
+    const { prediction, confidence, imagePreview, imageFile } = state || {};
     const [resultInfo, setResultInfo] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -77,7 +77,6 @@ function ResultAnaly() {
             await addDoc(collection(db, "prediction_results"), {
                 diseaseName: prediction,
                 confidence: confidence,
-                accuracy: accuracy,
                 symptoms: resultInfo?.symptoms || "ไม่มีข้อมูลอาการ",
                 prevention: resultInfo?.prevention || "ไม่มีข้อมูลวิธีการป้องกัน",
                 treatment: resultInfo?.treatment || "ไม่มีข้อมูลวิธีการรักษา",
@@ -161,9 +160,6 @@ function ResultAnaly() {
             </div>
             <div className="result-item">
                 <strong>ความมั่นใจ (confidence):</strong> {confidence.toFixed(4)}%
-            </div>
-            <div className="result-item">
-                <strong>ความแม่นยำ (accuracy):</strong> {accuracy.toFixed(4)}%
             </div>
 
             {resultInfo ? (

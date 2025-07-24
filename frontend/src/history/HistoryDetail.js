@@ -28,7 +28,6 @@ function HistoryDetail() {
   const {
     diseaseName,
     confidence,
-    accuracy,
     symptoms,
     prevention,
     treatment,
@@ -86,15 +85,6 @@ function HistoryDetail() {
 
         { text: "ความมั่นใจ (Confidence):", style: "greenLabel" },
         { text: `${Math.round(confidence * 100)}%`, margin: [0, 0, 0, 10] },
-
-        { text: "ความแม่นยำ (Accuracy):", style: "greenLabel" },
-        {
-          text:
-            typeof accuracy === "number"
-              ? `${Math.round(accuracy * 100)}%`
-              : "ไม่มีข้อมูล",
-          margin: [0, 0, 0, 10],
-        },
 
         { text: "รายละเอียดโรค:", style: "greenLabel" },
         { text: symptoms || "ไม่มีข้อมูลรายละเอียดโรค", margin: [0, 0, 0, 10] },
@@ -158,9 +148,6 @@ function HistoryDetail() {
       </div>
       <div className="details-item">
         <strong>ความมั่นใจ (confidence):</strong> {typeof confidence === 'number' ? confidence.toFixed(4) : 'ไม่มีข้อมูล'}%
-      </div>
-      <div className="details-item">
-        <strong>ความแม่นยำ (accuracy):</strong> {typeof accuracy === 'number' ? accuracy.toFixed(4) : 'ไม่มีข้อมูล'}%
       </div>
 
       <div className="details-item">
