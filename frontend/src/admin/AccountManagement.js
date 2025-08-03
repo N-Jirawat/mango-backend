@@ -211,9 +211,9 @@ function AccountManagement() {
         <thead>
           <tr>
             <th>ลำดับ</th>
-            <th>ชื่อบัญชี</th>
+            <th>บัญชี</th>
             <th>อีเมล</th>
-            <th>ชื่อจริง</th>
+            <th>ชื่อ-นามสกุล</th>
             <th>ที่อยู่</th>
             <th>หมู่บ้าน</th>
             <th>อำเภอ</th>
@@ -283,7 +283,7 @@ function AccountManagement() {
 
             <div className="modal-body">
               <div className="form-group-edit">
-                <label>ชื่อจริง:</label>
+                <label>ชื่อ-นามสกุล:</label>
                 <input
                   type="text"
                   name="fullName"
