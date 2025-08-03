@@ -19,8 +19,8 @@ function AccountManagement() {
 
   const [editUser, setEditUser] = useState(null);
   const [formData, setFormData] = useState({});
-  const [amphures, setAmphures] = useState([]);
-  const [tambons, setTambons] = useState([]);
+  const [districtList, setDistrictList] = useState([]);
+  const [subdistrictList, setSubdistrictList] = useState([]);
   const [phoneError, setPhoneError] = useState("");
 
   useEffect(() => {
@@ -76,27 +76,27 @@ function AccountManagement() {
       console.log("User province:", user.province);
       const filteredDistricts = districts.filter((d) => d.province === user.province);
       console.log("Initial filtered districts:", filteredDistricts);
-      setAmphures(filteredDistricts);
+      setDistrictList(filteredDistricts);
 
       if (user.district) {
         console.log("User district:", user.district);
-        const filteredTambons = subdistricts.filter((t) => t.amphure === user.district);
-        console.log("Initial filtered tambons:", filteredTambons);
-        setTambons(filteredTambons);
+        const filteredSubdistricts = subdistricts.filter((t) => t.amphure === user.district);
+        console.log("Initial filtered tambons:", filteredSubdistricts);
+        setSubdistrictList(filteredSubdistricts);
       } else {
-        setTambons([]);
+        setSubdistrictList([]);
       }
     } else {
-      setAmphures([]);
-      setTambons([]);
+      setDistrictList([]);
+      setSubdistrictList([]);
     }
   };
 
   const closeEditModal = () => {
     setEditUser(null);
     setFormData({});
-    setAmphures([]);
-    setTambons([]);
+    setDistrictList([]);
+    setSubdistrictList([]);
     setPhoneError("");
   };
 
@@ -110,8 +110,8 @@ function AccountManagement() {
     console.log("Selected Province:", provinceName);
     const filteredDistricts = districts.filter((d) => d.province === provinceName);
     console.log("Filtered Districts:", filteredDistricts);
-    setAmphures(filteredDistricts);
-    setTambons([]);
+    setDistrictList(filteredDistricts);
+    setSubdistrictList([]);
 
     setFormData((prev) => ({
       ...prev,
@@ -125,7 +125,7 @@ function AccountManagement() {
     console.log("Selected District:", districtName);
     const filteredTambons = subdistricts.filter((t) => t.amphure === districtName);
     console.log("Filtered Tambons:", filteredTambons);
-    setTambons(filteredTambons);
+    setSubdistrictList(filteredTambons);
 
     setFormData((prev) => ({
       ...prev,
@@ -347,9 +347,9 @@ function AccountManagement() {
                     className="form-select-edit"
                   >
                     <option value="">เลือกอำเภอ</option>
-                    {amphures.map((amphure) => (
-                      <option key={amphure.id} value={amphure.name_th}>
-                        {amphure.name_th}
+                    {districtList.map((districtItem) => (
+                      <option key={districtItem.id} value={districtItem.name_th}>
+                        {districtItem.name_th}
                       </option>
                     ))}
                   </select>
@@ -366,9 +366,9 @@ function AccountManagement() {
                     className="form-select-edit"
                   >
                     <option value="">เลือกตำบล</option>
-                    {tambons.map((tambon) => (
-                      <option key={tambon.id} value={tambon.name_th}>
-                        {tambon.name_th}
+                    {subdistrictList.map((subdistrictItem) => (
+                      <option key={subdistrictItem.id} value={subdistrictItem.name_th}>
+                        {subdistrictItem.name_th}
                       </option>
                     ))}
                   </select>
