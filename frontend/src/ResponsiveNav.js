@@ -72,7 +72,7 @@ const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
     { path: '/usermanual', label: 'คู่มือการใช้งาน', type: 'link' }
   ];
 
-  const adminItems = [
+  const userItems = [
     { label: "สถิติผู้ใช้ทั้งหมด", path: "/statisticsadmin" }
   ];
 
@@ -112,7 +112,7 @@ const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
           role="menubar"
           aria-hidden={isMobile && !isMenuOpen}
         >
-          {[...navigationItems, ...(currentUser?.role === "admin" ? adminItems : [])].map((item) => (
+          {[...navigationItems, ...(currentUser?.role === "user" || "admin" ? userItems : [])].map((item) => (
             <li key={item.path} role="none">
               <button
                 className={`nav-fixed-width ${isActiveLink(item.path) ? 'active' : ''}`}
