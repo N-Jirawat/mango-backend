@@ -5,8 +5,9 @@
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   width: 400px;
-  margin: 50px auto; /* จัดให้อยู่กึ่งกลางแนวนอน และเว้นระยะบนล่าง */
-  text-align: left; /* ให้ข้อความเรียงซ้าย */
+  max-width: 90vw; /* ไม่ให้เกินขนาดหน้าจอ */
+  margin: 50px auto;
+  text-align: left;
   font-family: "Sarabun", sans-serif;
 }
 
@@ -17,6 +18,7 @@
   color: #109d00;
   margin-bottom: 20px;
   text-align: center;
+  line-height: 1.3;
 }
 
 /* ข้อมูลผู้ใช้ */
@@ -24,10 +26,12 @@
   font-size: 18px;
   margin: 8px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid #ddd; /* เส้นคั่นแต่ละบรรทัด */
+  border-bottom: 1px solid #ddd;
+  word-wrap: break-word; /* แบ่งคำยาวๆ */
+  overflow-wrap: break-word;
 }
 
-/* จัดตำแหน่ง role ให้สีเขียว */
+/* จัดตำแหน่ง role ให้สีฟ้า */
 .role-green {
   color: rgb(70, 138, 255);
   font-weight: normal;
@@ -38,67 +42,60 @@
   display: flex;
   justify-content: space-between;
   margin-top: 30px;
+  gap: 10px;
 }
 
 /* ปุ่ม */
 .button-container button {
   flex: 1;
-  padding: 10px 0;
-  margin: 0 5px;
+  padding: 12px 15px;
   font-size: 16px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: opacity 0.3s ease;
+  transition: all 0.3s ease;
+  font-family: "Sarabun", sans-serif;
+  font-weight: 500;
+  min-height: 44px; /* เพื่อให้ง่ายต่อการแตะบนมือถือ */
 }
 
 /* ปุ่มกลับ สีเขียว */
-.button-container button:first-child,
-.button-container a:first-child button {
-  background-color: #28a745; /* สีเขียว */
+.button-container button:first-child {
+  background-color: #28a745;
   color: white;
 }
 
 /* ปุ่มแก้ไข สีฟ้า */
-.button-container button:last-child,
-.button-container a:last-child button {
-  background-color: #007bff; /* สีฟ้า */
+.button-container button:last-child {
+  background-color: #007bff;
   color: white;
-}
-
-/* hover effect */
-.button-container button:hover,
-.button-container a button:hover {
-  opacity: 0.8;
 }
 
 /* hover effect */
 .button-container button:hover {
   opacity: 0.8;
+  transform: translateY(-1px);
 }
 
-/* สำหรับลิงก์ที่อยู่ในปุ่ม ให้เต็มพื้นที่ */
-.button-container a {
-  flex: 1;
-  margin: 0 5px;
-  text-decoration: none;
+/* active effect สำหรับมือถือ */
+.button-container button:active {
+  transform: translateY(0);
+  opacity: 0.7;
 }
 
+/* ลิงก์คอนเทนเนอร์ */
 .link-container {
   margin-top: 30px;
   display: flex;
   justify-content: center;
-}
-
-.black-user-detail {
-  background-color: rgb(223, 241, 235);
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
 /* ปรับลิงก์ให้ดูเหมือนปุ่ม */
 .report-link {
   display: block;
   padding: 12px 20px;
-  margin: 10px;
   background-color: #007bff;
   color: white;
   border-radius: 6px;
@@ -106,8 +103,12 @@
   text-align: center;
   font-size: 16px;
   font-weight: bold;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
   font-family: "Sarabun", sans-serif;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ปุ่มลิงก์ของแอดมินใช้สีเขียว */
@@ -118,17 +119,303 @@
 /* เมื่อ hover ให้เปลี่ยนสี */
 .report-link:hover {
   background-color: #0056b3;
+  transform: translateY(-1px);
 }
 
 .report-admin-link:hover {
   background-color: #1e7e34;
+  transform: translateY(-1px);
 }
 
-/* จัดตำแหน่งให้อยู่กลาง */
-.link-container {
-  margin-top: 30px;
+/* active effect สำหรับมือถือ */
+.report-link:active,
+.report-admin-link:active {
+  transform: translateY(0);
+  opacity: 0.8;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal-content-edit {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  font-family: "Sarabun", sans-serif;
+}
+
+.modal-header {
+  padding: 10px 10px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+  border-radius: 10px 10px 0 0;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+/* Form Styles */
+.form-group-edit {
+  margin-bottom: 20px;
+}
+
+.form-group-edit label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+  font-size: 16px;
+}
+
+.form-input-edit,
+.form-select-edit,
+.form-textarea-edit {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  font-family: "Sarabun", sans-serif;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+  min-height: 44px; /* สำหรับมือถือ */
+}
+
+.form-input-edit:focus,
+.form-select-edit:focus,
+.form-textarea-edit:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-textarea-edit {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-row-edit {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
-  flex-wrap: wrap;
+}
+
+/* Row สำหรับเบอร์โทรและอีเมล - อีเมลกว้างกว่า */
+.form-row-edit.contact-row {
+  grid-template-columns: 1fr 2fr;
+}
+
+/* Error Styles */
+.form-input-edit.error,
+.form-select-edit.error {
+  border-color: #dc3545;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 14px;
+  margin-top: 5px;
+  margin-bottom: 0;
+}
+
+/* Form Buttons */
+.form-buttons-edit {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.btn-edit-user {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: "Sarabun", sans-serif;
+  min-height: 44px;
+  min-width: 100px;
+}
+
+.btn-edit-user.btn-gray {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-edit-user.btn-gray:hover {
+  background-color: #5a6268;
+}
+
+.btn-edit-user.btn-green {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-edit-user.btn-green:hover {
+  background-color: #218838;
+}
+
+.btn-edit-user:active {
+  transform: translateY(1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .card {
+    width: 95vw;
+    padding: 20px;
+    margin: 20px auto;
+  }
+  
+  .card h2 {
+    font-size: 20px;
+  }
+  
+  .card p {
+    font-size: 16px;
+  }
+  
+  .button-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .button-container button {
+    width: 100%;
+    margin: 0;
+  }
+  
+  .link-container {
+    margin-top: 20px;
+  }
+  
+  .report-link {
+    width: 100%;
+    max-width: 300px;
+    margin: 5px 0;
+  }
+  
+  /* Modal adjustments for mobile */
+  .modal-overlay {
+    padding: 10px;
+  }
+  
+  .modal-content-edit {
+    max-height: 95vh;
+  }
+  
+  .modal-header,
+  .modal-body {
+    padding: 20px;
+  }
+  
+  .modal-title {
+    font-size: 18px;
+  }
+  
+  .form-row-edit {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .form-buttons-edit {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .btn-edit-user {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 15px;
+    margin: 10px auto;
+  }
+  
+  .card h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  
+  .card p {
+    font-size: 14px;
+    margin: 6px 0;
+    padding-bottom: 6px;
+  }
+  
+  .button-container button {
+    padding: 10px;
+    font-size: 14px;
+  }
+  
+  .report-link {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+  
+  .modal-body {
+    padding: 15px;
+  }
+  
+  .form-input-edit,
+  .form-select-edit,
+  .form-textarea-edit {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  .btn-edit-user {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+/* Utility Classes */
+.black-user-detail {
+  background-color: rgb(223, 241, 235);
+}
+
+/* Loading and Error States */
+.loading-text,
+.error-text {
+  text-align: center;
+  padding: 50px 20px;
+  font-size: 18px;
+  color: #666;
+}
+
+.error-text {
+  color: #dc3545;
 }

@@ -4,9 +4,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   margin: 0 auto;
   padding: 20px;
   background-color: #f9f9f9;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Title styles */
@@ -58,23 +62,24 @@
 /* กำหนดความกว้างเฉพาะคอลัมน์สุดท้าย (การจัดการ) ให้แคบลง */
 .user-table th:last-child,
 .user-table td:last-child {
-  width: 120px; /* หรือค่าที่คุณต้องการ เช่น 100px, 110px */
+  width: 100px;
 }
 
 .action-buttons {
   display: flex;
   justify-content: center;
-  align-items: center; /* 👈 ปุ่มอยู่กึ่งกลางแนวตั้ง */
+  align-items: center;
   gap: 8px;
   height: 100%;
   width: 100%;
 }
 
-th, td {
+th,
+td {
   padding: 8px;
   text-align: center;
   border: 1px solid #ccc;
-  vertical-align: middle; /* 👈 ให้ปุ่มอยู่กึ่งกลางแนวตั้ง */
+  vertical-align: middle;
 }
 
 td:last-child {
@@ -84,11 +89,9 @@ td:last-child {
   padding-bottom: 0;
 }
 
-
 .user-table td:last-child {
   white-space: nowrap;
 }
-
 
 /* Add user button */
 .btn-add-user {
@@ -100,37 +103,35 @@ td:last-child {
   font-weight: 500;
 }
 
-/* Pagination styles */
+/* Pagination styles - ลดขนาดลงและเอาแถบเลื่อนออก */
 .pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 20px;
   flex-wrap: nowrap;
+  flex-direction: row;
+  flex-shrink: 0;
+  overflow-x: auto;
+  padding: 4px 0;
+  margin-bottom: 10px;
 }
 
-.pagination .btn {
+.pagination .btn-next {
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 4px;
   background-color: #ccc;
-  color: #333;
-  border: none;
-  border-radius: 5px;
-  padding: 6px 12px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
-.pagination .btn-green {
-  background-color: green !important;
+.pagination .btn-green-next {
+  background-color: #5a5a5a !important;
   color: white !important;
 }
 
-.pagination .btn:hover {
+.pagination .btn-next:hover {
   background-color: #aaa;
 }
 
-.pagination .btn:disabled {
+.pagination .btn-next:disabled {
   background-color: #eee;
   color: #999;
   cursor: not-allowed;
@@ -184,6 +185,7 @@ td:last-child {
 }
 
 .modal-content-edit {
+  text-align: left !important;
   background-color: white;
   border-radius: 10px;
   padding: 30px;
@@ -297,61 +299,260 @@ td:last-child {
   margin-bottom: 0;
 }
 
+/* ซ่อนบน mobile */
+.desktop-only {
+  display: flex;
+}
+
+.mobile-only {
+  display: none;
+}
+
+.btn-edit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Mobile responsive styles */
 @media (max-width: 768px) {
-  /* Hide table columns on mobile except essential ones */
-  .user-table th:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(4)):not(:nth-child(11)),
-  .user-table td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(4)):not(:nth-child(11)) {
+
+  .manage-container {
+    padding: 5px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* ซ่อนคอลัมน์ที่ไม่จำเป็น */
+  .user-table th:nth-child(3),
+  .user-table th:nth-child(5),
+  .user-table th:nth-child(6),
+  .user-table th:nth-child(7),
+  .user-table th:nth-child(8),
+  .user-table th:nth-child(9),
+  .user-table th:nth-child(10),
+  .user-table td:nth-child(3),
+  .user-table td:nth-child(5),
+  .user-table td:nth-child(6),
+  .user-table td:nth-child(7),
+  .user-table td:nth-child(8),
+  .user-table td:nth-child(9),
+  .user-table td:nth-child(10) {
     display: none;
   }
 
-  /* Adjust add user button for mobile */
+  .title {
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
   .btn-add-user {
     width: 100%;
     max-width: none;
+    font-size: 14px;
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+
+  .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .btn-action {
+    font-size: 10px;
+    padding: 3px 6px;
+    min-width: unset;
+    white-space: nowrap;
+  }
+
+  /* ✅ เพิ่ม container รองรับตารางไม่ให้ล้น */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  /* ✅ บังคับตารางไม่ให้เกินจอ */
+  .user-table {
+    width: 95%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 16px;
+  }
+
+  .user-table th,
+  .user-table td {
+    word-break: break-word;
+    white-space: normal;
+    padding: 4px 2px;
+    font-size: 16px;
+  }
+
+  /* ✅ กำหนดความกว้างที่แน่นอน */
+  .user-table th:nth-child(1),
+  .user-table td:nth-child(1) {
+    width: 15%;
+  }
+
+  .user-table th:nth-child(2),
+  .user-table td:nth-child(2) {
+    width: 30%;
+  }
+
+  .user-table th:nth-child(4),
+  .user-table td:nth-child(4) {
+    width: 35%;
+  }
+
+  .user-table th:last-child,
+  .user-table td:last-child {
+    width: 20%;
+  }
+
+  .pagination {
+    flex-wrap: nowrap;
+    flex-direction: row;
+    flex-shrink: 0;
+    overflow-x: auto;
+    padding: 4px 0;
     margin-bottom: 10px;
   }
 
-  /* Adjust action buttons for mobile */
-  .btn-action {
-    padding: 4px 6px;
-    font-size: 11px;
-    min-width: 28px;
+  .pagination .btn {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 4px;
   }
 
-  /* Modal adjustments for mobile */
+  /* Modal adjustments */
   .modal-content-edit {
     width: 95%;
+    height: 90vh;
     max-width: none;
-    padding: 20px;
-    margin: 10px;
-    max-height: 90vh;
+    max-height: none;
+    padding: 16px;
+    margin: 5vh auto;
+    border-radius: 8px;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 15px;
   }
 
   .modal-title {
     font-size: 18px;
+    text-align: left;
   }
 
-  /* Form adjustments for mobile */
-  .form-row-edit {
-    grid-template-columns: 1fr;
-    gap: 10px;
+  .form-group-edit label {
+    font-size: 14px;
+    margin-bottom: 8px;
   }
 
   .form-input-edit,
   .form-select-edit {
     padding: 8px;
     font-size: 14px;
+    width: 100%;
+  }
+
+  .form-row-edit {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
   }
 
   .form-buttons-edit {
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    padding-top: 15px;
+    margin-top: 10px;
   }
 
   .form-buttons-edit .btn {
-    width: 100%;
-    padding: 10px;
     font-size: 14px;
+    padding: 12px;
+    width: 100%;
+  }
+
+  .btn {
+    padding: 5px 5px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: 0.3s ease;
+    margin-bottom: 15px;
+  }
+
+  .btn-gray {
+    background: gray;
+    color: white;
+  }
+
+  .btn-gray:hover {
+    background: #5a5a5a;
+  }
+
+  .btn-green {
+    background: rgb(13, 125, 13);
+    color: white;
+  }
+
+  .btn-green:hover {
+    background: #0c7730;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: inline-block;
+    position: relative;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 30px;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+    min-width: 100px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dropdown-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .dropdown-item:hover {
+    background-color: #f0f0f0;
+  }
+
+  .dropdown-item-blue {
+    background-color: rgb(13, 125, 13);
   }
 }

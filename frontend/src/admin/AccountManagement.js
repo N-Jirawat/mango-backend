@@ -22,6 +22,17 @@ function AccountManagement() {
   const [districtList, setDistrictList] = useState([]);
   const [subdistrictList, setSubdistrictList] = useState([]);
   const [phoneError, setPhoneError] = useState("");
+  const [dropdownOpenId, setDropdownOpenId] = useState(null);
+
+  const toggleDropdown = (userId) => {
+    setDropdownOpenId(prevId => prevId === userId ? null : userId);
+  };
+
+  useEffect(() => {
+    const closeOnClickOutside = () => setDropdownOpenId(null);
+    document.addEventListener('click', closeOnClickOutside);
+    return () => document.removeEventListener('click', closeOnClickOutside);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -31,7 +42,6 @@ function AccountManagement() {
         navigate("/login");
       }
     });
-
     return () => unsubscribe();
   }, [auth, navigate]);
 
@@ -66,22 +76,18 @@ function AccountManagement() {
   };
 
   const openEditModal = (user) => {
-    console.log("Opening edit modal for user:", user);
     setEditUser(user);
     setFormData({ ...user });
     setPhoneError("");
 
-    // Load dropdown data based on existing values
-    if (user.province) {
-      console.log("User province:", user.province);
-      const filteredDistricts = districts.filter((d) => d.province === user.province);
-      console.log("Initial filtered districts:", filteredDistricts);
+    const province = provinces.find((p) => p.name_th === user.province);
+    if (province) {
+      const filteredDistricts = districts.filter((d) => d.province_id === province.id);
       setDistrictList(filteredDistricts);
 
-      if (user.district) {
-        console.log("User district:", user.district);
-        const filteredSubdistricts = subdistricts.filter((t) => t.amphure === user.district);
-        console.log("Initial filtered tambons:", filteredSubdistricts);
+      const district = filteredDistricts.find((d) => d.name_th === user.district);
+      if (district) {
+        const filteredSubdistricts = subdistricts.filter((t) => t.amphure_id === district.id);
         setSubdistrictList(filteredSubdistricts);
       } else {
         setSubdistrictList([]);
@@ -107,30 +113,32 @@ function AccountManagement() {
   };
 
   const handleProvinceChange = (provinceName) => {
-    console.log("Selected Province:", provinceName);
-    const filteredDistricts = districts.filter((d) => d.province === provinceName);
-    console.log("Filtered Districts:", filteredDistricts);
+    const selectedProvince = provinces.find((p) => p.name_th === provinceName);
+    if (!selectedProvince) return;
+
+    const filteredDistricts = districts.filter((d) => d.province_id === selectedProvince.id);
     setDistrictList(filteredDistricts);
     setSubdistrictList([]);
 
     setFormData((prev) => ({
       ...prev,
       province: provinceName,
-      district: "",
-      subdistrict: "",
+      district: '',
+      subdistrict: '',
     }));
   };
 
   const handleDistrictChange = (districtName) => {
-    console.log("Selected District:", districtName);
-    const filteredTambons = subdistricts.filter((t) => t.amphure === districtName);
-    console.log("Filtered Tambons:", filteredTambons);
+    const selectedDistrict = districts.find((d) => d.name_th === districtName);
+    if (!selectedDistrict) return;
+
+    const filteredTambons = subdistricts.filter((t) => t.amphure_id === selectedDistrict.id);
     setSubdistrictList(filteredTambons);
 
     setFormData((prev) => ({
       ...prev,
       district: districtName,
-      subdistrict: "",
+      subdistrict: '',
     }));
   };
 
@@ -207,73 +215,153 @@ function AccountManagement() {
         ➕ เพิ่มสมาชิก
       </button>
 
-      <table className="user-table">
-        <thead>
-          <tr>
-            <th>ลำดับ</th>
-            <th>บัญชี</th>
-            <th>อีเมล</th>
-            <th>ชื่อ-นามสกุล</th>
-            <th>ที่อยู่</th>
-            <th>หมู่บ้าน</th>
-            <th>อำเภอ</th>
-            <th>ตำบล</th>
-            <th>จังหวัด</th>
-            <th>เบอร์โทร</th>
-            <th>การจัดการ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {currentUsers.length > 0 ? (
-            currentUsers.map((user, index) => (
-              <tr key={user.id}>
-                <td>{indexOfFirstUser + index + 1}</td>
-                <td>{user.username || "-"}</td>
-                <td>{user.email || "-"}</td>
-                <td>{user.fullName || "-"}</td>
-                <td>{user.address || "-"}</td>
-                <td>{user.village || "-"}</td>
-                <td>{user.district || "-"}</td>
-                <td>{user.subdistrict || "-"}</td>
-                <td>{user.province || "-"}</td>
-                <td>{user.tel || "-"}</td>
-                <td>
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                    <button
-                      className="btn btn-green"
-                      onClick={() => openEditModal(user)} // ฟังก์ชันเปิด modal แก้ไข
-                    >
-                      ✏️ แก้ไข
-                    </button>
-                    <button
-                      className="btn btn-gray"
-                      onClick={() => handleDeleteUser(user.id)} // ฟังก์ชันลบ user
-                    >
-                      🗑 ลบ
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
+      <div class="table-responsive">
+        <table className="user-table">
+          <thead>
             <tr>
-              <td colSpan="11" className="no-users">ยังไม่มีผู้ใช้ในระบบ</td>
+              <th>ลำดับ</th>
+              <th>บัญชี</th>
+              <th>อีเมล</th>
+              <th>ชื่อ-นามสกุล</th>
+              <th>ที่อยู่</th>
+              <th>หมู่บ้าน</th>
+              <th>อำเภอ</th>
+              <th>ตำบล</th>
+              <th>จังหวัด</th>
+              <th>เบอร์โทร</th>
+              <th>การจัดการ</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {currentUsers.length > 0 ? (
+              currentUsers.map((user, index) => (
+                <tr key={user.id}>
+                  <td>{indexOfFirstUser + index + 1}</td>
+                  <td>{user.username || "-"}</td>
+                  <td>{user.email || "-"}</td>
+                  <td>{user.fullName || "-"}</td>
+                  <td>{user.address || "-"}</td>
+                  <td>{user.village || "-"}</td>
+                  <td>{user.district || "-"}</td>
+                  <td>{user.subdistrict || "-"}</td>
+                  <td>{user.province || "-"}</td>
+                  <td>{user.tel || "-"}</td>
+                  <td>
+                    {/* สำหรับจอใหญ่ */}
+                    <div className="btn-edit desktop-only">
+                      <button className="btn btn-green" onClick={() => openEditModal(user)}>✏️ แก้ไข</button>
+                      <button className="btn btn-gray" onClick={() => handleDeleteUser(user.id)}>🗑 ลบ</button>
+                    </div>
+
+                    {/* สำหรับจอเล็ก */}
+                    <div className="action-menu mobile-only">
+                      <button className="btn btn-gray more-btn" onClick={(e) => { e.stopPropagation(); toggleDropdown(user.id); }}>⋯</button>
+                      {dropdownOpenId === user.id && (
+                        <div className="dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                          <button className="dropdown-item-blue" onClick={() => openEditModal(user)}>✏️ แก้ไข</button>
+                          <button className="dropdown-item" onClick={() => handleDeleteUser(user.id)}>🗑 ลบ</button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+
+
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan="11" className="no-users">ยังไม่มีผู้ใช้ในระบบ</td></tr>
+            )}
+          </tbody>
+        </table> </div>
 
       {totalPages > 1 && (
         <div className="pagination">
-          <button className="btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>⬅️</button>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button key={i} className={`btn ${currentPage === i + 1 ? "btn-green" : ""}`} onClick={() => goToPage(i + 1)}>{i + 1}</button>
-          ))}
-          <button className="btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>➡️</button>
+          <button className="btn-next" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>
+            ⬅️
+          </button>
+
+          {(() => {
+            const pages = [];
+
+            if (totalPages <= 4) {
+              for (let i = 1; i <= totalPages; i++) {
+                pages.push(
+                  <button
+                    key={i}
+                    className={`btn-next ${currentPage === i ? "btn-green-next" : ""}`}
+                    onClick={() => goToPage(i)}
+                    disabled={currentPage === i}
+                  >
+                    {i}
+                  </button>
+                );
+              }
+            } else {
+              pages.push(
+                <button
+                  key={1}
+                  className={`btn-next ${currentPage === 1 ? "btn-green-next" : ""}`}
+                  onClick={() => goToPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  1
+                </button>
+              );
+
+              if (currentPage > 3) {
+                pages.push(
+                  <span key="start-ellipsis" className="btn-green-next">
+                    ...
+                  </span>
+                );
+              }
+
+              const start = Math.max(2, currentPage - 1);
+              const end = Math.min(totalPages - 1, currentPage + 1);
+
+              for (let i = start; i <= end; i++) {
+                pages.push(
+                  <button
+                    key={i}
+                    className={`btn-next ${currentPage === i ? "btn-green-next" : ""}`}
+                    onClick={() => goToPage(i)}
+                    disabled={currentPage === i}
+                  >
+                    {i}
+                  </button>
+                );
+              }
+
+              if (currentPage < totalPages - 2) {
+                pages.push(
+                  <span key="end-ellipsis" className="btn-green-next">
+                    ...
+                  </span>
+                );
+              }
+
+              pages.push(
+                <button
+                  key={totalPages}
+                  className={`btn-next ${currentPage === totalPages ? "btn-green-next" : ""}`}
+                  onClick={() => goToPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  {totalPages}
+                </button>
+              );
+            }
+
+            return pages;
+          })()}
+
+          <button className="btn-next" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>
+            ➡️
+          </button>
         </div>
       )}
 
-      {/* Edit User Modal */}
+
       {editUser && (
         <div className="modal-overlay" onClick={handleOverlayClick}>
           <div className="modal-content-edit">
@@ -284,92 +372,46 @@ function AccountManagement() {
             <div className="modal-body">
               <div className="form-group-edit">
                 <label>ชื่อ-นามสกุล:</label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName || ""}
-                  onChange={handleChange}
-                  required
-                  className="form-input-edit"
-                />
+                <input type="text" name="fullName" value={formData.fullName || ""} onChange={handleChange} required className="form-input-edit" />
               </div>
 
               <div className="form-group-edit">
                 <label>ที่อยู่:</label>
-                <textarea
-                  name="address"
-                  value={formData.address || ""}
-                  onChange={handleChange}
-                  required
-                  rows="2"
-                  className="form-input-edit form-textarea-edit"
-                />
+                <textarea name="address" value={formData.address || ""} onChange={handleChange} required rows="2" className="form-input-edit form-textarea-edit" />
               </div>
 
               <div className="form-group-edit">
                 <label>หมู่บ้าน:</label>
-                <input
-                  type="text"
-                  name="village"
-                  value={formData.village || ""}
-                  onChange={handleChange}
-                  className="form-input-edit"
-                />
+                <input type="text" name="village" value={formData.village || ""} onChange={handleChange} className="form-input-edit" />
               </div>
 
               <div className="form-row-edit">
                 <div className="form-group-edit">
-                  <label>จังหวัด: *</label>
-                  <select
-                    name="province"
-                    value={formData.province || ""}
-                    onChange={handleChange}
-                    required
-                    className="form-select-edit"
-                  >
+                  <label>จังหวัด: </label>
+                  <select name="province" value={formData.province || ""} onChange={handleChange} required className="form-select-edit">
                     <option value="">เลือกจังหวัด</option>
                     {provinces.map((province) => (
-                      <option key={province.id} value={province.name_th}>
-                        {province.name_th}
-                      </option>
+                      <option key={province.id} value={province.name_th}>{province.name_th}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="form-group-edit">
-                  <label>อำเภอ: *</label>
-                  <select
-                    name="district"
-                    value={formData.district || ""}
-                    onChange={handleChange}
-                    required
-                    disabled={!formData.province}
-                    className="form-select-edit"
-                  >
+                  <label>อำเภอ: </label>
+                  <select name="district" value={formData.district || ""} onChange={handleChange} required disabled={!districtList.length} className="form-select-edit">
                     <option value="">เลือกอำเภอ</option>
                     {districtList.map((districtItem) => (
-                      <option key={districtItem.id} value={districtItem.name_th}>
-                        {districtItem.name_th}
-                      </option>
+                      <option key={districtItem.id} value={districtItem.name_th}>{districtItem.name_th}</option>
                     ))}
                   </select>
                 </div>
 
                 <div className="form-group-edit">
-                  <label>ตำบล: *</label>
-                  <select
-                    name="subdistrict"
-                    value={formData.subdistrict || ""}
-                    onChange={handleChange}
-                    required
-                    disabled={!formData.district}
-                    className="form-select-edit"
-                  >
+                  <label>ตำบล: </label>
+                  <select name="subdistrict" value={formData.subdistrict || ""} onChange={handleChange} required disabled={!subdistrictList.length} className="form-select-edit">
                     <option value="">เลือกตำบล</option>
-                    {subdistrictList.map((subdistrictItem) => (
-                      <option key={subdistrictItem.id} value={subdistrictItem.name_th}>
-                        {subdistrictItem.name_th}
-                      </option>
+                    {subdistrictList.map((subItem) => (
+                      <option key={subItem.id} value={subItem.name_th}>{subItem.name_th}</option>
                     ))}
                   </select>
                 </div>
@@ -377,34 +419,13 @@ function AccountManagement() {
 
               <div className="form-group-edit">
                 <label>เบอร์โทรศัพท์:</label>
-                <input
-                  type="tel"
-                  name="tel"
-                  value={formData.tel || ""}
-                  onChange={handleChange}
-                  placeholder="0812345678"
-                  className={`form-input-edit ${phoneError ? 'error' : ''}`}
-                />
-                {phoneError && (
-                  <p className="error-message">{phoneError}</p>
-                )}
+                <input type="tel" name="tel" value={formData.tel || ""} onChange={handleChange} placeholder="0812345678" className={`form-input-edit ${phoneError ? 'error' : ''}`} />
+                {phoneError && <p className="error-message">{phoneError}</p>}
               </div>
 
               <div className="form-buttons-edit">
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  className="btn btn-gray"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmitUpdate}
-                  className="btn btn-green"
-                >
-                  บันทึกการเปลี่ยนแปลง
-                </button>
+                <button type="button" onClick={closeEditModal} className="btn btn-gray">ยกเลิก</button>
+                <button type="button" onClick={handleSubmitUpdate} className="btn btn-green">บันทึกการเปลี่ยนแปลง</button>
               </div>
             </div>
           </div>

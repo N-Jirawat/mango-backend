@@ -8,6 +8,18 @@ body {
   box-sizing: border-box;
 }
 
+:root {
+  --font-family: 'Noto Sans Thai', sans-serif;
+  --text-color: #333;
+  --primary-color: #228b22;
+  --background-color: #f9f9f9;
+}
+
+* {
+  font-family: 'Noto Sans Thai', sans-serif;
+}
+
+
 /* กำหนดให้ root container ใช้ flexbox */
 #root {
   min-height: 100vh;

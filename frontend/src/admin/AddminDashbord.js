@@ -34,6 +34,11 @@ function AdminDashboard() {
             <button className="admin-button-dashbord">จัดการข้อมูลโรคใบมะม่วง</button>
           </Link>
         </div>
+        <div className="button-container-dashbord">
+          <Link to="/ReportAdmin" className="admin-link-dashbord">
+            <button className="admin-button-dashbord">รายงานข้อมูลสมาชิก</button>
+          </Link>
+        </div>
       </div>
     </div>
   );

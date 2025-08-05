@@ -211,7 +211,6 @@ function App() {
             element={
               <PrivateRoute
                 currentUser={currentUser}
-                requiredRole="admin"
                 element={<StatisticsAdmin />}
               />
             }

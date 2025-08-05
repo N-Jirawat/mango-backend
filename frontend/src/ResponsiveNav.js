@@ -69,18 +69,19 @@ const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
     { path: '/showmango', label: 'โรคใบมะม่วง', type: 'link' },
     { path: '/predict', label: 'วิเคราะห์โรค', type: 'link' },
     { path: '/history', label: 'ประวัติการวิเคราะห์', type: 'protected' },
-    { path: '/usermanual', label: 'คู่มือการใช้งาน', type: 'link' }
-  ];
-
-  const userItems = [
-    { label: "สถิติผู้ใช้ทั้งหมด", path: "/statisticsadmin" }
+    { path: '/usermanual', label: 'คู่มือการใช้งาน', type: 'link' },
+    { path: '/statisticsadmin', label: 'สถิติผู้ใช้ทั้งหมด', type: 'protected' }
   ];
 
   // ฟังก์ชันสำหรับจัดการการคลิกปุ่ม
   const handleNavClick = useCallback((item) => {
     closeMenu();
     if (item.type === 'protected') {
-      handleProtectedNav(item.path);
+      if (handleProtectedNav) {
+        handleProtectedNav(item.path);
+      } else {
+        navigate(item.path);
+      }
     } else {
       // ใช้ React Router สำหรับการนำทาง
       navigate(item.path);
@@ -108,22 +109,29 @@ const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
         {/* Navigation Links */}
         <ul
           id="nav-links"
-          className={`nav-links ${isMenuOpen ? 'active' : ''}`}
+          className={`nav-links ${isMobile ? 'mobile' : ''} ${isMenuOpen ? 'active' : ''}`}
           role="menubar"
           aria-hidden={isMobile && !isMenuOpen}
         >
-          {[...navigationItems, ...(currentUser?.role === "user" || "admin" ? userItems : [])].map((item) => (
-            <li key={item.path} role="none">
-              <button
-                className={`nav-fixed-width ${isActiveLink(item.path) ? 'active' : ''}`}
-                onClick={() => handleNavClick(item)}
-                role="menuitem"
-                aria-current={isActiveLink(item.path) ? 'page' : undefined}
-              >
-                {item.label}
-              </button>
-            </li>
-          ))}
+          {navigationItems
+            .filter(item => {
+              if (item.type === 'protected') {
+                return currentUser?.role === 'admin' || currentUser?.role === 'user';
+              }
+              return true;
+            })
+            .map(item => (
+              <li key={item.path} role="none">
+                <button
+                  className={`nav-fixed-width ${isActiveLink(item.path) ? 'active' : ''}`}
+                  onClick={() => handleNavClick(item)}
+                  role="menuitem"
+                  aria-current={isActiveLink(item.path) ? 'page' : undefined}
+                >
+                  {item.label}
+                </button>
+              </li>
+            ))}
         </ul>
 
         {/* Overlay for mobile menu */}
