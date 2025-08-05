@@ -102,7 +102,14 @@ function History() {
     setSearchDate("");
   };
 
-  if (loading) return <p>กำลังโหลดข้อมูล...</p>;
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
   if (!user) return <p>กรุณาเข้าสู่ระบบเพื่อดูประวัติ</p>;
 

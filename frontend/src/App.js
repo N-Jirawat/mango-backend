@@ -18,7 +18,6 @@ import LoginPage from "./LoginPage";
 import AccountManagement from "./admin/AccountManagement";
 import AddminDashbord from "./admin/AddminDashbord";
 import UserDashboard from "./user/UserDashbord";
-import EditUser from "./user/EditUser";
 import UserDetails from "./user/UserDetail";
 import ProfileButton from "./ProfileButton";
 import ShowMango from "./mango/showMango";
@@ -40,7 +39,6 @@ import "./css/allstyle.css";
 import "./css/location.css";
 import "./css/addminmanage.css";
 import "./App.css";
-import "./css/edituser.css";
 import "./css/manage.css";
 import "./css/login.css";
 
@@ -233,15 +231,6 @@ function App() {
               <PrivateRoute
                 currentUser={currentUser}
                 element={<UserDashboard />}
-              />
-            }
-          />
-          <Route
-            path="/edituser/:id"
-            element={
-              <PrivateRoute
-                currentUser={currentUser}
-                element={<EditUser />}
               />
             }
           />

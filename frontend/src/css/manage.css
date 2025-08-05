@@ -21,6 +21,70 @@
   margin-bottom: 20px;
 }
 
+/* Top controls layout - NEW STYLES */
+.add-member-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.info-search-row {
+  display: flex;
+  justify-content: space-between; /* แบ่งซ้าย-ขวา */
+  align-items: center;            /* จัดชิดกลางแนวตั้ง */
+  padding: 8px 0;
+  gap: 16px;                     /* เว้นระยะห่างระหว่างฝั่งซ้าย-ขวา */
+  flex-wrap: wrap;               /* ถ้าจอแคบให้ขึ้นบรรทัดใหม่ */
+}
+
+.total-users {
+  font-size: 16px;
+  color: #333;
+}
+
+.filtered-count {
+  color: #555;
+  font-weight: normal;
+  font-size: 14px;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 250px; /* กำหนดความกว้างช่องค้นหา */
+  margin-left: 730px;
+}
+
+.search-input {
+  width: 100%;
+  padding-right: 36px; /* เผื่อพื้นที่สำหรับปุ่มล้าง */
+  height: 36px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 8px;           /* ติดขอบขวา input */
+  top: 10%;             /* กึ่งกลางตามแนวตั้ง */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 18px;
+  padding: 0;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  pointer-events: auto;  /* ป้องกันปุ่มไม่ให้ขยับ input */
+  user-select: none;     /* ป้องกันเลือกข้อความบนปุ่ม */
+}
+
+
 /* General button styles */
 .btn {
   padding: 10px 15px;
@@ -327,6 +391,34 @@ td:last-child {
     overflow-x: hidden;
   }
 
+  /* ปรับแถวจำนวนรายการกับช่องค้นหาให้เป็นแนวตั้งและกว้างเต็ม */
+  .info-search-row {
+    flex-direction: column;  /* แนวตั้ง */
+    align-items: stretch;    /* กว้างเต็ม */
+    gap: 12px;               /* เว้นช่องว่าง */
+    text-align: center;
+  }
+  
+  .total-users {
+    text-align: center;
+    font-size: 16px;
+  }
+  
+  .search-wrapper {
+    width: 100% !important;   /* กว้างเต็ม */
+    margin-left: 0 !important; /* ลบ margin ซ้าย */
+    max-width: none;
+    position: relative;
+  }
+  
+  .search-input {
+    width: 100%;
+    padding-right: 30px; 
+    height: 36px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
   /* ซ่อนคอลัมน์ที่ไม่จำเป็น */
   .user-table th:nth-child(3),
   .user-table th:nth-child(5),
@@ -373,13 +465,13 @@ td:last-child {
     white-space: nowrap;
   }
 
-  /* ✅ เพิ่ม container รองรับตารางไม่ให้ล้น */
+  /* ✅ container สำหรับตาราง ไม่ให้ล้นจอ */
   .table-responsive {
     width: 100%;
     overflow-x: auto;
   }
 
-  /* ✅ บังคับตารางไม่ให้เกินจอ */
+  /* ✅ ตารางปรับขนาดให้พอดีกับมือถือ */
   .user-table {
     width: 95%;
     table-layout: fixed;
@@ -395,7 +487,7 @@ td:last-child {
     font-size: 16px;
   }
 
-  /* ✅ กำหนดความกว้างที่แน่นอน */
+  /* กำหนดความกว้างเฉพาะคอลัมน์ */
   .user-table th:nth-child(1),
   .user-table td:nth-child(1) {
     width: 15%;
@@ -433,7 +525,7 @@ td:last-child {
     border-radius: 4px;
   }
 
-  /* Modal adjustments */
+  /* Modal ปรับขนาดและระยะขอบ */
   .modal-content-edit {
     width: 95%;
     height: 90vh;

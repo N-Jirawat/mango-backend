@@ -14,6 +14,8 @@ function AccountManagement() {
 
   const [loading, setLoading] = useState(true);
   const [usersList, setUsersList] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
 
@@ -45,6 +47,22 @@ function AccountManagement() {
     return () => unsubscribe();
   }, [auth, navigate]);
 
+  // ฟิลเตอร์ผู้ใช้ตามคำค้นหา
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredUsers(usersList);
+    } else {
+      const filtered = usersList.filter(user => {
+        const username = (user.username || "").toLowerCase();
+        const fullName = (user.fullName || "").toLowerCase();
+        const search = searchTerm.toLowerCase();
+        return username.includes(search) || fullName.includes(search);
+      });
+      setFilteredUsers(filtered);
+    }
+    setCurrentPage(1); // รีเซ็ตไปหน้าแรกเมื่อค้นหา
+  }, [searchTerm, usersList]);
+
   const fetchUsersList = async () => {
     setLoading(true);
     try {
@@ -73,6 +91,14 @@ function AccountManagement() {
       console.error("เกิดข้อผิดพลาดในการลบผู้ใช้:", error);
       alert("ไม่สามารถลบผู้ใช้ได้");
     }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
   };
 
   const openEditModal = (user) => {
@@ -195,8 +221,8 @@ function AccountManagement() {
 
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = usersList.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(usersList.length / usersPerPage);
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   const goToPage = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -210,12 +236,45 @@ function AccountManagement() {
 
   return (
     <div className="manage-container">
-      <h2 className="title">บัญชีผู้ใช้</h2>
-      <button className="btn btn-green btn-add-user" onClick={() => navigate("/signup")}>
-        ➕ เพิ่มสมาชิก
-      </button>
+      <h2 className="title">บัญชีผู้ใช้ทั้งหมด</h2>
 
-      <div class="table-responsive">
+      {/* ปุ่มเพิ่มสมาชิกอยู่กลาง */}
+      <div className="add-member-row">
+        <button className="btn btn-green btn-add-user" onClick={() => navigate("/signup")}>
+          ➕ เพิ่มสมาชิก
+        </button>
+      </div>
+
+      <div className="info-search-row">
+        <div className="total-users">
+          จำนวนรายการทั้งหมด: <strong>{usersList.length}</strong> รายการ
+          {searchTerm && (
+            <span className="filtered-count">{" "}(แสดง {filteredUsers.length} รายการ)</span>
+          )}
+        </div>
+
+        <div className="search-wrapper">
+          <input
+            type="text"
+            className="search-input"
+            placeholder="ค้นหา..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          {searchTerm && (
+            <button
+              className="clear-search-btn"
+              onClick={clearSearch}
+              title="ล้างการค้นหา"
+              aria-label="ล้างการค้นหา"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="table-responsive">
         <table className="user-table">
           <thead>
             <tr>
@@ -264,15 +323,18 @@ function AccountManagement() {
                       )}
                     </div>
                   </td>
-
-
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="11" className="no-users">ยังไม่มีผู้ใช้ในระบบ</td></tr>
+              <tr>
+                <td colSpan="11" className="no-users">
+                  {searchTerm ? `ไม่พบผู้ใช้ที่ตรงกับ "${searchTerm}"` : "ยังไม่มีผู้ใช้ในระบบ"}
+                </td>
+              </tr>
             )}
           </tbody>
-        </table> </div>
+        </table>
+      </div>
 
       {totalPages > 1 && (
         <div className="pagination">
@@ -360,7 +422,6 @@ function AccountManagement() {
           </button>
         </div>
       )}
-
 
       {editUser && (
         <div className="modal-overlay" onClick={handleOverlayClick}>
