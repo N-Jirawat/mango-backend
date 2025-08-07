@@ -885,7 +885,7 @@ function StatisticsAdmin() {
   return (
     <div className="statistics-admin-container">
       <div className="header-section">
-        <h1>สถิติการวิเคราะห์โรคใบมะม่วง</h1>
+        <h2>สถิติการวิเคราะห์โรคใบมะม่วง</h2>
 
         {/* เพิ่มปุ่ม Download PDF */}
         <div className="header-actions">

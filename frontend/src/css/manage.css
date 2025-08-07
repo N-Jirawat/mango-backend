@@ -13,6 +13,27 @@
   box-sizing: border-box;
 }
 
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  color: white;
+  padding: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
 /* Title styles */
 .title {
   font-size: 24px;
@@ -31,11 +52,15 @@
 
 .info-search-row {
   display: flex;
-  justify-content: space-between; /* แบ่งซ้าย-ขวา */
-  align-items: center;            /* จัดชิดกลางแนวตั้ง */
+  justify-content: space-between;
+  /* แบ่งซ้าย-ขวา */
+  align-items: center;
+  /* จัดชิดกลางแนวตั้ง */
   padding: 8px 0;
-  gap: 16px;                     /* เว้นระยะห่างระหว่างฝั่งซ้าย-ขวา */
-  flex-wrap: wrap;               /* ถ้าจอแคบให้ขึ้นบรรทัดใหม่ */
+  gap: 16px;
+  /* เว้นระยะห่างระหว่างฝั่งซ้าย-ขวา */
+  flex-wrap: wrap;
+  /* ถ้าจอแคบให้ขึ้นบรรทัดใหม่ */
 }
 
 .total-users {
@@ -51,13 +76,15 @@
 
 .search-wrapper {
   position: relative;
-  width: 250px; /* กำหนดความกว้างช่องค้นหา */
+  width: 250px;
+  /* กำหนดความกว้างช่องค้นหา */
   margin-left: 730px;
 }
 
 .search-input {
   width: 100%;
-  padding-right: 36px; /* เผื่อพื้นที่สำหรับปุ่มล้าง */
+  padding-right: 36px;
+  /* เผื่อพื้นที่สำหรับปุ่มล้าง */
   height: 36px;
   font-size: 16px;
   box-sizing: border-box;
@@ -65,8 +92,10 @@
 
 .clear-search-btn {
   position: absolute;
-  right: 8px;           /* ติดขอบขวา input */
-  top: 10%;             /* กึ่งกลางตามแนวตั้ง */
+  right: 8px;
+  /* ติดขอบขวา input */
+  top: 10%;
+  /* กึ่งกลางตามแนวตั้ง */
   background: transparent;
   border: none;
   cursor: pointer;
@@ -80,8 +109,10 @@
   align-items: center;
   justify-content: center;
 
-  pointer-events: auto;  /* ป้องกันปุ่มไม่ให้ขยับ input */
-  user-select: none;     /* ป้องกันเลือกข้อความบนปุ่ม */
+  pointer-events: auto;
+  /* ป้องกันปุ่มไม่ให้ขยับ input */
+  user-select: none;
+  /* ป้องกันเลือกข้อความบนปุ่ม */
 }
 
 
@@ -393,27 +424,32 @@ td:last-child {
 
   /* ปรับแถวจำนวนรายการกับช่องค้นหาให้เป็นแนวตั้งและกว้างเต็ม */
   .info-search-row {
-    flex-direction: column;  /* แนวตั้ง */
-    align-items: stretch;    /* กว้างเต็ม */
-    gap: 12px;               /* เว้นช่องว่าง */
+    flex-direction: column;
+    /* แนวตั้ง */
+    align-items: stretch;
+    /* กว้างเต็ม */
+    gap: 12px;
+    /* เว้นช่องว่าง */
     text-align: center;
   }
-  
+
   .total-users {
     text-align: center;
     font-size: 16px;
   }
-  
+
   .search-wrapper {
-    width: 100% !important;   /* กว้างเต็ม */
-    margin-left: 0 !important; /* ลบ margin ซ้าย */
+    width: 100% !important;
+    /* กว้างเต็ม */
+    margin-left: 0 !important;
+    /* ลบ margin ซ้าย */
     max-width: none;
     position: relative;
   }
-  
+
   .search-input {
     width: 100%;
-    padding-right: 30px; 
+    padding-right: 30px;
     height: 36px;
     font-size: 16px;
     box-sizing: border-box;
@@ -617,34 +653,152 @@ td:last-child {
     position: relative;
   }
 
+  /* ✅ ปรับ dropdown menu - เด้งเหนือทุกอย่าง */
   .dropdown-menu {
-    position: absolute;
-    top: 30px;
-    right: 0;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 999;
-    min-width: 100px;
-    display: flex;
-    flex-direction: column;
+    position: fixed !important;
+    background-color: white !important;
+    border: 1px solid #ccc !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25) !important;
+    z-index: 9999 !important;
+    min-width: 280px !important;
+    width: max-content !important;
+    max-width: 350px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 8px 0 !important;
+
+    /* เพิ่ม max-height และ overflow เพื่อป้องกันล้นจอ */
+    max-height: 80vh !important;
+    overflow-y: auto !important;
   }
 
-  .dropdown-item {
-    padding: 8px 12px;
-    font-size: 14px;
-    background: none;
-    border: none;
-    text-align: left;
-    cursor: pointer;
+  /* ✅ CSS สำหรับ dropdown ที่เด้งขึ้น */
+  .dropdown-menu.drop-up {
+    /* JavaScript จะจัดการตำแหน่งแล้ว */
+    transform-origin: bottom center !important;
+    animation: dropUp 0.15s ease-out !important;
   }
 
-  .dropdown-item:hover {
-    background-color: #f0f0f0;
+  /* ✅ CSS สำหรับ dropdown ที่เด้งลง */
+  .dropdown-menu.drop-down {
+    /* JavaScript จะจัดการตำแหน่งแล้ว */
+    transform-origin: top center !important;
+    animation: dropDown 0.15s ease-out !important;
   }
 
-  .dropdown-item-blue {
-    background-color: rgb(13, 125, 13);
+  /* เพิ่ม animation เพื่อให้ดู smooth */
+  @keyframes dropDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes dropUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ปรับ user details ให้ดูดีขึ้น */
+  .user-details {
+    padding: 8px 12px !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    border-bottom: 1px solid #eee !important;
+  }
+
+  .user-detail-row {
+    margin-bottom: 8px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    font-size: 15px !important;
+    line-height: 1.4 !important;
+  }
+
+  .detail-label {
+    font-weight: 600 !important;
+    color: #555 !important;
+    min-width: 55px !important;
+  }
+
+  .detail-value {
+    color: #333 !important;
+    font-weight: 400 !important;
+    word-break: break-word !important;
+  }
+
+  /* ปรับ dropdown actions */
+  .dropdown-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    padding: 8px 0 0 0 !important;
+    margin: 0 !important;
+  }
+
+  /* ปรับปุ่มใน dropdown */
+  .dropdown-item-blue,
+  .dropdown-menu .dropdown-item-blue {
+    background-color: rgb(13, 125, 13) !important;
+    color: white !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    border: none !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    margin: 0 8px 2px 8px !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+    width: calc(100% - 16px) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .dropdown-item-blue:hover,
+  .dropdown-menu .dropdown-item-blue:hover {
+    background-color: #0c7730 !important;
+    transform: translateX(2px) !important;
+  }
+
+  .dropdown-item,
+  .dropdown-menu .dropdown-item {
+    background-color: #6c757d !important;
+    color: white !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    border: none !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    margin: 0 8px 2px 8px !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+    width: calc(100% - 16px) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .dropdown-item:hover,
+  .dropdown-menu .dropdown-item:hover {
+    background-color: #5a5a5a !important;
+    transform: translateX(2px) !important;
   }
 }

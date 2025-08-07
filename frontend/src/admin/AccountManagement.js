@@ -26,8 +26,86 @@ function AccountManagement() {
   const [phoneError, setPhoneError] = useState("");
   const [dropdownOpenId, setDropdownOpenId] = useState(null);
 
+  const [dropdownDirection, setDropdownDirection] = useState('drop-down');
+
+  // แก้ไข useEffect สำหรับ dropdown แบบ fixed position
+  useEffect(() => {
+    if (dropdownOpenId) {
+      const timer = setTimeout(() => {
+        const buttonElement = document.querySelector(`[data-user-id="${dropdownOpenId}"] .more-btn`);
+        const dropdownElement = document.querySelector(`[data-user-id="${dropdownOpenId}"] .dropdown-menu`);
+
+        if (buttonElement && dropdownElement) {
+          const buttonRect = buttonElement.getBoundingClientRect();
+          const windowHeight = window.innerHeight;
+          const windowWidth = window.innerWidth;
+          const dropdownHeight = 300; // ประมาณ
+
+          // คำนวณพื้นที่ว่าง
+          const spaceBelow = windowHeight - buttonRect.bottom;
+          const spaceAbove = buttonRect.top;
+
+          let top, right;
+
+          // กำหนดตำแหน่งแนวนอน (ให้ชิดขวา)
+          right = windowWidth - buttonRect.right;
+          if (right < 0) right = 10; // ป้องกันล้นจอขวา
+
+          // กำหนดตำแหน่งแนวตั้ง
+          if (spaceBelow >= 150) {
+            // เด้งลง
+            top = buttonRect.bottom + 5;
+            setDropdownDirection('drop-down');
+          } else if (spaceAbove >= 150) {
+            // เด้งขึ้น
+            top = buttonRect.top - dropdownHeight - 5;
+            setDropdownDirection('drop-up');
+          } else {
+            // พื้นที่ไม่พอทั้งสองด้าน - เลือกด้านที่มีพื้นที่มากกว่า
+            if (spaceBelow > spaceAbove) {
+              top = buttonRect.bottom + 5;
+              setDropdownDirection('drop-down');
+            } else {
+              top = Math.max(10, buttonRect.top - dropdownHeight - 5);
+              setDropdownDirection('drop-up');
+            }
+          }
+
+          // ป้องกันล้นจอด้านบน
+          if (top < 10) top = 10;
+          // ป้องกันล้นจอด้านล่าง
+          if (top + dropdownHeight > windowHeight - 10) {
+            top = windowHeight - dropdownHeight - 10;
+          }
+
+          // ตั้งค่าตำแหน่ง
+          dropdownElement.style.position = 'fixed';
+          dropdownElement.style.top = `${top}px`;
+          dropdownElement.style.right = `${right}px`;
+          dropdownElement.style.left = 'auto';
+          dropdownElement.style.bottom = 'auto';
+
+          console.log('Dropdown positioned at:', {
+            top,
+            right,
+            direction: spaceBelow >= 150 ? 'down' : 'up',
+            buttonRect,
+            spaceAbove,
+            spaceBelow
+          });
+        }
+      }, 10);
+
+      return () => clearTimeout(timer);
+    }
+  }, [dropdownOpenId]);
+
   const toggleDropdown = (userId) => {
-    setDropdownOpenId(prevId => prevId === userId ? null : userId);
+    if (dropdownOpenId === userId) {
+      setDropdownOpenId(null);
+    } else {
+      setDropdownOpenId(userId);
+    }
   };
 
   useEffect(() => {
@@ -231,7 +309,12 @@ function AccountManagement() {
   };
 
   if (loading) {
-    return <div className="manage-container"><h2 className="title">กำลังโหลด...</h2></div>;
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>กำลังโหลดข้อมูลสถิติ...</p>
+      </div>
+    );
   }
 
   return (
@@ -257,7 +340,7 @@ function AccountManagement() {
           <input
             type="text"
             className="search-input"
-            placeholder="ค้นหา..."
+            placeholder="ค้นหาด้วยชื่อบัญชีหรือชื่อสกุล..."
             value={searchTerm}
             onChange={handleSearchChange}
           />
@@ -313,12 +396,60 @@ function AccountManagement() {
                     </div>
 
                     {/* สำหรับจอเล็ก */}
-                    <div className="action-menu mobile-only">
-                      <button className="btn btn-gray more-btn" onClick={(e) => { e.stopPropagation(); toggleDropdown(user.id); }}>⋯</button>
+                    {/* ส่วน dropdown ใน JSX - แทนที่ในตาราง */}
+                    <div className="action-menu mobile-only" data-user-id={user.id}>
+                      <button
+                        className="btn btn-gray more-btn"
+                        onClick={(e) => { e.stopPropagation(); toggleDropdown(user.id); }}
+                      >
+                        ⋯
+                      </button>
+
                       {dropdownOpenId === user.id && (
-                        <div className="dropdown-menu" onClick={(e) => e.stopPropagation()}>
-                          <button className="dropdown-item-blue" onClick={() => openEditModal(user)}>✏️ แก้ไข</button>
-                          <button className="dropdown-item" onClick={() => handleDeleteUser(user.id)}>🗑 ลบ</button>
+                        <div
+                          className={`dropdown-menu ${dropdownDirection}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="user-details">
+                            <div className="user-detail-row">
+                              <span className="detail-label">อีเมล :</span>
+                              <span className="detail-value">{user.email || '-'}</span>
+                            </div>
+                            <div className="user-detail-row">
+                              <span className="detail-label">ที่อยู่ :</span>
+                              <span className="detail-value">{user.address || '-'}</span>
+                            </div>
+                            <div className="user-detail-row">
+                              <span className="detail-label">หมู่บ้าน :</span>
+                              <span className="detail-value">{user.village || '-'}</span>
+                              <span className="detail-label">ตำบล :</span>
+                              <span className="detail-value">{user.subdistrict || '-'}</span>
+                            </div>
+                            <div className="user-detail-row">
+                              <span className="detail-label">อำเภอ :</span>
+                              <span className="detail-value">{user.district || '-'}</span>
+                              <span className="detail-label">จังหวัด :</span>
+                              <span className="detail-value">{user.province || '-'}</span>
+                            </div>
+                            <div className="user-detail-row">
+                              <span className="detail-label">เบอร์โทร :</span>
+                              <span className="detail-value">{user.tel || '-'}</span>
+                            </div>
+                          </div>
+                          <div className="dropdown-actions">
+                            <button
+                              className="dropdown-item-blue"
+                              onClick={() => openEditModal(user)}
+                            >
+                              ✏️ แก้ไข
+                            </button>
+                            <button
+                              className="dropdown-item"
+                              onClick={() => handleDeleteUser(user.id)}
+                            >
+                              🗑 ลบ
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>

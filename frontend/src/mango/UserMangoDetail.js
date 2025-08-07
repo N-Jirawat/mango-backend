@@ -35,28 +35,34 @@ function UserMangoDetail() {
     };
 
     if (loading) {
-        return <div className="disease-detail-container">กำลังโหลดข้อมูล...</div>;
+        return (
+            <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>กำลังโหลดข้อมูลสถิติ...</p>
+            </div>
+        );
     }
-
     if (!mango) {
         return <div className="disease-detail-container">ไม่พบข้อมูลโรคนี้</div>;
     }
 
     return (
-        <div className="user-disease-detail-container">
-            <button onClick={handleBack} className="back-button">
-                ⬅️ กลับ
-            </button>
-            <h3 className="user-namedisease">{mango.diseaseName}</h3>
-            <img
-                src={mango.imageUrl}
-                alt={mango.diseaseName}
-                className="user-img-disease"
-            />
-            <div className="user-boxmango">
-                <p><strong>ลักษณะอาการ:</strong> {mango.symptoms}</p>
-                <p><strong>วิธีรักษา:</strong> {mango.treatment}</p>
-                <p><strong>วิธีป้องกัน:</strong> {mango.prevention}</p>
+        <div className="container-state">
+            <div className="user-disease-detail-container">
+                <button onClick={handleBack} className="back-button">
+                    ⬅️ กลับ
+                </button>
+                <h3 className="user-namedisease">{mango.diseaseName}</h3>
+                <img
+                    src={mango.imageUrl}
+                    alt={mango.diseaseName}
+                    className="user-img-disease"
+                />
+                <div className="user-boxmango">
+                    <p><strong>ลักษณะอาการ:</strong> {mango.symptoms}</p>
+                    <p><strong>วิธีรักษา:</strong> {mango.treatment}</p>
+                    <p><strong>วิธีป้องกัน:</strong> {mango.prevention}</p>
+                </div>
             </div>
         </div>
     );

@@ -1,19 +1,64 @@
-/* UserMangoDetail Component Styles */
-
 .user-disease-detail-container {
-    /* ใช้ width: 100% เพื่อให้ขยายเต็มพื้นที่ที่มีอยู่ */
-    width: 100%; 
-    /* กำหนด max-width เพื่อไม่ให้เนื้อหายืดกว้างเกินไปบนจอใหญ่ */
-    max-width: 1400px;
-    /* ลบ min-width ออก เพื่อให้ยืดหยุ่นบนจอเล็ก */
-    /* min-width: 500px; */ 
-    margin: 0 auto; /* จัดกึ่งกลาง */
-    padding: 20px; /* เพิ่ม padding ภายใน */
-    box-sizing: border-box; /* สำคัญมากสำหรับการคำนวณขนาด */
-    /* เพิ่ม overflow-y: auto; หากเนื้อหาภายในสูงเกินกว่าพื้นที่ที่เหลือ */
-    /* overflow-y: auto; */
+  width: 100%;
+  max-width: 100% !important;
+  padding: 40px 80px !important;
+  box-sizing: border-box;
 }
 
+.container-state {
+    width: 100%; /* ให้เต็มความกว้าง */
+    max-width: 1000px; /* ไม่เกิน 1000px */
+    background: linear-gradient(135deg, #f1f8e9, #ffffff);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
+.user-boxmango {
+  width: 100% !important;
+  max-width: 1000px !important;
+  margin: 30px auto;
+  padding: 50px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.user-boxmango p {
+    font-size: 1.3rem;
+    padding: 20px 25px;
+    line-height: 2;
+    margin-bottom: 25px;
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: white;
+    padding: 20px;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
 
 .user-namedisease {
     text-align: center;
@@ -42,19 +87,6 @@
 .user-img-disease:hover {
     transform: scale(1.02);
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-}
-
-.user-boxmango {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
-    transition: transform 0.3s ease;
-    width: 100%;
-    max-width: none; /* อันนี้ถูกต้องแล้ว */
-    box-sizing: border-box;
 }
 
 .user-boxmango:hover {
@@ -117,7 +149,7 @@
 }
 
 /* Loading and Error States */
-.user-disease-detail-container > div {
+.user-disease-detail-container>div {
     text-align: center;
     font-size: 1.2rem;
     color: #4a5568;
@@ -127,37 +159,40 @@
     margin: 50px auto;
     max-width: 400px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    box-sizing: border-box; /* เพิ่ม box-sizing */
+    box-sizing: border-box;
+    /* เพิ่ม box-sizing */
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     .user-disease-detail-container {
         padding: 15px;
-        margin: 0 auto; /* จัดกึ่งกลางบนมือถือด้วย */
+        margin: 0 auto;
+        /* จัดกึ่งกลางบนมือถือด้วย */
     }
-    
+
     .user-namedisease {
         font-size: 2rem;
         margin: 20px 0;
     }
-    
+
     .user-img-disease {
         height: 250px;
         margin-bottom: 20px;
     }
-    
+
     .user-boxmango {
-        padding: 20px;
-        margin-top: 15px;
+        padding: 30px;
+        margin: 20px auto;
     }
-    
+
     .user-boxmango p {
         font-size: 1rem;
         padding: 12px;
     }
-    
-    .back-button { /* เปลี่ยนจาก .user-back-button เป็น .back-button */
+
+    .back-button {
+        /* เปลี่ยนจาก .user-back-button เป็น .back-button */
         padding: 10px 16px;
         font-size: 14px;
     }
@@ -167,15 +202,15 @@
     .user-namedisease {
         font-size: 1.8rem;
     }
-    
+
     .user-img-disease {
         height: 200px;
     }
-    
+
     .user-boxmango {
         padding: 15px;
     }
-    
+
     .user-boxmango p {
         font-size: 0.95rem;
         padding: 10px;
@@ -188,6 +223,7 @@
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);

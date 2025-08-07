@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import "./css/responsive.css";
 
-const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
+const ResponsiveNav = ({ currentUser }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 769);
   const location = useLocation();
@@ -45,7 +45,6 @@ const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
       document.body.style.overflow = 'unset';
     }
 
-    // Cleanup เมื่อ component unmount
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -73,20 +72,36 @@ const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
     { path: '/statisticsadmin', label: 'สถิติผู้ใช้ทั้งหมด', type: 'protected' }
   ];
 
-  // ฟังก์ชันสำหรับจัดการการคลิกปุ่ม
+  // ✅ แก้ลำดับและห่อด้วย useCallback
+  const handleProtectedNav = useCallback((path) => {
+    if (path === '/history') {
+      if (!currentUser || (currentUser.role !== 'user' && currentUser.role !== 'admin')) {
+        alert('เข้าสู่ระบบเพื่อใช้งาน');
+        navigate('/login'); // ⬅️ redirect ไป login
+        return;
+      }
+    }
+
+    if (path === '/statisticsadmin') {
+      if (!currentUser || (currentUser.role !== 'user' && currentUser.role !== 'admin')) {
+        alert('เข้าสู่ระบบเพื่อใช้งาน');
+        navigate('/login'); // ⬅️ redirect ไป login
+        return;
+      }
+    }
+
+    navigate(path);
+  }, [currentUser, navigate]);
+
   const handleNavClick = useCallback((item) => {
     closeMenu();
+
     if (item.type === 'protected') {
-      if (handleProtectedNav) {
-        handleProtectedNav(item.path);
-      } else {
-        navigate(item.path);
-      }
+      handleProtectedNav(item.path);
     } else {
-      // ใช้ React Router สำหรับการนำทาง
       navigate(item.path);
     }
-  }, [closeMenu, handleProtectedNav, navigate]);
+  }, [closeMenu, navigate, handleProtectedNav]);
 
   return (
     <>
@@ -113,25 +128,18 @@ const ResponsiveNav = ({ currentUser, handleProtectedNav }) => {
           role="menubar"
           aria-hidden={isMobile && !isMenuOpen}
         >
-          {navigationItems
-            .filter(item => {
-              if (item.type === 'protected') {
-                return currentUser?.role === 'admin' || currentUser?.role === 'user';
-              }
-              return true;
-            })
-            .map(item => (
-              <li key={item.path} role="none">
-                <button
-                  className={`nav-fixed-width ${isActiveLink(item.path) ? 'active' : ''}`}
-                  onClick={() => handleNavClick(item)}
-                  role="menuitem"
-                  aria-current={isActiveLink(item.path) ? 'page' : undefined}
-                >
-                  {item.label}
-                </button>
-              </li>
-            ))}
+          {navigationItems.map(item => (
+            <li key={item.path} role="none">
+              <button
+                className={`nav-fixed-width ${isActiveLink(item.path) ? 'active' : ''}`}
+                onClick={() => handleNavClick(item)}
+                role="menuitem"
+                aria-current={isActiveLink(item.path) ? 'page' : undefined}
+              >
+                {item.label}
+              </button>
+            </li>
+          ))}
         </ul>
 
         {/* Overlay for mobile menu */}

@@ -1,10 +1,7 @@
-/* ตั้งค่าพื้นฐาน */
-html,
-body {
-  height: 100%;
+html, body, #root {
+  width: 100%;
   margin: 0;
   padding: 0;
-  /* กำหนด box-sizing ทั่วโลกเพื่อให้ padding และ border ไม่เพิ่มขนาดรวมของ element */
   box-sizing: border-box;
 }
 
