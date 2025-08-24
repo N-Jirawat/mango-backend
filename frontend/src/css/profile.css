@@ -16,13 +16,14 @@
 /* ปุ่มโปรไฟล์ */
 .profile-button {
   display: flex;
-  flex-direction: column;       /* เปลี่ยนจากแนวนอนเป็นแนวตั้ง */
-  align-items: center;          /* จัดให้อยู่กลาง */
+  flex-direction: column;
+  /* แนวตั้ง */
+  align-items: center;
   background-color: transparent;
   border: none;
   cursor: pointer;
   color: #000;
-  font-size: 14px;              /* ปรับขนาดตัวอักษรลงเล็กน้อย */
+  font-size: 14px;
   padding: 5px 10px;
   border-radius: 20px;
   transition: background-color 0.3s ease;
@@ -35,29 +36,33 @@
 .profile-button img {
   width: 30px;
   height: 30px;
-  margin: 0 0 4px 0; /* บน-ขวา-ล่าง-ซ้าย: ให้ชื่ออยู่ห่างจากรูป */
+  margin: 0 0 4px 0;
 }
 
-/* dropdown-menu ที่ถูกแสดงผ่าน Portal */
+/* dropdown-menu */
 .dropdown-menu {
   position: absolute;
   top: 100%;
-  right: 0; /* แทน left: 0 */
+  right: 0;
   background-color: white;
   border: 1px solid #ddd;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
-  padding: 16px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  padding: 16px 20px;
+  /* ✅ padding ซ้ายขวาเพิ่ม */
   width: 300px;
   border-radius: 12px;
   z-index: 1100;
+  box-sizing: border-box;
 }
 
 .dropdown-menu a {
   display: block;
   text-decoration: none;
   color: #333;
-  padding: 8px 0;
+  padding: 8px 10px;
+  /* ✅ กันไม่ให้ตัวอักษรชิดขอบ */
   border-bottom: 1px solid #ddd;
+  border-radius: 6px;
 }
 
 .dropdown-menu a:last-child {
@@ -72,6 +77,9 @@
   margin: 8px 0;
   font-size: 14px;
   color: #444;
+  line-height: 1.5;
+  padding: 0 4px;
+  /* ✅ เพิ่มช่องไฟเล็กน้อย */
 }
 
 .dropdown-menu button {
@@ -79,14 +87,41 @@
   background-color: #e74c3c;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 10px;
   cursor: pointer;
   border-radius: 6px;
   transition: background-color 0.3s ease;
   width: 100%;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .dropdown-menu button:hover {
   background-color: #c0392b;
+}
+
+/* ✅ ปรับ dropdown ให้เหมาะกับมือถือ */
+@media (max-width: 768px) {
+  .dropdown-menu {
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    /* ✅ ยึดชิดขวา */
+    left: auto;
+    /* ✅ กันไม่ให้โดนบังคับชิดซ้าย */
+    width: 260px;
+    /* ✅ dropdown เล็กกะทัดรัด */
+    max-width: 90%;
+    /* ✅ ป้องกันล้นจอ */
+    padding: 30px 20px;
+    /* ✅ ข้างบน/ล่างเยอะ, ซ้าย/ขวา 20px */
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+
+  .dropdown-menu p,
+  .dropdown-menu a {
+    padding-left: 12px;
+    /* เพิ่มอีกนิดให้ mobile ดูสวย */
+    padding-right: 12px;
+  }
 }

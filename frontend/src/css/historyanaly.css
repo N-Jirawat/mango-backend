@@ -25,6 +25,8 @@
   margin-bottom: 25px;
   border: 1px solid #c8e6c9;
   box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1);
+  position: relative;
+  overflow: visible;
 }
 
 .search-container h3 {
@@ -83,9 +85,22 @@
   min-width: 200px;
 }
 
+/* ปุ่มล้างการค้นหา - แก้ไขตำแหน่ง */
+.search-buttons {
+  width: 100%;
+  margin: 20px 0 15px 0;
+  padding: 0 0 10px 0;
+  text-align: center;
+  background-color: transparent;
+  clear: both;
+  display: block;
+  position: relative;
+  float: none;
+}
+
 .clear-search-btn {
-  background: linear-gradient(135deg, #6c757d, #5a6268);
-  color: white;
+  background: linear-gradient(135deg, #81c784, #66bb6a) !important;
+  color: white !important;
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
@@ -93,13 +108,18 @@
   font-size: 14px;
   font-weight: 500;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+  box-shadow: 0 2px 8px rgba(129, 199, 132, 0.3);
+  display: inline-block;
+  margin: 0;
+  min-width: 150px;
+  position: static;
+  float: none;
 }
 
 .clear-search-btn:hover {
-  background: linear-gradient(135deg, #5a6268, #495057);
+  background: linear-gradient(135deg, #66bb6a, #4caf50) !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+  box-shadow: 0 4px 12px rgba(129, 199, 132, 0.4);
 }
 
 /* แสดงผลลัพธ์การค้นหา */
@@ -404,6 +424,11 @@
   margin-bottom: 16px;
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Media Queries สำหรับ Responsive */
 @media (max-width: 768px) {
   .history-container {
@@ -420,6 +445,7 @@
 
   .search-container {
     padding: 20px;
+    position: relative;
   }
 
   .search-container h3 {
@@ -439,6 +465,33 @@
     padding: 10px 14px;
     font-size: 16px;
     /* ป้องกัน zoom ใน iOS */
+  }
+
+  .search-buttons {
+    width: 100%;
+    margin: 15px 0 10px 0;
+    padding: 0 0 8px 0;
+    text-align: center;
+    display: block;
+    clear: both;
+    position: relative;
+    float: none;
+  }
+  
+  .clear-search-btn {
+    padding: 10px 20px;
+    font-size: 8px;
+    display: inline-block;
+    margin: 0;
+    min-width: 150px;
+    position: static;
+    float: none;
+    background: linear-gradient(135deg, #81c784, #66bb6a) !important;
+    color: white !important;
+  }
+
+  .clear-search-btn:hover {
+    background: linear-gradient(135deg, #66bb6a, #4caf50) !important;
   }
 
   .history-item {
@@ -482,7 +535,6 @@
   .history-container {
     margin: 10px 5px;
     padding: 15px;
-
   }
 
   .pagination-btn,
@@ -513,9 +565,22 @@
     font-size: 16px;
   }
 
-  .clear-search-btn {
+  .search-buttons {
     width: 100%;
+    margin: 15px 0;
+    padding: 10px;
+    text-align: center;
+    display: block;
+  }
+  
+  .clear-search-btn {
+    width: 80%;
+    max-width: 250px;
     padding: 12px;
+    display: block;
+    margin: 0 auto;
+    position: static;
+    z-index: auto;
   }
 
   .history-item {
