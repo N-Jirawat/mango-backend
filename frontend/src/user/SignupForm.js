@@ -16,6 +16,10 @@ function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState(null); // เพิ่มการเก็บ role ของผู้ใช้ปัจจุบัน
 
+  // เพิ่ม state สำหรับการแสดง/ซ่อนรหัสผ่าน
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -88,7 +92,16 @@ function SignupForm() {
   }, [userInfo.district]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // ป้องกันช่องว่างในชื่อบัญชี
+    if (name === "username") {
+      // ลบช่องว่างทั้งหมด
+      const noSpaceValue = value.replace(/\s/g, "");
+      setFormData({ ...formData, [name]: noSpaceValue });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleUserInfoChange = (e) => {
@@ -101,11 +114,43 @@ function SignupForm() {
     setUserInfo({ ...userInfo, [e.target.name]: e.target.value });
   };
 
+  // ฟังก์ชันสำหรับ toggle การแสดงรหัสผ่าน
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  
+  const validatePassword = (password) => {
+    // ตรวจสอบความยาวอย่างน้อย 6 หลัก
+    if (password.length < 6) {
+      return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 6 หลัก!" };
+    }
+    
+    // ตรวจสอบตัวอักษรพิเศษ (อย่างน้อย 1 ตัว)
+    const specialCharRegex = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
+    if (!specialCharRegex.test(password)) {
+      return { isValid: false, message: "รหัสผ่านต้องมีตัวอักษรพิเศษอย่างน้อย 1 ตัว! (!@#$%^&*)" };
+    }
+    
+    return { isValid: true, message: "" };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    
+    // ตรวจสอบรหัสผ่าน
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      alert(passwordValidation.message);
+      setLoading(false);
+      return;
+    }
   
     if (formData.password !== formData.confirmPassword) {
       alert("รหัสผ่านไม่ตรงกัน!");
@@ -201,9 +246,103 @@ function SignupForm() {
         <div className="card">
           <h3>{currentUserRole === "admin" ? "เพิ่มสมาชิกใหม่" : "สมัครสมาชิก"}</h3>
           <input type="text" name="username" placeholder="ชื่อบัญชี :" value={formData.username} onChange={handleChange} />
-          <input type="email" name="email" placeholder="อีเมล :" value={formData.email} onChange={handleChange} />
-          <input type="password" name="password" placeholder="รหัสผ่าน :" value={formData.password} onChange={handleChange} />
-          <input type="password" name="confirmPassword" placeholder="ยืนยันรหัสผ่าน" value={formData.confirmPassword} onChange={handleChange} />
+          <p style={{display: 'flex',fontSize: "12px", color: "#666", margin: "5px 0"}}>*ชื่อบัญชีไม่สามารถมีช่องว่างได้</p>
+          <input type="email" name="email" placeholder="อีเมล : เช่น Test000@gmail.com" value={formData.email} onChange={handleChange} />
+          
+          {/* Password field with toggle */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <input 
+              type={showPassword ? "text" : "password"} 
+              name="password" 
+              placeholder="รหัสผ่าน : เช่น #12345" 
+              value={formData.password} 
+              onChange={handleChange}
+              style={{ 
+                width: '100%', 
+                paddingRight: '40px', 
+                boxSizing: 'border-box',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '10px'
+              }}
+            />
+            <button
+              type="button"
+              onClick={togglePasswordVisibility}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-90%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0',
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '24px',
+                height: '24px'
+              }}
+            >
+              <img 
+                src={showPassword ? "/img/hide.png" : "/img/view.png"} 
+                alt={showPassword ? "hide" : "view"}
+                style={{ width: '20px', height: '20px' }}
+              />
+            </button>
+          </div>
+          
+          <p style={{ display: 'flex',fontSize: "12px", color: "#666", margin: "5px 0"}}>
+            *รหัสผ่านอย่างน้อย 6 หลัก และต้องมีตัวอักษรพิเศษ 1 ตัว (!@#$%^&*)
+          </p>
+          
+          {/* Confirm Password field with toggle */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <input 
+              type={showConfirmPassword ? "text" : "password"} 
+              name="confirmPassword" 
+              placeholder="ยืนยันรหัสผ่าน" 
+              value={formData.confirmPassword} 
+              onChange={handleChange}
+              style={{ 
+                width: '100%', 
+                paddingRight: '40px', 
+                boxSizing: 'border-box',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '10px'
+              }}
+            />
+            <button
+              type="button"
+              onClick={toggleConfirmPasswordVisibility}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-90%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0',
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '24px',
+                height: '24px'
+              }}
+            >
+              <img 
+                src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"} 
+                alt={showConfirmPassword ? "hide" : "view"}
+                style={{ width: '20px', height: '20px' }}
+              />
+            </button>
+          </div>
+          
           <button onClick={() => setStep(2)} disabled={loading}>ต่อไป ➡️</button>
         </div>
       )}
@@ -211,9 +350,9 @@ function SignupForm() {
       {step === 2 && (
         <div className="card">
           <h3>ข้อมูลเพิ่มเติม</h3>
-          <input type="text" name="fullName" placeholder="ชื่อผู้ใช้ :" value={userInfo.fullName} onChange={handleUserInfoChange} />
-          <input type="text" name="address" placeholder="ที่อยู่ :" value={userInfo.address} onChange={handleUserInfoChange} />
-          <input type="text" name="village" placeholder="หมู่บ้าน :" value={userInfo.village} onChange={handleUserInfoChange} />
+          <input type="text" name="fullName" placeholder="ชื่อผู้ใช้ : ชื่อ-นามสกุล" value={userInfo.fullName} onChange={handleUserInfoChange} />
+          <input type="text" name="address" placeholder="ที่อยู่ : เช่น 55/5 หรือ บ้านเลขที่ 55 หมู่ 5" value={userInfo.address} onChange={handleUserInfoChange} />
+          <input type="text" name="village" placeholder="ชื่อหมู่บ้าน : เช่น กำเนิดเพขร" value={userInfo.village} onChange={handleUserInfoChange} />
           <div className="location-container">
             <select name="province" value={userInfo.province} onChange={handleUserInfoChange}>
               <option value="">เลือกจังหวัด</option>

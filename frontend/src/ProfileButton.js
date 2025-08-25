@@ -132,7 +132,7 @@ function ProfileButton({ user, onUserUpdate }) {
 
       {showDropdown && (
         <div className="dropdown-menu" ref={dropdownRef}>
-          <Link to={`/userdetails/${currentUser.uid}`} onClick={() => setShowDropdown(false)}>
+          <Link to={`/userdetails/${currentUser.uid}`} style={{backgroundColor: '#eeeeee'}} onClick={() => setShowDropdown(false)}>
             <span>แก้ไขรายละเอียด</span>
           </Link>
 

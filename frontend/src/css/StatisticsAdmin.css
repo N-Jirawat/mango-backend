@@ -42,6 +42,11 @@
   margin-bottom: 16px;
 }
 
+.header-actions {
+  display: inline-flex;
+  justify-content: center;
+}
+
 .download-pdf-btn {
   max-width: 200px;
 }

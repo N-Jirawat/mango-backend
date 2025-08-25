@@ -95,6 +95,16 @@
   transform: translateY(0);
 }
 
+/* ปุ่มเขียว */
+.nav-button.green {
+  background: #4CAF50;
+}
+
+.nav-button.green:hover {
+  background: #388E3C;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
 .date-filters {
   display: flex;
   gap: 20px;

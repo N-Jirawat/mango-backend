@@ -242,7 +242,7 @@ function ReportUser() {
         <button className="nav-button" onClick={() => navigate("/history")}>
           📋 ดูประวัติการวิเคราะห์
         </button>
-        <button className="nav-button" onClick={() => navigate("/")}>
+        <button className="nav-button green" onClick={() => navigate("/")}>
           🏠 กลับหน้าหลัก
         </button>
       </div>

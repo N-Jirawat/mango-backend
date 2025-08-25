@@ -165,6 +165,8 @@ function AccountManagement() {
     try {
       await deleteDoc(doc(db, "users", userId));
       setUsersList((prev) => prev.filter((user) => user.id !== userId));
+      // ✅ เพิ่มบรรทัดนี้ - ปิด dropdown หลังจากลบเสร็จ
+      setDropdownOpenId(null);
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการลบผู้ใช้:", error);
       alert("ไม่สามารถลบผู้ใช้ได้");
@@ -183,6 +185,8 @@ function AccountManagement() {
     setEditUser(user);
     setFormData({ ...user });
     setPhoneError("");
+
+    setDropdownOpenId(null);
 
     const province = provinces.find((p) => p.name_th === user.province);
     if (province) {
@@ -412,6 +416,14 @@ function AccountManagement() {
                         >
                           <div className="user-details">
                             <div className="user-detail-row">
+                              <span className="detail-label">บัญชี :</span>
+                              <span className="detail-value">{user.username || '-'}</span>
+                            </div>
+                            <div className="user-detail-row">
+                              <span className="detail-label">ชื่อ-นามสกุล :</span>
+                              <span className="detail-value">{user.fullName || '-'}</span>
+                            </div>
+                            <div className="user-detail-row">
                               <span className="detail-label">อีเมล :</span>
                               <span className="detail-value">{user.email || '-'}</span>
                             </div>
@@ -563,8 +575,18 @@ function AccountManagement() {
 
             <div className="modal-body">
               <div className="form-group-edit">
+                <label>ชื่อบัญชี:</label>
+                <input type="text" name="username" value={formData.username || ""} onChange={handleChange} required className="form-input-edit" disabled />
+              </div>
+
+              <div className="form-group-edit">
                 <label>ชื่อ-นามสกุล:</label>
                 <input type="text" name="fullName" value={formData.fullName || ""} onChange={handleChange} required className="form-input-edit" />
+              </div>
+
+              <div className="form-group-edit">
+                <label>อีเมล:</label>
+                <input type="text" name="email" value={formData.email || ""} onChange={handleChange} required className="form-input-edit" />
               </div>
 
               <div className="form-group-edit">

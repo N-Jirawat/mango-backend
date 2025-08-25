@@ -864,14 +864,16 @@ function StatisticsAdmin() {
     }));
   }, [diseaseStats]);
 
-  const colors = [
-    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
-    "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9"
-  ];
+  const colors = useMemo(
+    () => ["#2196F3", "#FF9800", "#9c27b0", "#4CAF50"],
+    []
+  );
 
-  const getColorFromIndex = (index) => {
+  const getColorForDisease = useCallback((diseaseName) => {
+    const diseaseNames = Object.keys(diseaseStats).sort();
+    const index = diseaseNames.indexOf(diseaseName);
     return colors[index % colors.length];
-  };
+  }, [diseaseStats, colors]);
 
   if (loading) {
     return (
@@ -886,18 +888,6 @@ function StatisticsAdmin() {
     <div className="statistics-admin-container">
       <div className="header-section">
         <h2>สถิติการวิเคราะห์โรคใบมะม่วง</h2>
-
-        {/* เพิ่มปุ่ม Download PDF */}
-        <div className="header-actions">
-          <button
-            onClick={handleDownloadPDF}
-            className="download-pdf-btn"
-            disabled={Object.keys(diseaseStats).length === 0}
-            title={Object.keys(diseaseStats).length === 0 ? "ไม่มีข้อมูลสำหรับสร้าง PDF" : "ดาวน์โหลดรายงาน PDF"}
-          >
-            📄 ดาวน์โหลดรายงาน PDF
-          </button>
-        </div>
       </div>
 
       {/* Enhanced Filter Section */}
@@ -1072,7 +1062,7 @@ function StatisticsAdmin() {
                             <div className="disease-label">
                               <div
                                 className="disease-color"
-                                style={{ backgroundColor: getColorFromIndex(index) }}
+                                style={{ backgroundColor: getColorForDisease(disease) }}
                               ></div>
                               <span className="disease-name">{disease}</span>
                             </div>
@@ -1086,7 +1076,7 @@ function StatisticsAdmin() {
                               className="disease-fill"
                               style={{
                                 width: `${percentage}%`,
-                                backgroundColor: getColorFromIndex(index)
+                                backgroundColor: getColorForDisease(disease)
                               }}
                             ></div>
                           </div>
@@ -1115,7 +1105,7 @@ function StatisticsAdmin() {
                       label={({ name, percentage }) => `${percentage}%`}
                     >
                       {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={getColorFromIndex(index)} />
+                        <Cell key={`cell-${index}`} fill={getColorForDisease(entry.name)} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
@@ -1151,17 +1141,17 @@ function StatisticsAdmin() {
                       key={disease}
                       type="monotoneX"
                       dataKey={disease}
-                      stroke={getColorFromIndex(idx)}
+                      stroke={getColorForDisease(disease)}
                       strokeWidth={4}
                       dot={{
-                        fill: getColorFromIndex(idx),
+                        fill: getColorForDisease(disease),
                         strokeWidth: 3,
                         r: 8,
                         stroke: '#fff'
                       }}
                       activeDot={{
                         r: 10,
-                        stroke: getColorFromIndex(idx),
+                        stroke: getColorForDisease(disease),
                         strokeWidth: 3,
                         fill: '#fff'
                       }}
@@ -1183,7 +1173,7 @@ function StatisticsAdmin() {
                           width: '20px',
                           height: '20px',
                           borderRadius: '50%',
-                          backgroundColor: getColorFromIndex(idx),
+                          backgroundColor: getColorForDisease(disease),
                           border: '3px solid #fff',
                           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}
@@ -1221,7 +1211,8 @@ function StatisticsAdmin() {
                       key={disease}
                       dataKey={disease}
                       stackId="a"
-                      fill={getColorFromIndex(idx)}
+                      // ใช้ชื่อโรคเป็นตัวกำหนด (คงที่)
+                      fill={getColorForDisease(disease)}
                     />
                   ))}
                 </BarChart>
@@ -1234,7 +1225,7 @@ function StatisticsAdmin() {
                     <div key={disease} className="legend-item">
                       <div
                         className="legend-color"
-                        style={{ backgroundColor: getColorFromIndex(idx) }}
+                        style={{ backgroundColor: getColorForDisease(disease) }}
                       ></div>
                       <span className="legend-text">{disease}</span>
                     </div>
@@ -1244,6 +1235,17 @@ function StatisticsAdmin() {
             </div>
           </div>
         )}
+        {/* เพิ่มปุ่ม Download PDF */}
+        <div className="header-actions">
+          <button
+            onClick={handleDownloadPDF}
+            className="download-pdf-btn"
+            disabled={Object.keys(diseaseStats).length === 0}
+            title={Object.keys(diseaseStats).length === 0 ? "ไม่มีข้อมูลสำหรับสร้าง PDF" : "ดาวน์โหลดรายงาน PDF"}
+          >
+            📄 ดาวน์โหลดรายงาน PDF
+          </button>
+        </div>
       </div>
 
       {!Object.keys(diseaseStats).length && (

@@ -189,7 +189,7 @@ function UserDetails() {
         <button onClick={handleBack}>
           กลับ
         </button>
-        <button onClick={openEditModal}>
+        <button onClick={openEditModal} style={{backgroundColor: '#757575'}}>
           แก้ไขข้อมูล
         </button>
       </div>

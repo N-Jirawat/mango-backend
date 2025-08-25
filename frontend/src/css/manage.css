@@ -340,6 +340,12 @@ td:last-child {
   border-color: #ff4444;
 }
 
+.form-input-edit:disabled {
+  background-color: #e0e0e0; /* สีเทาอ่อน */
+  color: #6c757d; /* ตัวหนังสือเทา */
+  cursor: not-allowed;
+}
+
 .form-textarea-edit {
   resize: vertical;
   min-height: 60px;

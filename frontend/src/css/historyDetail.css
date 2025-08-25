@@ -3,30 +3,31 @@
   width: 95%;
   margin: 20px auto;
   padding: 30px;
-  background-color: 
-#ffffff;
+  background-color:
+    #ffffff;
   border-radius: 20px;
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
   font-family: 'Segoe UI', sans-serif;
 }
 
 .back-button {
-  padding: 8px 16px;
+  padding: 10px 18px;
   font-size: 14px;
-  background-color: 
-#4caf50;
+  background: linear-gradient(135deg, #4caf50, #43a047);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
+  font-weight: 500;
+  box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
 }
 
 .back-button:hover {
-  background-color: 
-#388e3c;
+  background-color:
+    #388e3c;
   transform: scale(1.05);
 }
 
@@ -44,15 +45,15 @@
 
 .analyDetail-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-bottom: 20px;
 }
 
 .details-container h2 {
   text-align: center;
-  color: 
-#2e7d32;
+  color:
+    #2e7d32;
   margin-bottom: 25px;
 }
 
@@ -72,16 +73,16 @@
 }
 
 .details-item strong {
-  color: 
-#1b5e20;
+  color:
+    #1b5e20;
   display: inline-block;
   width: 130px;
 }
 
 .download-pdf-btn {
-  background: linear-gradient(135deg, 
-#667eea 0%, 
-#764ba2 100%);
+  background: linear-gradient(135deg,
+      #667eea 0%,
+      #764ba2 100%);
   color: white;
   border: none;
   padding: 12px 20px;
@@ -96,9 +97,9 @@
 .download-pdf-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-  background: linear-gradient(135deg, 
-#764ba2 0%, 
-#667eea 100%);
+  background: linear-gradient(135deg,
+      #764ba2 0%,
+      #667eea 100%);
 }
 
 .download-pdf-btn:active {
@@ -110,14 +111,13 @@
   justify-content: center;
   margin-top: 30px;
   padding-top: 20px;
-  border-top: 1px solid 
-#e0e0e0;
+  border-top: 1px solid #e0e0e0;
 }
 
 .delete-btn {
-  background: linear-gradient(135deg, 
-#ff6b6b 0%, 
-#ee5a52 100%);
+  background: linear-gradient(135deg,
+      #ff6b6b 0%,
+      #ee5a52 100%);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -132,9 +132,9 @@
 .delete-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
-  background: linear-gradient(135deg, 
-#ee5a52 0%, 
-#ff6b6b 100%);
+  background: linear-gradient(135deg,
+      #ee5a52 0%,
+      #ff6b6b 100%);
 }
 
 .delete-btn:active {
@@ -154,7 +154,8 @@
   }
 
   .analyDetail-header {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: flex-start;
     gap: 10px;
   }
 
@@ -166,6 +167,7 @@
 
 /* สำหรับการพิมพ์ PDF - ซ่อนปุ่มเมื่อสร้าง PDF */
 @media print {
+
   .analyDetail-header button,
   .action-buttons,
   .delete-btn,
