@@ -306,19 +306,6 @@ function StatisticsAdmin() {
     setZoomLevel(100); // รีเซ็ต zoom เมื่อปิด fullscreen
   };
 
-  // ฟังก์ชันควบคุม zoom
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 25, 300)); // สูงสุด 300%
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 25, 50)); // ต่ำสุด 50%
-  };
-
-  const resetZoom = () => {
-    setZoomLevel(100);
-  };
-
   // ฟังก์ชันสร้างกราฟ PDF ที่ใช้สีเดียวกัน
   const generateChartImage = (chartType, data, options = {}) => {
     return new Promise((resolve) => {
