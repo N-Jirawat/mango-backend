@@ -561,13 +561,19 @@ function StatisticsAdmin() {
     });
   };
 
-  // เพิ่มฟังก์ชัน drawLineChart
+  // แก้ไขฟังก์ชัน drawLineChart
+  // แก้ไขฟังก์ชัน drawLineChart ให้เหมือนกับที่แสดงในหน้าจอ
   const drawLineChart = (ctx, data, width, height, options) => {
     const margin = { top: 60, right: 100, bottom: 80, left: 80 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
     if (data.length === 0) return;
+
+    // เคลียร์พื้นหลัง
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
 
     // เรียงลำดับโรคให้สอดคล้องกัน
     const sortedDiseases = Object.keys(diseaseStats).sort();
@@ -577,7 +583,7 @@ function StatisticsAdmin() {
 
     const maxValue = Math.max(...data.map(item =>
       diseases.reduce((max, disease) => Math.max(max, item[disease] || 0), 0)
-    ));
+    )) || 1; // ป้องกันการหารด้วย 0
 
     // วาดกริด Y
     ctx.strokeStyle = '#e0e0e0';
@@ -599,46 +605,62 @@ function StatisticsAdmin() {
       ctx.fillText(Math.round(value).toString(), margin.left - 10, y);
     }
 
-    // วาดเส้นกราฟสำหรับแต่ละโรค
+    // วาดเส้นกราฟสำหรับแต่ละโรค - แบบเหมือนใน Recharts
     diseases.forEach((disease, diseaseIndex) => {
       const colorIndex = sortedDiseases.indexOf(disease);
       const color = chartColors[colorIndex % chartColors.length];
 
-      ctx.strokeStyle = color;
-      ctx.fillStyle = color;
-      ctx.lineWidth = 3;
-
-      let firstPoint = true;
-      ctx.beginPath();
-
+      // รวบรวมจุดที่มีค่า > 0 เท่านั้น
+      const validPoints = [];
       data.forEach((item, dataIndex) => {
         const value = item[disease] || 0;
         if (value > 0) {
-          const x = margin.left + (dataIndex / (data.length - 1)) * chartWidth;
+          const x = margin.left + (data.length > 1 ? (dataIndex / (data.length - 1)) : 0.5) * chartWidth;
           const y = margin.top + chartHeight - (value / maxValue) * chartHeight;
-
-          if (firstPoint) {
-            ctx.moveTo(x, y);
-            firstPoint = false;
-          } else {
-            ctx.lineTo(x, y);
-          }
-
-          // วาดจุด
-          ctx.beginPath();
-          ctx.arc(x, y, 4, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 3;
+          validPoints.push({ x, y, value, dataIndex });
         }
       });
 
-      if (!firstPoint) {
+      // วาดเส้นเชื่อมเฉพาะจุดที่มีค่า
+      if (validPoints.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4; // เส้นหนาขึ้นเหมือน Recharts
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        // เริ่มต้นที่จุดแรกที่มีค่า
+        ctx.moveTo(validPoints[0].x, validPoints[0].y);
+
+        // ต่อเส้นไปยังจุดที่มีค่าถัดไป (ข้ามจุดที่เป็น 0)
+        for (let i = 1; i < validPoints.length; i++) {
+          ctx.lineTo(validPoints[i].x, validPoints[i].y);
+        }
+
         ctx.stroke();
       }
+
+      // วาดจุดทั้งหมดที่มีค่า > 0
+      validPoints.forEach(point => {
+        // วาดจุดใหญ่ (เหมือน activeDot ใน Recharts)
+        ctx.beginPath();
+        ctx.fillStyle = '#ffffff';
+        ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // วาดขอบจุด
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // วาดจุดตรงกลาง
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      });
     });
 
     // ป้ายแกน X
@@ -648,8 +670,8 @@ function StatisticsAdmin() {
     ctx.textBaseline = 'top';
 
     data.forEach((item, index) => {
-      const x = margin.left + (index / (data.length - 1)) * chartWidth;
-      const label = item.month;
+      const x = margin.left + (data.length > 1 ? (index / (data.length - 1)) : 0.5) * chartWidth;
+      const label = item.month || 'N/A';
 
       // แบ่งป้ายเป็นหลายบรรทัดถ้าจำเป็น
       const words = label.split(' ');
@@ -674,7 +696,7 @@ function StatisticsAdmin() {
     ctx.textBaseline = 'top';
     ctx.fillText(options.title || 'แนวโน้มการวิเคราะห์รายเดือน', width / 2, 20);
 
-    // Legend
+    // Legend - ปรับปรุงให้เหมือนกับหน้าจอ
     const legendX = width - 180;
     const legendY = margin.top;
 
@@ -688,22 +710,30 @@ function StatisticsAdmin() {
       const colorIndex = sortedDiseases.indexOf(disease);
       const color = chartColors[colorIndex % chartColors.length];
 
-      // วาดเส้นตัวอย่าง
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
+      // วาดเส้นตัวอย่าง (หนาขึ้น)
       ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
       ctx.moveTo(legendX, y - 2);
       ctx.lineTo(legendX + 20, y - 2);
       ctx.stroke();
 
-      // วาดจุด
-      ctx.fillStyle = color;
+      // วาดจุดตัวอย่าง (เหมือนในกราฟ)
       ctx.beginPath();
+      ctx.fillStyle = '#ffffff';
+      ctx.arc(legendX + 10, y - 2, 6, 0, 2 * Math.PI);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.arc(legendX + 10, y - 2, 6, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.fillStyle = color;
       ctx.arc(legendX + 10, y - 2, 3, 0, 2 * Math.PI);
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
-      ctx.stroke();
 
       // ป้ายชื่อโรค
       ctx.fillStyle = '#000000';
