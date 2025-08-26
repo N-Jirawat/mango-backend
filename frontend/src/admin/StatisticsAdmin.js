@@ -2,13 +2,14 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import "../css/StatisticsAdmin.css";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
   PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer
 } from "recharts";
 
 // เพิ่ม pdfMake imports
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "../PDF/vfs_fonts"; // ไฟล์ฟอนต์ Sarabun ต้องมีในโฟลเดอร์นี้
+import { saveStatisticsToFirestore } from './FirebaseStateLogger';
 
 // กำหนดฟอนต์ให้ pdfMake
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
@@ -125,10 +126,6 @@ function StatisticsAdmin() {
 
   // กรองข้อมูล predictions ด้วย useMemo
   const filteredPredictions = useMemo(() => {
-    console.log("=== Filtering Data ===");
-    console.log("All predictions:", allPredictions.length);
-    console.log("Filters:", { startDate, endDate, selectedProvince, selectedDistrict });
-
     const filtered = allPredictions.filter(prediction => {
       if (prediction.timestamp && prediction.timestamp instanceof Date) {
         const predictionDate = prediction.timestamp;
@@ -169,7 +166,6 @@ function StatisticsAdmin() {
       return true;
     });
 
-    console.log("Filtered predictions:", filtered.length);
     return filtered;
   }, [allPredictions, startDate, endDate, selectedProvince, selectedDistrict, usersMap]);
 
@@ -180,8 +176,6 @@ function StatisticsAdmin() {
       setLoading(true);
 
       try {
-        console.log("เริ่มดึงข้อมูล...");
-
         const usersSnapshot = await getDocs(collection(db, "users"));
         const usersMapTemp = {};
 
@@ -197,13 +191,11 @@ function StatisticsAdmin() {
           };
         });
 
-        console.log("ดึงข้อมูล users แล้ว:", Object.keys(usersMapTemp).length, "คน");
         setUsersMap(usersMapTemp);
 
         const predictionSnapshot = await getDocs(collection(db, "prediction_results"));
 
         if (predictionSnapshot.empty) {
-          console.log("ไม่มีข้อมูลใน prediction_results");
           setAllPredictions([]);
           setLoading(false);
           return;
@@ -240,16 +232,10 @@ function StatisticsAdmin() {
 
           if (createdAt && createdAt instanceof Date && !isNaN(createdAt.getTime())) {
             predictionsData.push(predictionItem);
-            console.log("✅ Added prediction:", doc.id, "Date:", createdAt.toISOString().split('T')[0]);
-          } else {
-            console.warn("❌ Skipping prediction with invalid timestamp:", doc.id);
           }
         });
 
-        console.log("ดึงข้อมูล predictions แล้ว:", predictionsData.length, "รายการ");
         setAllPredictions(predictionsData);
-
-        console.log("กำลังประมวลผลสถิติ...");
         processStatistics(predictionsData, usersMapTemp);
 
       } catch (error) {
@@ -265,7 +251,6 @@ function StatisticsAdmin() {
   // useEffect สำหรับประมวลผลใหม่เมื่อกรองข้อมูล
   useEffect(() => {
     if (filteredPredictions.length >= 0 && Object.keys(usersMap).length > 0) {
-      console.log("ประมวลผลใหม่เมื่อกรองข้อมูล:", filteredPredictions.length, "รายการ");
       processStatistics(filteredPredictions, usersMap);
     }
   }, [filteredPredictions, usersMap, processStatistics]);
@@ -274,11 +259,9 @@ function StatisticsAdmin() {
   const updateFilter = (key, value) => {
     setFilters(prev => {
       const newFilters = { ...prev, [key]: value };
-
       if (key === 'selectedProvince') {
         newFilters.selectedDistrict = '';
       }
-
       return newFilters;
     });
   };
@@ -746,7 +729,16 @@ function StatisticsAdmin() {
     try {
       const currentDate = new Date().toLocaleDateString("th-TH");
 
-      console.log("กำลังสร้างกราฟ...");
+      // บันทึกสถิติลง Firebase ก่อนสร้าง PDF
+      let saveResult = null;
+      try {
+        saveResult = await saveStatisticsToFirestore(diseaseStats, filteredPredictions, filters);
+        console.log("บันทึกสถิติลง Firebase สำเร็จ:", saveResult);
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดในการบันทึกสถิติ:", error);
+        // แสดงข้อความแจ้งเตือนแต่ยังคงสร้าง PDF ต่อไป
+        alert("เกิดข้อผิดพลาดในการบันทึกสถิติลงฐานข้อมูล แต่จะสร้าง PDF ให้ต่อไป");
+      }
 
       let pieChartImage = null;
       let barChartImage = null;
@@ -856,6 +848,16 @@ function StatisticsAdmin() {
           { text: 'รายงานสถิติการวิเคราะห์โรคใบมะม่วง', style: 'header' },
           { text: `วันที่สร้างรายงาน: ${currentDate}`, style: 'subheader' },
 
+          // เพิ่มข้อมูล Reference ID จากการบันทึก Firebase (ถ้ามี)
+          ...(saveResult ? [
+            {
+              text: `รหัสอ้างอิง: ${saveResult.statisticAnalyId}`,
+              style: 'subheader',
+              fontSize: 10,
+              color: '#666'
+            }
+          ] : []),
+
           ...(hasActiveFilters ? [
             { text: 'เงื่อนไขการกรองข้อมูล:', style: 'sectionHeader' },
             {
@@ -876,8 +878,22 @@ function StatisticsAdmin() {
               { text: `พื้นที่ที่มีการวิเคราะห์: ${Object.keys(districtDiseaseMap).length} อำเภอ`, width: '*' },
               { text: `ช่วงเวลา: ${timelineData.length} เดือน`, width: '*' }
             ],
-            margin: [0, 0, 0, 20]
+            margin: [0, 0, 0, 15]
           },
+
+          // เพิ่มข้อมูลโรคที่พบบ่อยที่สุด (ถ้ามี)
+          ...(saveResult && saveResult.mostCommonDisease ? [
+            {
+              columns: [
+                {
+                  text: `โรคที่พบบ่อยที่สุด: ${saveResult.mostCommonDisease.name} (${saveResult.mostCommonDisease.count} ครั้ง)`,
+                  width: '*',
+                  style: { color: '#2E7D32', fontSize: 12, bold: true }
+                }
+              ],
+              margin: [0, 0, 0, 20]
+            }
+          ] : []),
 
           ...(pieChartImage ? [
             { text: 'สัดส่วนโรคที่พบ (กราฟวงกลม):', style: 'sectionHeader' },
@@ -1006,13 +1022,23 @@ function StatisticsAdmin() {
         if (startDate) fileName += `_${startDate}`;
         if (endDate) fileName += `_${endDate}`;
       }
+
+      // เพิ่ม Reference ID ในชื่อไฟล์ (ถ้ามี)
+      if (saveResult) {
+        fileName += `_${saveResult.statisticAnalyId.substring(0, 8)}`;
+      }
+
       fileName += '.pdf';
 
-      console.log("กำลังสร้าง PDF...");
       pdfMake.createPdf(docDefinition).download(fileName);
 
+      // แสดงข้อความสำเร็จ
+      if (saveResult) {
+        alert(`สร้างรายงาน PDF และบันทึกสถิติสำเร็จ!\nรหัสอ้างอิง: ${saveResult.statisticAnalyId}`);
+      }
+
     } catch (error) {
-      console.error("เกิดข้อผิดพลาดในการสร้าง PDF:", error);
+      console.error("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF:", error);
       alert("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF");
     }
   };
@@ -1038,10 +1064,14 @@ function StatisticsAdmin() {
     }));
   }, [diseaseStats]);
 
-  // ส่วนของ FullscreenChart Component ที่แก้ไขแล้ว พร้อมฟีเจอร์ zoom
+  // Fullscreen
+  // แทนที่ FullscreenChart Component ด้วยเวอร์ชันที่มี debug
   const FullscreenChart = ({ type, onClose }) => {
+    // Remove debug useEffect
     const chartDataToShow = useMemo(() => {
-      if (type === 'line') return timelineData;
+      if (type === 'line') {
+        return timelineData;
+      }
       if (type === 'bar') return chartData;
       if (type === 'pie') return pieData;
       return [];
@@ -1051,8 +1081,6 @@ function StatisticsAdmin() {
       return Object.keys(diseaseStats).sort();
     }, []);
 
-    // คำนวณขนาดกราฟตาม zoom level
-    // คำนวณขนาดกราฟตาม zoom level โดยไม่ใช้ useMemo
     const baseWidth = type === 'bar'
       ? Math.max(1000, chartDataToShow.length * 150)
       : Math.max(1000, chartDataToShow.length * 80);
@@ -1070,9 +1098,32 @@ function StatisticsAdmin() {
       setZoomLevel(prev => Math.max(prev - 25, 50));
     }, []);
 
+    // เพิ่ม inline styles เพื่อ override ปัญหาสีดำ
+    const containerStyle = {
+      backgroundColor: '#ffffff',
+      background: '#ffffff'
+    };
+
+    const chartWrapperStyle = {
+      backgroundColor: '#ffffff',
+      background: '#ffffff',
+      ...chartSize
+    };
+
     return (
-      <div className="fullscreen-overlay" onClick={onClose}>
-        <div className="fullscreen-container" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="fullscreen-overlay"
+        onClick={onClose}
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.6)', // ลดความเข้ม
+          background: 'rgba(0, 0, 0, 0.6)'
+        }}
+      >
+        <div
+          className="fullscreen-container"
+          onClick={(e) => e.stopPropagation()}
+          style={containerStyle}
+        >
           <div className="fullscreen-header">
             <h2>
               {type === 'line' && 'แนวโน้มการวิเคราะห์รายเดือน'}
@@ -1080,7 +1131,6 @@ function StatisticsAdmin() {
               {type === 'pie' && 'สัดส่วนโรคที่พบ'}
             </h2>
 
-            {/* Zoom Controls */}
             <div className="zoom-controls">
               <button
                 className="zoom-btn zoom-out"
@@ -1090,6 +1140,7 @@ function StatisticsAdmin() {
               >
                 -
               </button>
+              <span className="zoom-level">{zoomLevel}%</span>
               <button
                 className="zoom-btn zoom-in"
                 onClick={handleZoomIn}
@@ -1102,27 +1153,53 @@ function StatisticsAdmin() {
 
             <button className="close-btn" onClick={onClose}>✕</button>
           </div>
-          <div className="fullscreen-chart">
+
+          <div className="fullscreen-chart" style={{ backgroundColor: '#ffffff' }}>
+
+
             {(type === 'bar' || type === 'line') ? (
-              <div className="fullscreen-scrollable-chart">
+              <div className="fullscreen-scrollable-chart" style={{ backgroundColor: '#ffffff' }}>
                 <div
                   className="fullscreen-chart-wrapper"
-                  style={chartSize}
+                  style={chartWrapperStyle}
                 >
-                  <ResponsiveContainer width="100%" height="100%">
+                  {/* White background div to ensure no dark areas */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: '#ffffff',
+                    zIndex: -1
+                  }} />
+
+                  <ResponsiveContainer
+                    width="100%"
+                    height={400}
+                    style={{ backgroundColor: 'transparent' }}
+                  >
                     {type === 'bar' && (
-                      <BarChart data={chartDataToShow} margin={{ top: 20, right: 30, bottom: 80, left: 40 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
+                      <BarChart
+                        data={chartDataToShow}
+                        margin={{ top: 20, right: 30, bottom: 80, left: 40 }}
+                        style={{ backgroundColor: 'transparent' }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                         <XAxis
                           dataKey="locationLabel"
                           angle={-45}
                           textAnchor="end"
                           height={120}
-                          tick={{ fontSize: Math.max(10, 14 * zoomLevel / 100) }}
+                          tick={{ fontSize: Math.max(10, 14 * zoomLevel / 100), fill: '#333333' }}
                           interval={0}
                         />
-                        <YAxis tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100) }} />
-                        <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
+                        <YAxis tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100), fill: '#333333' }} />
+                        <Tooltip
+                          formatter={(value, name) => [`${value} ครั้ง`, name]}
+                          contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #ccc' }}
+                        />
+                        <Legend wrapperStyle={{ color: '#333333' }} />
                         {diseaseNames.map((disease, idx) => (
                           <Bar
                             key={disease}
@@ -1134,29 +1211,46 @@ function StatisticsAdmin() {
                       </BarChart>
                     )}
                     {type === 'line' && (
-                      <LineChart data={chartDataToShow} margin={{ top: 40, right: 50, left: 40, bottom: 80 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
+                      <LineChart
+                        data={chartDataToShow}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                        style={{ backgroundColor: 'transparent' }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                         <XAxis
                           dataKey="month"
-                          angle={-30}
+                          angle={-45}
                           textAnchor="end"
-                          height={70}
-                          tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100) }}
-                          interval={0}
+                          height={80}
+                          tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100), fill: '#333333' }}
                         />
-                        <YAxis
-                          tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100) }}
-                          domain={[0, 'dataMax + 2']}
+                        <YAxis tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100), fill: '#333333' }} />
+                        <Tooltip
+                          formatter={(value, name) => [`${value} ครั้ง`, name]}
+                          contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #ccc' }}
                         />
-                        <Tooltip formatter={(value) => [`${value} ครั้ง`]} />
-                        {diseaseNames.map((disease, idx) => (
+                        <Legend wrapperStyle={{ color: '#333333' }} />
+
+                        {diseaseNames.map((disease, index) => (
                           <Line
                             key={disease}
-                            type="monotone"
+                            type="monotoneX"
                             dataKey={disease}
-                            stroke={chartColors[idx % chartColors.length]}
-                            strokeWidth={Math.max(2, 3 * zoomLevel / 100)}
-                            dot={{ r: Math.max(3, 6 * zoomLevel / 100) }}
+                            stroke={chartColors[index % chartColors.length]}
+                            strokeWidth={4}
+                            dot={{
+                              fill: chartColors[index % chartColors.length],
+                              strokeWidth: 3,
+                              r: 6,
+                              stroke: '#fff'
+                            }}
+                            activeDot={{
+                              r: 8,
+                              stroke: chartColors[index % chartColors.length],
+                              strokeWidth: 3,
+                              fill: '#fff'
+                            }}
+                            connectNulls={false}
                           />
                         ))}
                       </LineChart>
@@ -1168,10 +1262,12 @@ function StatisticsAdmin() {
               <div style={{
                 transform: `scale(${zoomLevel / 100})`,
                 transformOrigin: 'center center',
-                transition: 'transform 0.3s ease'
+                transition: 'transform 0.3s ease',
+                backgroundColor: '#ffffff',
+
               }}>
                 <ResponsiveContainer width="100%" height={450}>
-                  <PieChart>
+                  <PieChart style={{ backgroundColor: 'transparent' }}>
                     <Pie
                       data={chartDataToShow}
                       cx="50%"
@@ -1182,14 +1278,19 @@ function StatisticsAdmin() {
                       labelLine={false}
                     >
                       {chartDataToShow.map((entry, index) => {
-                        const diseaseNames = Object.keys(diseaseStats).sort();
                         const colorIndex = diseaseNames.indexOf(entry.name);
                         return (
-                          <Cell key={`cell-${index}`} fill={chartColors[colorIndex % chartColors.length]} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={chartColors[colorIndex % chartColors.length]}
+                          />
                         );
                       })}
                     </Pie>
-                    <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
+                    <Tooltip
+                      formatter={(value, name) => [`${value} ครั้ง`, name]}
+                      contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #ccc' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

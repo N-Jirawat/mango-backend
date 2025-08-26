@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getDoc, doc, updateDoc } from "firebase/firestore";
+import {
+  getDocs,
+  collection,
+  query,
+  where,
+  addDoc,     // สำหรับเพิ่มเอกสาร
+  updateDoc,  // สำหรับอัปเดตเอกสาร
+  doc,        // สำหรับอ้างอิงเอกสาร
+  getDoc      // สำหรับดึงเอกสาร
+} from "firebase/firestore";
+
 import { db } from "../firebaseConfig";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import "../css/UserDetails.css";
@@ -20,6 +30,53 @@ function UserDetails() {
   const [provinces] = useState([]);
   const [districtList] = useState([]);
   const [subdistrictList] = useState([]);
+
+  const fetchUserReports = async (uid) => {
+    try {
+      const q = query(collection(db, "prediction_results"), where("userId", "==", uid));
+      const snapshot = await getDocs(q);
+
+      return snapshot.docs.map(doc => ({
+        AnalysisID: doc.id,
+        DiseaseID: doc.data().diseaseId || null,
+        DateReUser: doc.data().timestamp?.toDate() || null,
+      }));
+    } catch (err) {
+      console.error("Error fetching user reports:", err);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        navigate("/login");
+        return;
+      }
+
+      try {
+        // ดึงรายงานการวิเคราะห์ของผู้ใช้
+        const reports = await fetchUserReports(currentUser.uid);
+
+        if (reports.length === 0) return; // ถ้าไม่มี report อะไร
+
+        // เพิ่มเอกสารใหม่ทุกครั้ง
+        await addDoc(collection(db, "ReportDataUser"), {
+          UserID: currentUser.uid,
+          DateReUser: new Date(),
+          AnalysisReports: reports // array ของ {AnalysisID, DiseaseID, DateReUser}
+        });
+
+        console.log("เพิ่ม ReportDataUser ใหม่เรียบร้อย");
+      } catch (err) {
+        console.error("เกิดข้อผิดพลาดในการบันทึก ReportDataUser:", err);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [id, navigate]);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -66,16 +123,16 @@ function UserDetails() {
     try {
       // อัปเดตข้อมูลใน Firebase
       await updateDoc(doc(db, "users", id), formData);
-      
+
       // อัปเดต userInfo state
       setUserInfo(prev => ({
         ...prev,
         ...formData
       }));
-      
+
       // ปิด modal
       setEditUser(false);
-      
+
       alert("อัปเดตข้อมูลสำเร็จ");
     } catch (error) {
       console.error("Error updating user:", error);
@@ -184,12 +241,12 @@ function UserDetails() {
           ข้อมูลการใช้งาน
         </Link>
       </div>
-      
+
       <div className="button-container">
         <button onClick={handleBack}>
           กลับ
         </button>
-        <button onClick={openEditModal} style={{backgroundColor: '#757575'}}>
+        <button onClick={openEditModal} style={{ backgroundColor: '#757575' }}>
           แก้ไขข้อมูล
         </button>
       </div>

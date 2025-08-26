@@ -84,3 +84,23 @@
   border-radius: 5px;
   margin: 20px 0;
 }
+
+/* กล่องเก็บรูป */
+.disease-image-container {
+  display: flex;
+  justify-content: center; /* จัดรูปให้อยู่กลางแนวนอน */
+  margin-bottom: 12px;
+}
+
+/* รูปภาพของโรค */
+.disease-thumbnail {
+  width: 100px;        /* ขนาดความกว้าง */
+  height: 100px;       /* ขนาดความสูง */
+  object-fit: cover;   /* ครอบภาพไม่ให้ยืดผิดสัดส่วน */
+  border-radius: 12px; /* มุมโค้งนิดหน่อย */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2); /* เงาเบาๆ */
+}
+
+.add-button{
+  background-color: #45a049 !important;
+}

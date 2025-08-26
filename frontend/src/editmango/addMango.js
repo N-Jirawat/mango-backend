@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; 
 import { db } from "../firebaseConfig"; 
-import { collection, addDoc } from "firebase/firestore"; 
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"; 
 import "../css/addmango.css";
 
 function AddMango() {
@@ -32,7 +32,7 @@ function AddMango() {
 
       const data = await response.json();
       if (data.secure_url && data.public_id) {
-        return { imageUrl: data.secure_url, public_id: data.public_id }; // ส่งกลับ URL และ public_id
+        return { imageUrl: data.secure_url, public_id: data.public_id };
       }
       throw new Error("Upload failed");
     } catch (error) {
@@ -76,7 +76,7 @@ function AddMango() {
     }
 
     try {
-      // เรียกฟังก์ชันอัปโหลดภาพไปยัง Cloudinary
+      // 1. อัปโหลดภาพไปยัง Cloudinary ก่อน
       const uploadData = await uploadToCloudinary(image);
       if (!uploadData) {
         alert("เกิดข้อผิดพลาดในการอัปโหลดภาพไปยัง Cloudinary");
@@ -84,15 +84,40 @@ function AddMango() {
         return;
       }
 
-      // ส่งข้อมูลทั้งหมด (รวมถึง URL และ public_id ของภาพ) ไปยัง Firestore
-      await addDoc(collection(db, "mango_diseases"), {
-        ...formData,
-        imageUrl: uploadData.imageUrl,
-        imagePublicId: uploadData.public_id, // เก็บ public_id
+      // 2. บันทึกข้อมูลใน MangoDisease collection ก่อน
+      const mangoDiseaseData = {
+        DiseaseName: formData.diseaseName,
+        Style: formData.symptoms,
+        Protection: formData.prevention,
+        Treatment: formData.treatment,
+        UpdateAt: serverTimestamp(),
+        ImgID: "" // จะอัปเดตหลังจากสร้าง ImageMango
+      };
+
+      const mangoDiseaseRef = await addDoc(collection(db, "MangoDisease"), mangoDiseaseData);
+      const diseaseId = mangoDiseaseRef.id;
+
+      // 3. บันทึกข้อมูลรูปภาพใน ImageMango collection
+      const imageMangoData = {
+        ImgPath: uploadData.imageUrl,
+        DateUploadImg: serverTimestamp(),
+        DiseaseID: diseaseId,
+        public_id: uploadData.public_id // เก็บ public_id สำหรับการลบภาพ
+      };
+
+      const imageMangoRef = await addDoc(collection(db, "ImageMango"), imageMangoData);
+      const imgId = imageMangoRef.id;
+
+      // 4. อัปเดต ImgID ใน MangoDisease
+      const { updateDoc, doc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "MangoDisease", diseaseId), {
+        ImgID: imgId
       });
 
       alert("อัปโหลดสำเร็จ!");
       navigate("/mango"); 
+      
+      // รีเซ็ตฟอร์ม
       setImage(null); 
       setImagePreview(""); 
       setFormData({
@@ -102,7 +127,7 @@ function AddMango() {
         prevention: "",
       });
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error uploading data:", error);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     } finally {
       setLoading(false);
@@ -120,15 +145,38 @@ function AddMango() {
       <form onSubmit={handleSubmit} className="boxmango">
         {Object.keys(formData).map((key) => (
           <div key={key}>
-            <label>{key === "diseaseName" ? "ชื่อโรค:" : key === "symptoms" ? "ลักษณะอาการ:" : key === "treatment" ? "วิธีรักษา:" : "วิธีป้องกัน:"}</label>
-            <input type="text" name={key} value={formData[key]} onChange={handleChange} required />
+            <label>
+              {key === "diseaseName" ? "ชื่อโรค:" : 
+               key === "symptoms" ? "ลักษณะอาการ:" : 
+               key === "treatment" ? "วิธีรักษา:" : "วิธีป้องกัน:"}
+            </label>
+            <input 
+              type="text" 
+              name={key} 
+              value={formData[key]} 
+              onChange={handleChange} 
+              required 
+            />
           </div>
         ))}
         <label>อัปโหลดรูปภาพ:</label>
-        <input type="file" accept="image/*" onChange={handleImageChange} required />
-        {imagePreview && <img src={imagePreview} alt="ตัวอย่าง" style={{ width: "200px", marginTop: "10px" }} />}
+        <input 
+          type="file" 
+          accept="image/*" 
+          onChange={handleImageChange} 
+          required 
+        />
+        {imagePreview && (
+          <img 
+            src={imagePreview} 
+            alt="ตัวอย่าง" 
+            style={{ width: "200px", marginTop: "10px" }} 
+          />
+        )}
         <div className="button-container-addmango">
-          <button type="submit" disabled={loading}>{loading ? "กำลังบันทึก..." : "บันทึก"}</button>
+          <button type="submit" disabled={loading}>
+            {loading ? "กำลังบันทึก..." : "บันทึก"}
+          </button>
         </div>
       </form>
     </div>

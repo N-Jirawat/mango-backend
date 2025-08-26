@@ -136,7 +136,7 @@ function ImageUpload({ setPredictionResult }) {
           className="button"
           disabled={loading}
         >
-          {loading ? 'กำลังทำนาย...' : 'ทำนาย'}
+          {loading ? 'กำลังวินิจฉัยโรค...' : 'วินิจฉัย'}
         </button>
       )}
       {error && <p className="error">{error}</p>}

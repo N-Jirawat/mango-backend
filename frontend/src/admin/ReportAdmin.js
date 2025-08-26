@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
+import {
+    getFirestore, collection, query, where, getDocs, addDoc, updateDoc, arrayUnion, serverTimestamp
+} from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import "../css/reportadmin.css";
 
 import pdfMake from "pdfmake/build/pdfmake";
-import pdfFonts from "../PDF/vfs_fonts"; // ชี้ไปที่ไฟล์ vfs_fonts.js ที่มี Sarabun-Bold
+import pdfFonts from "../PDF/vfs_fonts";
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
@@ -22,6 +24,7 @@ function ReportAdmin() {
     const [usersReport, setUsersReport] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [saving, setSaving] = useState(false);
     const usersPerPage = 10;
     const navigate = useNavigate();
 
@@ -53,17 +56,29 @@ function ReportAdmin() {
                     }))
                     .filter(user => user.role !== "admin");
 
+                const analysisSnapshot = await getDocs(collection(db, "prediction_results"));
+
+                // map ตาม userId
+                const userReportsMap = {};
+                analysisSnapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    const userId = data.userId;
+                    if (!userReportsMap[userId]) userReportsMap[userId] = [];
+                    userReportsMap[userId].push({
+                        analysisId: doc.id,
+                        diseaseId: data.diseaseName || data.predictedClass || null,
+                        timestamp: data.timestamp || null
+                    });
+                });
+
                 const diseasesList = ["ใบปกติ", "โรคแอนแทรคโนส", "โรคราดำ", "โรคใบจุดนูน"];
 
-                const reportData = await Promise.all(users.map(async (user) => {
-                    const analysisQuery = collection(db, "prediction_results");
-                    const analysisSnapshot = await getDocs(analysisQuery);
-
-                    const userAnalyses = analysisSnapshot.docs.filter(d => d.data().userId === user.id);
+                const reportData = users.map(user => {
+                    const analyses = userReportsMap[user.id] || [];
 
                     const diseaseCountMap = {};
-                    userAnalyses.forEach(doc => {
-                        const disease = doc.data().diseaseName || doc.data().predictedClass || "ไม่ระบุโรค";
+                    analyses.forEach(a => {
+                        const disease = a.diseaseId || "ไม่ระบุโรค";
                         diseaseCountMap[disease] = (diseaseCountMap[disease] || 0) + 1;
                     });
 
@@ -79,13 +94,14 @@ function ReportAdmin() {
                         username: user.username || "-",
                         fullName: user.fullName || "-",
                         email: user.email || "-",
-                        analysisCount: userAnalyses.length,
+                        analysisCount: analyses.length,
                         mostFrequentDisease: mostFrequentDiseaseEntry
                             ? `${mostFrequentDiseaseEntry[0]} (${mostFrequentDiseaseEntry[1]} ครั้ง)`
                             : "-",
                         diseaseCounts,
+                        analysisHistory: analyses
                     };
-                }));
+                });
 
                 setUsersReport(reportData);
             } catch (error) {
@@ -110,56 +126,129 @@ function ReportAdmin() {
         return isNaN(num) ? 0 : num;
     };
 
-    const generatePDF = () => {
-        const docDefinition = {
-            pageOrientation: 'landscape',
-            content: [
-                { text: "รายงานผลการใช้งานของสมาชิก", style: "header" },
-                {
-                    table: {
-                        headerRows: 1,
-                        widths: [
-                            'auto',
-                            '*',
-                            '*',
-                            '*',      // แก้จาก '1.2*' เป็น '*'
-                            'auto',
-                            '*',      // แก้จาก '1.2*' เป็น '*'
-                            'auto',
-                            'auto',
-                            'auto',
-                            'auto'
-                        ],
+    // ✅ ฟังก์ชันบันทึกลง Firestore (ReportDataAdmin)
+    // ✅ ฟังก์ชันบันทึกลง Firestore (ReportDataAdmin)
+    const saveReportToFirestore = async (usersReport) => {
+        if (!Array.isArray(usersReport) || usersReport.length === 0) {
+            console.warn("ไม่มีข้อมูล usersReport ที่จะบันทึก:", usersReport);
+            return;
+        }
 
-                        body: [
-                            ["ลำดับ", "ชื่อบัญชี", "ชื่อเต็ม", "อีเมล", "จำนวนภาพที่วิเคราะห์", "โรคที่พบมากที่สุด", "ใบปกติ", "โรคแอนแทรคโนส", "โรคราดำ", "โรคใบจุดนูน"],
-                            ...usersReport.map((user, index) => [
-                                index + 1,
-                                sanitize(user.username),
-                                sanitize(user.fullName),
-                                sanitize(user.email),
-                                toNumber(user.analysisCount),
-                                sanitize(user.mostFrequentDisease),
-                                toNumber(user.diseaseCounts["ใบปกติ"]),
-                                toNumber(user.diseaseCounts["โรคแอนแทรคโนส"]),
-                                toNumber(user.diseaseCounts["โรคราดำ"]),
-                                toNumber(user.diseaseCounts["โรคใบจุดนูน"]),
-                            ]),
-                        ]
-                    }
+        const db = getFirestore();
+        const colRef = collection(db, "ReportDataAdmin");
+
+        for (const user of usersReport) {
+            const q = query(colRef, where("UserID", "==", user.id));
+            const querySnapshot = await getDocs(q);
+
+            // ✅ แปลง analysis ของ user เป็น array object (safe check)
+            const analysisArray = (user.analysisHistory || []).map(a => ({
+                AnalysisID: a.analysisId || "-",
+                DateReUser: a.timestamp?.seconds
+                    ? new Date(a.timestamp.seconds * 1000).toISOString()
+                    : null,
+                DiseaseID: a.diseaseId || null
+            }));
+
+            if (querySnapshot.empty) {
+                // 👉 ยังไม่มี UserID นี้ → สร้าง doc ใหม่
+                await addDoc(colRef, {
+                    DateReAdmin: serverTimestamp(),
+                    UserID: user.id,
+                    Analysis: analysisArray
+                });
+            } else {
+                // 👉 มี UserID อยู่แล้ว → อัปเดต doc เดิม (เพิ่ม array)
+                const docRef = querySnapshot.docs[0].ref;
+                for (const analysis of analysisArray) {
+                    await updateDoc(docRef, {
+                        Analysis: arrayUnion(analysis),
+                        DateReAdmin: serverTimestamp()
+                    });
                 }
-            ],
-            styles: {
-                header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10] }
-            },
-            defaultStyle: {
-                font: 'Sarabun',
-                fontSize: 9
             }
-        };
+        }
+    };
 
-        pdfMake.createPdf(docDefinition).download("รายงานสมาชิก.pdf");
-    }
+    // ✅ ฟังก์ชันสร้าง PDF
+    const generatePDF = async () => {
+        setSaving(true);
+        try {
+            const docDefinition = {
+                pageOrientation: 'landscape',
+                pageMargins: [40, 40, 40, 40],
+                content: [
+                    {
+                        text: "รายงานผลการใช้งานของสมาชิก",
+                        style: "header",
+                        alignment: 'center',
+                        margin: [0, 0, 0, 20]
+                    },
+                    {
+                        table: {
+                            headerRows: 1,
+                            widths: ['auto', 60, 'auto', '*', 60, 'auto', 'auto', 'auto', 50, 60],
+                            body: [
+                                [
+                                    { text: "ลำดับ", style: "tableHeader" },
+                                    { text: "ชื่อบัญชี", style: "tableHeader" },
+                                    { text: "ชื่อเต็ม", style: "tableHeader" },
+                                    { text: "อีเมล", style: "tableHeader" },
+                                    { text: "จำนวนภาพที่วิเคราะห์", style: "tableHeader" },
+                                    { text: "โรคที่พบมากที่สุด", style: "tableHeader" },
+                                    { text: "ใบปกติ", style: "tableHeader" },
+                                    { text: "โรคแอนแทรคโนส", style: "tableHeader" },
+                                    { text: "โรคราดำ", style: "tableHeader" },
+                                    { text: "โรคใบจุดนูน", style: "tableHeader" }
+                                ],
+                                ...usersReport.map((user, index) => [
+                                    { text: (index + 1).toString(), style: "tableCell" },
+                                    { text: sanitize(user.username), style: "tableCell" },
+                                    { text: sanitize(user.fullName), style: "tableCell" },
+                                    { text: sanitize(user.email), style: "tableCell" },
+                                    { text: toNumber(user.analysisCount).toString(), style: "tableCell" },
+                                    { text: sanitize(user.mostFrequentDisease), style: "tableCell" },
+                                    { text: toNumber(user.diseaseCounts?.["ใบปกติ"]).toString(), style: "tableCell" },
+                                    { text: toNumber(user.diseaseCounts?.["โรคแอนแทรคโนส"]).toString(), style: "tableCell" },
+                                    { text: toNumber(user.diseaseCounts?.["โรคราดำ"]).toString(), style: "tableCell" },
+                                    { text: toNumber(user.diseaseCounts?.["โรคใบจุดนูน"]).toString(), style: "tableCell" },
+                                ])
+                            ]
+                        },
+                        layout: {
+                            fillColor: (rowIndex) => (rowIndex === 0 ? "#CCCCCC" : null),
+                            hLineWidth: () => 1,
+                            vLineWidth: () => 1,
+                            hLineColor: () => "#000000",
+                            vLineColor: () => "#000000",
+                            paddingLeft: () => 5,
+                            paddingRight: () => 5,
+                        },
+                        alignment: "center"
+                    }
+                ],
+                styles: {
+                    header: { fontSize: 18, bold: true, font: "Sarabun" },
+                    tableHeader: { fontSize: 10, bold: true, alignment: "left", font: "Sarabun", margin: [2, 2, 2, 2] },
+                    tableCell: { fontSize: 9, alignment: "left", font: "Sarabun", margin: [2, 2, 2, 2] }
+                },
+                defaultStyle: { font: "Sarabun" }
+            };
+            alert('ดาวน์โหลดรายงานสำเร็จ!')
+
+            // ✅ ดาวน์โหลด PDF
+            pdfMake.createPdf(docDefinition).download("รายงานสมาชิก.pdf");
+
+            // ✅ บันทึกลง Firestore ด้วย (ส่ง usersReport ไปด้วย)
+            await saveReportToFirestore(usersReport);
+
+        } catch (error) {
+            console.error("เกิดข้อผิดพลาดในการสร้าง PDF:", error);
+            alert("เกิดข้อผิดพลาด: " + error.message);
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const totalPages = Math.ceil(usersReport.length / usersPerPage);
     const indexOfLastUser = currentPage * usersPerPage;
@@ -167,9 +256,7 @@ function ReportAdmin() {
     const currentUsers = usersReport.slice(indexOfFirstUser, indexOfLastUser);
 
     const goToPage = (pageNum) => {
-        if (pageNum >= 1 && pageNum <= totalPages) {
-            setCurrentPage(pageNum);
-        }
+        if (pageNum >= 1 && pageNum <= totalPages) setCurrentPage(pageNum);
     };
 
     if (loading) return <p>กำลังโหลดรายงาน...</p>;
@@ -179,10 +266,14 @@ function ReportAdmin() {
             <div className="admin-report-container">
                 <h2>รายงานผลการใช้งานของสมาชิก</h2>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
-                    <button className="generate-report-btn" onClick={generatePDF}>
-                        สร้างรายงานสมาชิก (PDF)
+                    <button
+                        className="generate-report-btn"
+                        onClick={generatePDF}
+                        disabled={saving}
+                        style={{ backgroundColor: saving ? "#ccc" : "#007bff", cursor: saving ? "not-allowed" : "pointer" }}
+                    >
+                        {saving ? "กำลังสร้างรายงาน..." : "สร้างรายงาน PDF"}
                     </button>
-                    
                 </div>
 
                 <table className="admin-report-table">
@@ -221,14 +312,14 @@ function ReportAdmin() {
                         )}
                     </tbody>
                 </table>
+
                 <div className="pagination">
-                        <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>⬅️ ก่อนหน้า</button>
-                        <span>หน้า {currentPage} จาก {totalPages}</span>
-                        <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>ถัดไป ➡️</button>
+                    <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>⬅️ ก่อนหน้า</button>
+                    <span>หน้า {currentPage} จาก {totalPages}</span>
+                    <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>ถัดไป ➡️</button>
                 </div>
             </div>
         </div>
-        
     );
 }
 

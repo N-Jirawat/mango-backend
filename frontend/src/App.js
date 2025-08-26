@@ -33,6 +33,8 @@ import ForgotPasswordPage from "./user/ForgotPasswordPage";
 import ReportUser from "./user/ReportUser";
 import StatisticsAdmin from "./admin/StatisticsAdmin";
 import ReportAdmin from "./admin/ReportAdmin";
+import UserManualMobile from "./UserManualMobile";
+import UserManualPC from "./UserManualPC";
 
 // CSS
 import "./css/allstyle.css";
@@ -142,6 +144,8 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/predict" element={<PredictPage />} />
           <Route path="/resultanaly" element={<ResultAnaly />} />
+          <Route path="/usermanualmobile" element={<UserManualMobile />} />
+          <Route path="/usermanualpc" element={<UserManualPC />} />
 
           {/* Protected Admin Routes */}
           <Route

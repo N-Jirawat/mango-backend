@@ -1,41 +1,72 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { db } from "../firebaseConfig";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 import "../css/editmango.css";
 
 function EditMango() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams(); // DiseaseID
   const [formData, setFormData] = useState({
-    diseaseName: "",
-    symptoms: "",
-    treatment: "",
-    prevention: "",
+    DiseaseName: "",
+    Style: "",
+    Treatment: "",
+    Protection: "",
   });
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [loading, setLoading] = useState(false);
-  const [imagePublicId, setImagePublicId] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false); // สถานะการลบข้อมูล
+  const [imageData, setImageData] = useState(null); // เก็บข้อมูลรูปภาพ
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const BACKEND_URL = "https://mango-backend-665966382004.asia-southeast1.run.app";
   //const BACKEND_URL = "http://localhost:5000";
 
   useEffect(() => {
     const fetchMangoData = async () => {
-      const mangoRef = doc(db, "mango_diseases", id);
-      const mangoDoc = await getDoc(mangoRef);
-      if (mangoDoc.exists()) {
-        setFormData(mangoDoc.data());
-        setImagePreview(mangoDoc.data().imageUrl);
-        setImagePublicId(mangoDoc.data().imagePublicId || "");
-      } else {
-        console.log("No such document!");
+      try {
+        // 1. ดึงข้อมูลจาก MangoDisease
+        const mangoDiseaseRef = doc(db, "MangoDisease", id);
+        const mangoDiseaseDoc = await getDoc(mangoDiseaseRef);
+        
+        if (mangoDiseaseDoc.exists()) {
+          const mangoDiseaseData = mangoDiseaseDoc.data();
+          setFormData({
+            DiseaseName: mangoDiseaseData.DiseaseName || "",
+            Style: mangoDiseaseData.Style || "",
+            Treatment: mangoDiseaseData.Treatment || "",
+            Protection: mangoDiseaseData.Protection || "",
+          });
+
+          // 2. ดึงข้อมูลรูปภาพจาก ImageMango
+          const imageQuery = query(
+            collection(db, "ImageMango"), 
+            where("DiseaseID", "==", id)
+          );
+          const imageSnapshot = await getDocs(imageQuery);
+          
+          if (!imageSnapshot.empty) {
+            const imageDoc = imageSnapshot.docs[0]; // หาเอาภาพแรก
+            const imageInfo = {
+              id: imageDoc.id,
+              ...imageDoc.data()
+            };
+            setImageData(imageInfo);
+            setImagePreview(imageInfo.ImgPath);
+          }
+        } else {
+          console.log("No such document!");
+          alert("ไม่พบข้อมูลที่ต้องการแก้ไข");
+          navigate("/mango");
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
       }
     };
 
     fetchMangoData();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -97,11 +128,9 @@ function EditMango() {
   };
 
   // ฟังก์ชันบันทึกข้อมูล
-  // ฟังก์ชันบันทึกข้อมูล
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ข้ามการอัปเดตถ้ากำลังลบข้อมูล
     if (isDeleting) {
       console.log("กำลังลบข้อมูล ข้ามการอัปเดต");
       return;
@@ -110,40 +139,62 @@ function EditMango() {
     setLoading(true);
 
     try {
-      let imageUrl = formData.imageUrl;
-      let imagePublicId = formData.imagePublicId;
+      // 1. อัปเดตข้อมูลใน MangoDisease
+      const mangoDiseaseRef = doc(db, "MangoDisease", id);
+      await updateDoc(mangoDiseaseRef, {
+        ...formData,
+        UpdateAt: serverTimestamp()
+      });
 
+      // 2. จัดการรูปภาพ (ถ้ามีการเปลี่ยนแปลง)
       if (image) {
-        if (imagePublicId) {
-          await deleteFromCloudinary(imagePublicId); // ลบภาพเก่าใน Cloudinary
-        }
+        let newImageUrl = "";
+        let newPublicId = "";
 
+        // อัปโหลดรูปใหม่
         const uploadedData = await uploadToCloudinary(image);
         if (uploadedData) {
-          imageUrl = uploadedData.imageUrl;
-          imagePublicId = uploadedData.public_id;
+          newImageUrl = uploadedData.imageUrl;
+          newPublicId = uploadedData.public_id;
         } else {
           alert("เกิดข้อผิดพลาดในการอัปโหลดภาพ");
           setLoading(false);
           return;
         }
-      }
 
-      const mangoRef = doc(db, "mango_diseases", id);
-      await updateDoc(mangoRef, { ...formData, imageUrl, imagePublicId });
+        // ลบรูปเก่าจาก Cloudinary (ถ้ามี)
+        if (imageData && imageData.public_id) {
+          await deleteFromCloudinary(imageData.public_id);
+        }
+
+        // อัปเดตข้อมูลรูปใน ImageMango
+        if (imageData && imageData.id) {
+          const imageRef = doc(db, "ImageMango", imageData.id);
+          await updateDoc(imageRef, {
+            ImgPath: newImageUrl,
+            DateUploadImg: serverTimestamp(),
+            public_id: newPublicId
+          });
+        } else {
+          // สร้างรายการรูปใหม่ถ้าไม่มี
+          const { addDoc } = await import("firebase/firestore");
+          const newImageRef = await addDoc(collection(db, "ImageMango"), {
+            ImgPath: newImageUrl,
+            DateUploadImg: serverTimestamp(),
+            DiseaseID: id,
+            public_id: newPublicId
+          });
+
+          // อัปเดต ImgID ใน MangoDisease
+          await updateDoc(mangoDiseaseRef, {
+            ImgID: newImageRef.id
+          });
+        }
+      }
 
       alert("อัปเดตข้อมูลสำเร็จ!");
       navigate("/mango");
 
-      // รีเซ็ตฟอร์ม
-      setImage(null);
-      setImagePreview("");
-      setFormData({
-        diseaseName: "",
-        symptoms: "",
-        treatment: "",
-        prevention: "",
-      });
     } catch (error) {
       console.error("Error updating data:", error);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -154,8 +205,8 @@ function EditMango() {
 
   // ฟังก์ชันลบข้อมูล
   const handleDelete = async (e) => {
-    e.preventDefault(); // ป้องกัน form submit
-    e.stopPropagation(); // ป้องกันการ bubble ไปยัง form
+    e.preventDefault();
+    e.stopPropagation();
 
     const confirmation = window.confirm("คุณแน่ใจว่าต้องการลบข้อมูลนี้?");
 
@@ -163,12 +214,20 @@ function EditMango() {
       setIsDeleting(true);
 
       try {
-        if (imagePublicId) {
-          await deleteFromCloudinary(imagePublicId);
+        // 1. ลบรูปจาก Cloudinary
+        if (imageData && imageData.public_id) {
+          await deleteFromCloudinary(imageData.public_id);
         }
 
-        const mangoRef = doc(db, "mango_diseases", id);
-        await deleteDoc(mangoRef);
+        // 2. ลบข้อมูลรูปจาก ImageMango collection
+        if (imageData && imageData.id) {
+          const imageRef = doc(db, "ImageMango", imageData.id);
+          await deleteDoc(imageRef);
+        }
+
+        // 3. ลบข้อมูลจาก MangoDisease collection
+        const mangoDiseaseRef = doc(db, "MangoDisease", id);
+        await deleteDoc(mangoDiseaseRef);
 
         alert("ลบข้อมูลสำเร็จ!");
         navigate("/mango");
@@ -192,8 +251,8 @@ function EditMango() {
           <label>ชื่อโรค:</label>
           <input
             type="text"
-            name="diseaseName"
-            value={formData.diseaseName}
+            name="DiseaseName"
+            value={formData.DiseaseName}
             onChange={handleChange}
             required
           />
@@ -203,8 +262,8 @@ function EditMango() {
           <label>ลักษณะอาการ:</label>
           <input
             type="text"
-            name="symptoms"
-            value={formData.symptoms}
+            name="Style"
+            value={formData.Style}
             onChange={handleChange}
             required
           />
@@ -214,8 +273,8 @@ function EditMango() {
           <label>วิธีรักษา:</label>
           <input
             type="text"
-            name="treatment"
-            value={formData.treatment}
+            name="Treatment"
+            value={formData.Treatment}
             onChange={handleChange}
             required
           />
@@ -225,8 +284,8 @@ function EditMango() {
           <label>วิธีป้องกัน:</label>
           <input
             type="text"
-            name="prevention"
-            value={formData.prevention}
+            name="Protection"
+            value={formData.Protection}
             onChange={handleChange}
             required
           />
@@ -235,11 +294,19 @@ function EditMango() {
         <div>
           <label>อัปโหลดรูปภาพ:</label>
           <input type="file" accept="image/*" onChange={handleImageChange} />
-          {imagePreview && <img src={imagePreview} alt="ตัวอย่าง" style={{ width: "200px", marginTop: "10px" }} />}
+          {imagePreview && (
+            <img 
+              src={imagePreview} 
+              alt="ตัวอย่าง" 
+              style={{ width: "200px", marginTop: "10px" }} 
+            />
+          )}
         </div>
 
         <div className="button-container">
-          <button type="button" onClick={() => navigate("/mango")}>⬅️ ย้อนกลับ</button>
+          <button type="button" onClick={() => navigate("/mango")}>
+            ⬅️ ย้อนกลับ
+          </button>
           <button type="submit" disabled={loading}>
             {loading ? "กำลังบันทึก..." : "บันทึก"}
           </button>
@@ -247,10 +314,10 @@ function EditMango() {
             className="delete-button"
             type="button"
             onClick={(e) => handleDelete(e)}
+            disabled={isDeleting}
           >
-            ลบข้อมูล
+            {isDeleting ? "กำลังลบ..." : "ลบข้อมูล"}
           </button>
-
         </div>
       </form>
     </div>

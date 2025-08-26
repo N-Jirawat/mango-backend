@@ -1,67 +1,104 @@
 /* UserManual.css */
 
+/* Container หลัก */
 .user-manual-container {
-  padding: 30px;
-  max-width: 800px;
+  padding: 20px;
+  max-width: 900px;   /* จำกัดความกว้างสูงสุดสำหรับคอม */
   margin: auto;
-  line-height: 1.6;
+  line-height: 1.8;
 }
 
+.user-manual-container h1 {
+  text-align: center;   /* จัดข้อความให้อยู่ตรงกลาง */
+  margin-bottom: 30px;  /* เว้นระยะด้านล่าง */
+}
+
+/* หัวข้อหลัก */
 .user-manual-container h2 {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
+  font-size: 22px;
+  font-weight: bold;
 }
 
-.manual-section {
-  margin-bottom: 40px;
+/* Header (ปุ่มย้อนกลับ) */
+.Manual-header {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
 }
 
-.manual-section p {
-  margin: 0;
-}
-
-.manual-section img {
-  max-width: 100%;
-  height: auto;
-  margin-top: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
+/* ปุ่มย้อนกลับ */
 .back-button {
-  padding: 8px 16px;
-  font-size: 14px;
-  background-color: #4caf50;
-  color: white;
+  background: #66f46d !important;
   border: none;
-  border-radius: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  display: inline-flex;
-  align-items: center;
+  font-size: 14px;
+  transition: 0.3s;
 }
 
 .back-button:hover {
-  background-color: #388e3c;
-  transform: scale(1.05);
+  background: #e0e0e0;
 }
 
 .back-button:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(72, 180, 97, 0.6);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
 }
 
-.back-button svg {
-  margin-right: 6px;
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
+/* แต่ละขั้นตอน */
+.manual-step {
+  margin-bottom: 30px; /* เว้นระยะระหว่าง step */
 }
 
-.Manual-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+.manual-step p {
+  margin-bottom: 12px;
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+/* รูปภาพคู่มือ */
+.manual-img {
+  display: block;
+  margin: 0 auto;
+  max-width: 70%;  /* คอมพิวเตอร์: รูปไม่ใหญ่เกินไป */
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: max-width 0.3s ease;
+}
+
+/* ================== Responsive ================== */
+
+/* 📱 มือถือ */
+@media (max-width: 768px) {
+  .user-manual-container {
+    padding: 15px;
+  }
+
+  .user-manual-container h2 {
+    font-size: 18px;  /* หัวข้อเล็กลงบนมือถือ */
+  }
+
+  .manual-step p {
+    font-size: 14px;
+  }
+
+  .manual-img {
+    max-width: 50%;  /* มือถือ: ให้รูปใหญ่ขึ้นเกือบเต็มจอ */
+  }
+
+  .back-button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
+/* 💻 จอใหญ่ (desktop กว้างมาก) */
+@media (min-width: 1200px) {
+  .manual-img {
+    max-width: 50%;  /* จอใหญ่พิเศษ: ทำให้รูปไม่ใหญ่เกินไป */
+  }
 }
