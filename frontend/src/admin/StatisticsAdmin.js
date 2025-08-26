@@ -30,8 +30,9 @@ function StatisticsAdmin() {
   const [allPredictions, setAllPredictions] = useState([]);
   const [timelineData, setTimelineData] = useState([]);
 
-  // เพิ่ม state สำหรับ fullscreen
+  // เพิ่ม state สำหรับ fullscreen และ zoom
   const [fullscreenChart, setFullscreenChart] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(100); // Zoom level เป็นเปอร์เซ็นต์
 
   // เปลี่ยนจาก startDate, endDate เป็น object ที่รวมตัวกรองทั้งหมด
   const [filters, setFilters] = useState({
@@ -48,7 +49,6 @@ function StatisticsAdmin() {
     "#3498DB", // น้ำเงิน - สำหรับจุดนูน
     "#2ECC71"  // ส้ม - สำหรับแอนแทรค 
   ], []);
-
 
   // ฟังก์ชันแปลงเดือน - wrapped in useCallback
   const formatMonthLabel = useCallback((monthKey) => {
@@ -298,10 +298,25 @@ function StatisticsAdmin() {
   // ฟังก์ชันเปิด/ปิด fullscreen
   const openFullscreen = (chartType) => {
     setFullscreenChart(chartType);
+    setZoomLevel(100); // รีเซ็ต zoom เมื่อเปิด fullscreen
   };
 
   const closeFullscreen = () => {
     setFullscreenChart(null);
+    setZoomLevel(100); // รีเซ็ต zoom เมื่อปิด fullscreen
+  };
+
+  // ฟังก์ชันควบคุม zoom
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 25, 300)); // สูงสุด 300%
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 25, 50)); // ต่ำสุด 50%
+  };
+
+  const resetZoom = () => {
+    setZoomLevel(100);
   };
 
   // ฟังก์ชันสร้างกราฟ PDF ที่ใช้สีเดียวกัน
@@ -528,147 +543,7 @@ function StatisticsAdmin() {
     ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(options.title || 'การกระจายโรคตามพื้นที่', width / 2, 10);
-
-    // Legend
-    const legendX = width - 200;
-    const legendY = margin.top;
-
-    ctx.font = 'bold 12px Arial';
-    ctx.fillStyle = '#000000';
-    ctx.textAlign = 'left';
-    ctx.fillText('โรค:', legendX, legendY);
-
-    diseases.forEach((disease, index) => {
-      const y = legendY + 20 + (index * 20);
-
-      // ใช้ index ที่ถูกต้องตามการเรียงลำดับโรค
-      const colorIndex = sortedDiseases.indexOf(disease);
-      ctx.fillStyle = chartColors[colorIndex % chartColors.length];
-      ctx.fillRect(legendX, y - 6, 12, 12);
-
-      ctx.fillStyle = '#000000';
-      ctx.font = '10px Arial';
-      ctx.fillText(disease, legendX + 20, y);
-    });
-  };
-
-  // แก้ไขฟังก์ชัน drawLineChart
-  const drawLineChart = (ctx, data, width, height, options) => {
-    const margin = { top: 50, right: 50, bottom: 80, left: 80 };
-    const chartWidth = width - margin.left - margin.right;
-    const chartHeight = height - margin.top - margin.bottom;
-
-    if (data.length === 0) return;
-
-    // เรียงลำดับโรคให้สอดคล้องกัน
-    const sortedDiseases = Object.keys(diseaseStats).sort();
-    const diseases = sortedDiseases.filter(disease =>
-      data.some(item => (item[disease] || 0) > 0)
-    );
-
-    const maxValue = Math.max(...data.map(item =>
-      diseases.reduce((max, disease) => Math.max(max, item[disease] || 0), 0)
-    ));
-
-    // วาดแกน Y และเส้นกริด
-    ctx.strokeStyle = '#cccccc';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 5; i++) {
-      const y = margin.top + (chartHeight / 5) * i;
-      const value = maxValue - (maxValue / 5) * i;
-
-      ctx.beginPath();
-      ctx.moveTo(margin.left, y);
-      ctx.lineTo(margin.left + chartWidth, y);
-      ctx.stroke();
-
-      ctx.fillStyle = '#666666';
-      ctx.font = '10px Arial';
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(Math.round(value).toString(), margin.left - 10, y);
-    }
-
-    // วาดเส้นกราฟสำหรับแต่ละโรค
-    diseases.forEach((disease) => {
-      // ใช้ index ที่ถูกต้องตามการเรียงลำดับโรค
-      const colorIndex = sortedDiseases.indexOf(disease);
-      const color = chartColors[colorIndex % chartColors.length];
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
-
-      ctx.beginPath();
-      let hasStarted = false;
-
-      data.forEach((item, dataIndex) => {
-        const value = item[disease] || 0;
-        const x = margin.left + (dataIndex / (data.length - 1)) * chartWidth;
-        const y = margin.top + chartHeight - (value / maxValue) * chartHeight;
-
-        if (!hasStarted) {
-          ctx.moveTo(x, y);
-          hasStarted = true;
-        } else {
-          ctx.lineTo(x, y);
-        }
-      });
-
-      // วาดเส้นกราฟ
-      ctx.stroke();
-
-      // วาดจุดบนเส้นกราฟ
-      ctx.fillStyle = color;
-      data.forEach((item, dataIndex) => {
-        const value = item[disease] || 0;
-        if (value > 0) {
-          const x = margin.left + (dataIndex / (data.length - 1)) * chartWidth;
-          const y = margin.top + chartHeight - (value / maxValue) * chartHeight;
-
-          ctx.beginPath();
-          ctx.arc(x, y, 4, 0, 2 * Math.PI);
-          ctx.fill();
-
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 3;
-        }
-      });
-    });
-
-    // วาดป้ายแกน X
-    ctx.fillStyle = '#333333';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    data.forEach((item, index) => {
-      const x = margin.left + (index / (data.length - 1)) * chartWidth;
-      const words = item.month.split(' ');
-
-      words.forEach((word, wordIndex) => {
-        const y = margin.top + chartHeight + 15 + (wordIndex * 12);
-        ctx.fillText(word, x, y);
-      });
-    });
-
-    // วาดเส้นแกน
-    ctx.strokeStyle = '#333333';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(margin.left, margin.top);
-    ctx.lineTo(margin.left, margin.top + chartHeight);
-    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
-    ctx.stroke();
-
-    // หัวเรื่อง
-    ctx.fillStyle = '#333333';
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText('แนวโน้มการวิเคราะห์รายเดือน', width / 2, 10);
+    ctx.fillText(options.title || 'แนวโน้มการวิเคราะห์รายเดือน', width / 2, 10);
 
     // Legend
     const legendX = width - 200;
@@ -696,6 +571,157 @@ function StatisticsAdmin() {
       ctx.fillStyle = '#000000';
       ctx.font = '10px Arial';
       ctx.fillText(disease, legendX + 20, y);
+    });
+  };
+
+  // เพิ่มฟังก์ชัน drawLineChart
+  const drawLineChart = (ctx, data, width, height, options) => {
+    const margin = { top: 60, right: 100, bottom: 80, left: 80 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    if (data.length === 0) return;
+
+    // เรียงลำดับโรคให้สอดคล้องกัน
+    const sortedDiseases = Object.keys(diseaseStats).sort();
+    const diseases = sortedDiseases.filter(disease =>
+      data.some(item => (item[disease] || 0) > 0)
+    );
+
+    const maxValue = Math.max(...data.map(item =>
+      diseases.reduce((max, disease) => Math.max(max, item[disease] || 0), 0)
+    ));
+
+    // วาดกริด Y
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = margin.top + (chartHeight / 5) * i;
+      const value = maxValue - (maxValue / 5) * i;
+
+      ctx.beginPath();
+      ctx.moveTo(margin.left, y);
+      ctx.lineTo(margin.left + chartWidth, y);
+      ctx.stroke();
+
+      // ป้าย Y
+      ctx.fillStyle = '#666666';
+      ctx.font = '11px Arial';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(Math.round(value).toString(), margin.left - 10, y);
+    }
+
+    // วาดเส้นกราฟสำหรับแต่ละโรค
+    diseases.forEach((disease, diseaseIndex) => {
+      const colorIndex = sortedDiseases.indexOf(disease);
+      const color = chartColors[colorIndex % chartColors.length];
+
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 3;
+
+      let firstPoint = true;
+      ctx.beginPath();
+
+      data.forEach((item, dataIndex) => {
+        const value = item[disease] || 0;
+        if (value > 0) {
+          const x = margin.left + (dataIndex / (data.length - 1)) * chartWidth;
+          const y = margin.top + chartHeight - (value / maxValue) * chartHeight;
+
+          if (firstPoint) {
+            ctx.moveTo(x, y);
+            firstPoint = false;
+          } else {
+            ctx.lineTo(x, y);
+          }
+
+          // วาดจุด
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+        }
+      });
+
+      if (!firstPoint) {
+        ctx.stroke();
+      }
+    });
+
+    // ป้ายแกน X
+    ctx.fillStyle = '#333333';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    data.forEach((item, index) => {
+      const x = margin.left + (index / (data.length - 1)) * chartWidth;
+      const label = item.month;
+
+      // แบ่งป้ายเป็นหลายบรรทัดถ้าจำเป็น
+      const words = label.split(' ');
+      words.forEach((word, wordIndex) => {
+        ctx.fillText(word, x, margin.top + chartHeight + 15 + (wordIndex * 12));
+      });
+    });
+
+    // วาดเส้นแกน
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top);
+    ctx.lineTo(margin.left, margin.top + chartHeight);
+    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+    ctx.stroke();
+
+    // หัวเรื่อง
+    ctx.fillStyle = '#2E7D32';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(options.title || 'แนวโน้มการวิเคราะห์รายเดือน', width / 2, 20);
+
+    // Legend
+    const legendX = width - 180;
+    const legendY = margin.top;
+
+    ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#2E7D32';
+    ctx.textAlign = 'left';
+    ctx.fillText('โรค:', legendX, legendY);
+
+    diseases.forEach((disease, index) => {
+      const y = legendY + 25 + (index * 22);
+      const colorIndex = sortedDiseases.indexOf(disease);
+      const color = chartColors[colorIndex % chartColors.length];
+
+      // วาดเส้นตัวอย่าง
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(legendX, y - 2);
+      ctx.lineTo(legendX + 20, y - 2);
+      ctx.stroke();
+
+      // วาดจุด
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(legendX + 10, y - 2, 3, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // ป้ายชื่อโรค
+      ctx.fillStyle = '#000000';
+      ctx.font = '11px Arial';
+      ctx.fillText(disease, legendX + 28, y + 2);
     });
   };
 
@@ -995,7 +1021,7 @@ function StatisticsAdmin() {
     }));
   }, [diseaseStats]);
 
-  // ส่วนของ FullscreenChart Component ที่แก้ไขแล้ว
+  // ส่วนของ FullscreenChart Component ที่แก้ไขแล้ว พร้อมฟีเจอร์ zoom
   const FullscreenChart = ({ type, onClose }) => {
     const chartDataToShow = useMemo(() => {
       if (type === 'line') return timelineData;
@@ -1006,7 +1032,26 @@ function StatisticsAdmin() {
 
     const diseaseNames = useMemo(() => {
       return Object.keys(diseaseStats).sort();
-    }, []); // ลบ diseaseStats ออก
+    }, []);
+
+    // คำนวณขนาดกราฟตาม zoom level
+    // คำนวณขนาดกราฟตาม zoom level โดยไม่ใช้ useMemo
+    const baseWidth = type === 'bar'
+      ? Math.max(1000, chartDataToShow.length * 150)
+      : Math.max(1000, chartDataToShow.length * 80);
+
+    const chartSize = {
+      width: `${Math.floor((baseWidth * zoomLevel) / 100)}px`,
+      height: `${Math.floor((450 * zoomLevel) / 100)}px`
+    };
+
+    const handleZoomIn = useCallback(() => {
+      setZoomLevel(prev => Math.min(prev + 25, 300));
+    }, []);
+
+    const handleZoomOut = useCallback(() => {
+      setZoomLevel(prev => Math.max(prev - 25, 50));
+    }, []);
 
     return (
       <div className="fullscreen-overlay" onClick={onClose}>
@@ -1017,6 +1062,27 @@ function StatisticsAdmin() {
               {type === 'bar' && 'การกระจายโรคตามพื้นที่'}
               {type === 'pie' && 'สัดส่วนโรคที่พบ'}
             </h2>
+
+            {/* Zoom Controls */}
+            <div className="zoom-controls">
+              <button
+                className="zoom-btn zoom-out"
+                onClick={handleZoomOut}
+                disabled={zoomLevel <= 50}
+                title="ซูมออก"
+              >
+                -
+              </button>
+              <button
+                className="zoom-btn zoom-in"
+                onClick={handleZoomIn}
+                disabled={zoomLevel >= 300}
+                title="ซูมเข้า"
+              >
+                +
+              </button>
+            </div>
+
             <button className="close-btn" onClick={onClose}>✕</button>
           </div>
           <div className="fullscreen-chart">
@@ -1024,11 +1090,7 @@ function StatisticsAdmin() {
               <div className="fullscreen-scrollable-chart">
                 <div
                   className="fullscreen-chart-wrapper"
-                  style={{
-                    minWidth: type === 'bar'
-                      ? `${Math.max(1000, chartDataToShow.length * 150)}px`
-                      : `${Math.max(1000, chartDataToShow.length * 80)}px`
-                  }}
+                  style={chartSize}
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     {type === 'bar' && (
@@ -1039,10 +1101,10 @@ function StatisticsAdmin() {
                           angle={-45}
                           textAnchor="end"
                           height={120}
-                          tick={{ fontSize: 14 }}
+                          tick={{ fontSize: Math.max(10, 14 * zoomLevel / 100) }}
                           interval={0}
                         />
-                        <YAxis tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100) }} />
                         <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
                         {diseaseNames.map((disease, idx) => (
                           <Bar
@@ -1062,11 +1124,11 @@ function StatisticsAdmin() {
                           angle={-30}
                           textAnchor="end"
                           height={70}
-                          tick={{ fontSize: 12 }}
+                          tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100) }}
                           interval={0}
                         />
                         <YAxis
-                          tick={{ fontSize: 12 }}
+                          tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100) }}
                           domain={[0, 'dataMax + 2']}
                         />
                         <Tooltip formatter={(value) => [`${value} ครั้ง`]} />
@@ -1076,8 +1138,8 @@ function StatisticsAdmin() {
                             type="monotone"
                             dataKey={disease}
                             stroke={chartColors[idx % chartColors.length]}
-                            strokeWidth={3}
-                            dot={{ r: 6 }}
+                            strokeWidth={Math.max(2, 3 * zoomLevel / 100)}
+                            dot={{ r: Math.max(3, 6 * zoomLevel / 100) }}
                           />
                         ))}
                       </LineChart>
@@ -1086,28 +1148,34 @@ function StatisticsAdmin() {
                 </div>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartDataToShow}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={120}
-                    dataKey="value"
-                    label={({ name, percentage }) => `${name}: ${percentage}%`}
-                    labelLine={false}
-                  >
-                    {chartDataToShow.map((entry, index) => {
-                      const diseaseNames = Object.keys(diseaseStats).sort();
-                      const colorIndex = diseaseNames.indexOf(entry.name);
-                      return (
-                        <Cell key={`cell-${index}`} fill={chartColors[colorIndex % chartColors.length]} />
-                      );
-                    })}
-                  </Pie>
-                  <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div style={{
+                transform: `scale(${zoomLevel / 100})`,
+                transformOrigin: 'center center',
+                transition: 'transform 0.3s ease'
+              }}>
+                <ResponsiveContainer width="100%" height={450}>
+                  <PieChart>
+                    <Pie
+                      data={chartDataToShow}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={120 * Math.min(zoomLevel / 100, 2)}
+                      dataKey="value"
+                      label={({ name, percentage }) => `${name}: ${percentage}%`}
+                      labelLine={false}
+                    >
+                      {chartDataToShow.map((entry, index) => {
+                        const diseaseNames = Object.keys(diseaseStats).sort();
+                        const colorIndex = diseaseNames.indexOf(entry.name);
+                        return (
+                          <Cell key={`cell-${index}`} fill={chartColors[colorIndex % chartColors.length]} />
+                        );
+                      })}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
         </div>
