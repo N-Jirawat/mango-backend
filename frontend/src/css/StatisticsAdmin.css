@@ -1,4 +1,4 @@
-/* StatisticsAdmin.css - Mobile-First Enhanced Design with Province/District Filters */
+/* StatisticsAdmin.css - Mobile-First Enhanced Design with Fullscreen & Scrollable Charts */
 
 /* Base Mobile Styles (320px and up) */
 .statistics-admin-container {
@@ -7,17 +7,19 @@
   max-width: 1200px;
   margin: 20px auto;
   background: linear-gradient(#e8f7e4);
-  border-radius: 16px; /* มนขึ้น */
+  border-radius: 16px;
   min-height: 100%;
   color: #000;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
   overflow-x: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* เพิ่มตรงนี้ */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Prevent horizontal scroll */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -52,8 +54,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Header Section - Mobile First */
@@ -159,7 +166,8 @@ select {
   padding: 12px 14px;
   border: 2px solid #e1e8ed;
   border-radius: 10px;
-  font-size: 16px; /* Prevents zoom on iOS */
+  font-size: 16px;
+  /* Prevents zoom on iOS */
   transition: all 0.3s ease;
   background: white;
   width: 100%;
@@ -214,7 +222,8 @@ select:focus {
   margin-top: 16px;
 }
 
-.filter-btn, .reset-btn {
+.filter-btn,
+.reset-btn {
   padding: 14px 20px;
   border: none;
   border-radius: 10px;
@@ -227,7 +236,8 @@ select:focus {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 48px; /* Touch target size */
+  min-height: 48px;
+  /* Touch target size */
 }
 
 .filter-btn {
@@ -236,7 +246,8 @@ select:focus {
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.filter-btn:hover, .filter-btn:active {
+.filter-btn:hover,
+.filter-btn:active {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
@@ -247,7 +258,8 @@ select:focus {
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
 }
 
-.reset-btn:hover, .reset-btn:active {
+.reset-btn:hover,
+.reset-btn:active {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
 }
@@ -396,7 +408,7 @@ select:focus {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   width: 100%;
-  overflow-x: auto;
+  position: relative;
 }
 
 .chart-container.full-width {
@@ -407,6 +419,7 @@ select:focus {
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 2px solid #f1f3f4;
+  position: relative;
 }
 
 .chart-header h3 {
@@ -421,6 +434,182 @@ select:focus {
   justify-content: center;
 }
 
+/* Fullscreen Button */
+.fullscreen-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  color: #667eea;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  z-index: 5;
+}
+
+.fullscreen-btn:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.1);
+}
+
+.fullscreen-btn:active {
+  transform: scale(0.95);
+}
+
+/* Scrollable Chart Container */
+.scrollable-chart-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(102, 126, 234, 0.5) transparent;
+}
+
+.scrollable-chart-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.scrollable-chart-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.scrollable-chart-container::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.5);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.scrollable-chart-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.7);
+}
+
+.chart-wrapper {
+  min-width: 100%;
+  width: auto;
+  height: 370px;
+}
+
+.fullscreen-chart .chart-wrapper {
+  height: 450px; 
+}
+
+/* Fullscreen Modal Styles */
+/* แทนที่ CSS เดิมในส่วน .fullscreen-overlay */
+.fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(180, 180, 180, 0.85);
+  /* สีเทาอ่อนมากขึ้น */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.fullscreen-container {
+  background: #f5f5f5;
+  color: #000000;
+  /* เพิ่มสีตัวอักษรเป็นสีดำสำหรับทั้งกล่อง */
+  border-radius: 16px;
+  width: 95vw;
+  height: 90vh;
+  max-width: 1400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+}
+
+.fullscreen-header {
+  background: #eeeeee;
+  /* สีเทาอ่อนมากสำหรับ header */
+  padding: 20px;
+  border-bottom: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.fullscreen-header h2 {
+  margin: 0;
+  color: #000000 !important;
+  /* เปลี่ยนเป็นสีดำ */
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.fullscreen-chart {
+  flex: 1;
+  padding: 20px;
+  overflow: hidden;
+  min-height: 0;
+  background: #fafafa;
+  color: #000000;
+  /* เพิ่มสีตัวอักษรเป็นสีดำสำหรับพื้นที่กราฟ */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.close-btn {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 107, 107, 0.2);
+  transform: scale(1.1);
+}
+
+.close-btn:active {
+  transform: scale(0.95);
+}
+
 .chart-content {
   display: flex;
   flex-direction: column;
@@ -431,7 +620,6 @@ select:focus {
 .chart-left {
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
 }
 
 .chart-right {
@@ -672,6 +860,52 @@ select:focus {
   line-height: 1.5;
 }
 
+/* Fullscreen Scrollable Chart Styles */
+.fullscreen-scrollable-chart {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(102, 126, 234, 0.5) rgba(255, 255, 255, 0.1);
+}
+
+.fullscreen-scrollable-chart::-webkit-scrollbar {
+  height: 12px;
+}
+
+.fullscreen-scrollable-chart::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.fullscreen-scrollable-chart::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.5);
+  border-radius: 6px;
+  transition: background 0.3s ease;
+}
+
+.fullscreen-scrollable-chart::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.8);
+}
+
+.fullscreen-chart-wrapper {
+  height: 100%;
+  min-width: 100%;
+}
+
+/* Responsive fullscreen scrolling */
+@media (max-width: 768px) {
+  .fullscreen-scrollable-chart::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .fullscreen-chart-wrapper {
+    padding-bottom: 20px; /* เพิ่มพื้นที่สำหรับ scrollbar */
+  }
+}
+
 /* Tablet Styles (768px and up) */
 @media (min-width: 768px) {
   .statistics-admin-container {
@@ -713,7 +947,8 @@ select:focus {
     justify-content: center;
   }
 
-  .filter-btn, .reset-btn {
+  .filter-btn,
+  .reset-btn {
     width: auto;
     min-width: 120px;
   }
@@ -780,6 +1015,15 @@ select:focus {
   .empty-state {
     padding: 50px 30px;
     margin: 0;
+  }
+
+  .fullscreen-container {
+    width: 90vw;
+    height: 85vh;
+  }
+
+  .fullscreen-header h2 {
+    font-size: 1.8rem;
   }
 }
 
@@ -869,11 +1113,25 @@ select:focus {
     background-color: #e9ecef;
   }
 
-  select:hover {
+  .select:hover {
     border-color: #b0bec5;
     transform: translateY(-1px);
   }
+
+  .fullscreen-container {
+    width: 85vw;
+    height: 80vh;
+  }
+
+  .fullscreen-header h2 {
+    font-size: 2rem;
+  }
+
+  .scrollable-chart-container:hover::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.8);
+  }
 }
+
 
 /* Large Desktop Styles (1200px and up) */
 @media (min-width: 1200px) {
@@ -888,6 +1146,48 @@ select:focus {
   .filter-row {
     margin-bottom: 24px;
   }
+
+  .fullscreen-container {
+    width: 80vw;
+    height: 85vh;
+    max-width: 1600px;
+  }
+}
+
+/* Download PDF Button Styles */
+.download-pdf-btn {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.download-pdf-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
+}
+
+.download-pdf-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+}
+
+.download-pdf-btn:disabled {
+  background: #dee2e6;
+  color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Print Styles */
@@ -902,7 +1202,8 @@ select:focus {
     display: none;
   }
 
-  .chart-container, .summary-card {
+  .chart-container,
+  .summary-card {
     background: white !important;
     box-shadow: none;
     border: 1px solid #ddd;
@@ -918,6 +1219,18 @@ select:focus {
     -webkit-text-fill-color: #667eea !important;
     color: #667eea !important;
   }
+
+  .fullscreen-btn {
+    display: none !important;
+  }
+
+  .scrollable-chart-container {
+    overflow: visible !important;
+  }
+
+  .chart-wrapper {
+    min-width: 100% !important;
+  }
 }
 
 /* Animation Keyframes */
@@ -926,6 +1239,7 @@ select:focus {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -937,9 +1251,24 @@ select:focus {
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
   }
 }
 
@@ -956,12 +1285,27 @@ select:focus {
   animation: slideInRight 0.3s ease-out;
 }
 
+.fullscreen-btn:hover {
+  animation: pulse 0.6s ease-in-out;
+}
+
 /* Accessibility & Performance */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .fullscreen-overlay {
+    animation: none;
+  }
+
+  .fullscreen-container {
+    animation: none;
   }
 }
 
@@ -969,6 +1313,9 @@ select:focus {
 .date-input:focus,
 .filter-btn:focus,
 .reset-btn:focus,
+.fullscreen-btn:focus,
+.close-btn:focus,
+.download-pdf-btn:focus,
 select:focus {
   outline: 2px solid #667eea;
   outline-offset: 2px;
@@ -976,18 +1323,25 @@ select:focus {
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
+
   .chart-container,
   .summary-card,
-  .filter-container {
+  .filter-container,
+  .fullscreen-container {
     border: 2px solid #000;
   }
-  
+
   .disease-item {
     border: 1px solid #666;
   }
 
   select {
     border: 2px solid #000;
+  }
+
+  .fullscreen-btn,
+  .close-btn {
+    border: 2px solid currentColor;
   }
 }
 
@@ -1007,6 +1361,9 @@ html {
 .summary-card,
 .disease-item,
 .legend-item,
+.fullscreen-btn,
+.close-btn,
+.download-pdf-btn,
 select {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   -webkit-touch-callout: none;
@@ -1019,8 +1376,13 @@ html {
   scroll-behavior: smooth;
 }
 
+.scrollable-chart-container {
+  scroll-behavior: smooth;
+}
+
 /* iOS Safari specific optimizations */
 @supports (-webkit-appearance: none) {
+
   .date-input,
   select {
     -webkit-appearance: none;
@@ -1034,4 +1396,84 @@ html {
     transform: translateZ(0);
     will-change: transform;
   }
+
+  .fullscreen-container {
+    transform: translateZ(0);
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .fullscreen-container {
+    background: #1a1a1a;
+    color: white;
+  }
+
+  .fullscreen-header {
+    border-bottom-color: #333;
+  }
+
+  .fullscreen-header h2 {
+    color: white;
+  }
+}
+
+/* Responsive fullscreen adjustments */
+@media (max-width: 480px) {
+  .fullscreen-container {
+    width: 98vw;
+    height: 95vh;
+    margin: 1vh 1vw;
+  }
+
+  .fullscreen-header {
+    padding: 16px;
+  }
+
+  .fullscreen-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .fullscreen-chart {
+    padding: 16px;
+  }
+
+  .close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+}
+
+/* Loading state for fullscreen */
+.fullscreen-chart .recharts-wrapper {
+  transition: opacity 0.3s ease;
+}
+
+.fullscreen-chart .recharts-wrapper[data-loading="true"] {
+  opacity: 0.5;
+}
+
+/* Enhanced scrollbar for better UX */
+.scrollable-chart-container {
+  position: relative;
+}
+
+.scrollable-chart-container::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 20px;
+  background: rgba(102, 126, 234, 0.3);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.scrollable-chart-container:hover::after {
+  opacity: 1;
 }

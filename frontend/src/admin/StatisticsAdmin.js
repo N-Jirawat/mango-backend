@@ -30,6 +30,9 @@ function StatisticsAdmin() {
   const [allPredictions, setAllPredictions] = useState([]);
   const [timelineData, setTimelineData] = useState([]);
 
+  // เพิ่ม state สำหรับ fullscreen
+  const [fullscreenChart, setFullscreenChart] = useState(null);
+
   // เปลี่ยนจาก startDate, endDate เป็น object ที่รวมตัวกรองทั้งหมด
   const [filters, setFilters] = useState({
     startDate: '',
@@ -38,7 +41,16 @@ function StatisticsAdmin() {
     selectedDistrict: ''
   });
 
-  // ✅ ฟังก์ชันแปลงเดือน - wrapped in useCallback
+  // กำหนดสีที่ใช้ในกราฆทั้งหน้าจอและ PDF
+  const chartColors = useMemo(() => [
+    "#757575", // เขียว - สำหรับใบปกติ
+    "#E67E22", // เทา - สำหรับราดำ  
+    "#3498DB", // น้ำเงิน - สำหรับจุดนูน
+    "#2ECC71"  // ส้ม - สำหรับแอนแทรค 
+  ], []);
+
+
+  // ฟังก์ชันแปลงเดือน - wrapped in useCallback
   const formatMonthLabel = useCallback((monthKey) => {
     const [year, month] = monthKey.split('-');
     const monthNames = [
@@ -48,7 +60,7 @@ function StatisticsAdmin() {
     return `${monthNames[parseInt(month) - 1]} ${parseInt(year) + 543}`;
   }, []);
 
-  // ✅ ดึงรายชื่อจังหวัดและอำเภอที่ไม่ซ้ำ
+  // ดึงรายชื่อจังหวัดและอำเภอที่ไม่ซ้ำ
   const availableProvinces = useMemo(() => {
     const provinces = [...new Set(Object.values(usersMap).map(user => user.province))];
     return provinces.filter(province => province && province !== "ไม่ระบุจังหวัด").sort();
@@ -60,7 +72,6 @@ function StatisticsAdmin() {
       return districts.filter(district => district && district !== "ไม่ระบุอำเภอ").sort();
     }
 
-    // กรองอำเภอตามจังหวัดที่เลือก
     const districtsInProvince = Object.values(usersMap)
       .filter(user => user.province === filters.selectedProvince)
       .map(user => user.district);
@@ -68,7 +79,7 @@ function StatisticsAdmin() {
     return [...new Set(districtsInProvince)].filter(district => district && district !== "ไม่ระบุอำเภอ").sort();
   }, [usersMap, filters.selectedProvince]);
 
-  // ✅ ฟังก์ชันประมวลผลสถิติ
+  // ฟังก์ชันประมวลผลสถิติ
   const processStatistics = useCallback((predictions, usersMapTemp) => {
     const diseaseMap = {};
     const districtMap = {};
@@ -110,17 +121,15 @@ function StatisticsAdmin() {
     setTimelineData(timelineArray);
   }, [formatMonthLabel]);
 
-  // ✅ แยก variables เพื่อหลีกเลี่ยง ESLint warning
   const { startDate, endDate, selectedProvince, selectedDistrict } = filters;
 
-  // ✅ กรองข้อมูล predictions ด้วย useMemo (เพิ่มการกรองจังหวัดและอำเภอ)
+  // กรองข้อมูล predictions ด้วย useMemo
   const filteredPredictions = useMemo(() => {
     console.log("=== Filtering Data ===");
     console.log("All predictions:", allPredictions.length);
     console.log("Filters:", { startDate, endDate, selectedProvince, selectedDistrict });
 
     const filtered = allPredictions.filter(prediction => {
-      // กรองตามวันที่
       if (prediction.timestamp && prediction.timestamp instanceof Date) {
         const predictionDate = prediction.timestamp;
 
@@ -138,26 +147,21 @@ function StatisticsAdmin() {
           }
         }
       } else if (startDate || endDate) {
-        // ถ้ามีการตั้งค่าวันที่แต่ timestamp ไม่ถูกต้อง ให้ข้าม
         return false;
       }
 
-      // กรองตามจังหวัดและอำเภอ
       const userInfo = usersMap[prediction.userId];
       if (!userInfo) {
-        // ถ้าไม่มีข้อมูลผู้ใช้ และมีการกรองตามพื้นที่ ให้ข้าม
         if (selectedProvince || selectedDistrict) {
           return false;
         }
         return true;
       }
 
-      // กรองตามจังหวัด
       if (selectedProvince && userInfo.province !== selectedProvince) {
         return false;
       }
 
-      // กรองตามอำเภอ
       if (selectedDistrict && userInfo.district !== selectedDistrict) {
         return false;
       }
@@ -166,11 +170,10 @@ function StatisticsAdmin() {
     });
 
     console.log("Filtered predictions:", filtered.length);
-    console.log("=== End Filtering ===");
     return filtered;
   }, [allPredictions, startDate, endDate, selectedProvince, selectedDistrict, usersMap]);
 
-  // ✅ useEffect สำหรับดึงข้อมูลครั้งแรก
+  // useEffect สำหรับดึงข้อมูลครั้งแรก
   useEffect(() => {
     const fetchStatistics = async () => {
       const db = getFirestore();
@@ -179,7 +182,6 @@ function StatisticsAdmin() {
       try {
         console.log("เริ่มดึงข้อมูล...");
 
-        // ดึงข้อมูล users
         const usersSnapshot = await getDocs(collection(db, "users"));
         const usersMapTemp = {};
 
@@ -198,7 +200,6 @@ function StatisticsAdmin() {
         console.log("ดึงข้อมูล users แล้ว:", Object.keys(usersMapTemp).length, "คน");
         setUsersMap(usersMapTemp);
 
-        // ดึงข้อมูล predictions ทั้งหมด (ไม่กรองตอนนี้)
         const predictionSnapshot = await getDocs(collection(db, "prediction_results"));
 
         if (predictionSnapshot.empty) {
@@ -213,7 +214,6 @@ function StatisticsAdmin() {
         predictionSnapshot.forEach(doc => {
           const data = doc.data();
 
-          // แปลง timestamp - เพิ่ม console.log เพื่อ debug
           let createdAt = null;
           if (data.timestamp?.seconds) {
             createdAt = new Date(data.timestamp.seconds * 1000);
@@ -235,26 +235,20 @@ function StatisticsAdmin() {
             userId: data.userId || "ไม่ทราบผู้ใช้",
             timestamp: createdAt,
             confidence: data.confidence || 0,
-            rawData: data // เก็บข้อมูลดิบไว้สำหรับ debug
+            rawData: data
           };
 
-          // เพิ่มข้อมูลเฉพาะที่มี timestamp ที่ถูกต้อง
           if (createdAt && createdAt instanceof Date && !isNaN(createdAt.getTime())) {
             predictionsData.push(predictionItem);
             console.log("✅ Added prediction:", doc.id, "Date:", createdAt.toISOString().split('T')[0]);
           } else {
-            console.warn("❌ Skipping prediction with invalid timestamp:", doc.id, {
-              timestamp: data.timestamp,
-              createdAt: data.createdAt,
-              parsedDate: createdAt
-            });
+            console.warn("❌ Skipping prediction with invalid timestamp:", doc.id);
           }
         });
 
         console.log("ดึงข้อมูล predictions แล้ว:", predictionsData.length, "รายการ");
         setAllPredictions(predictionsData);
 
-        // ประมวลผลสถิติครั้งแรก (ข้อมูลทั้งหมด)
         console.log("กำลังประมวลผลสถิติ...");
         processStatistics(predictionsData, usersMapTemp);
 
@@ -266,9 +260,9 @@ function StatisticsAdmin() {
     };
 
     fetchStatistics();
-  }, [processStatistics]); // ดึงข้อมูลครั้งเดียว
+  }, [processStatistics]);
 
-  // ✅ useEffect สำหรับประมวลผลใหม่เมื่อกรองข้อมูล
+  // useEffect สำหรับประมวลผลใหม่เมื่อกรองข้อมูล
   useEffect(() => {
     if (filteredPredictions.length >= 0 && Object.keys(usersMap).length > 0) {
       console.log("ประมวลผลใหม่เมื่อกรองข้อมูล:", filteredPredictions.length, "รายการ");
@@ -276,12 +270,11 @@ function StatisticsAdmin() {
     }
   }, [filteredPredictions, usersMap, processStatistics]);
 
-  // ✅ ฟังก์ชันอัพเดทตัวกรอง
+  // ฟังก์ชันอัพเดทตัวกรอง
   const updateFilter = (key, value) => {
     setFilters(prev => {
       const newFilters = { ...prev, [key]: value };
 
-      // ถ้าเปลี่ยนจังหวัด ให้รีเซ็ตอำเภอ
       if (key === 'selectedProvince') {
         newFilters.selectedDistrict = '';
       }
@@ -290,7 +283,7 @@ function StatisticsAdmin() {
     });
   };
 
-  // ✅ รีเซ็ตตัวกรอง
+  // รีเซ็ตตัวกรอง
   const resetFilter = () => {
     setFilters({
       startDate: '',
@@ -300,11 +293,18 @@ function StatisticsAdmin() {
     });
   };
 
-  // ✅ ตรวจสอบว่ามีการใช้ตัวกรองหรือไม่
   const hasActiveFilters = startDate || endDate || selectedProvince || selectedDistrict;
 
-  // ✅ ฟังก์ชันสร้าง PDF
-  // เพิ่ม function นี้ก่อน handleDownloadPDF
+  // ฟังก์ชันเปิด/ปิด fullscreen
+  const openFullscreen = (chartType) => {
+    setFullscreenChart(chartType);
+  };
+
+  const closeFullscreen = () => {
+    setFullscreenChart(null);
+  };
+
+  // ฟังก์ชันสร้างกราฟ PDF ที่ใช้สีเดียวกัน
   const generateChartImage = (chartType, data, options = {}) => {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
@@ -312,7 +312,6 @@ function StatisticsAdmin() {
       canvas.width = options.width || 800;
       canvas.height = options.height || 400;
 
-      // สร้างพื้นหลังสีขาว
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -320,28 +319,27 @@ function StatisticsAdmin() {
         drawPieChart(ctx, data, canvas.width, canvas.height);
       } else if (chartType === 'bar') {
         drawBarChart(ctx, data, canvas.width, canvas.height, options);
+      } else if (chartType === 'line') {
+        drawLineChart(ctx, data, canvas.width, canvas.height, options);
       }
 
-      // แปลงเป็น base64
       const imageData = canvas.toDataURL('image/png');
       resolve(imageData);
     });
   };
 
+  // แก้ไขฟังก์ชัน drawPieChart
   const drawPieChart = (ctx, data, width, height) => {
-    const centerX = width / 2 - 50; // เลื่อนวงกลมไปทางซ้ายเล็กน้อย
+    const centerX = width / 2 - 50;
     const centerY = height / 2;
-    const radius = Math.min(width, height) / 4; // ลดขนาดวงกลมลง
-
-    const colors = [
-      "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
-      "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9"
-    ];
+    const radius = Math.min(width, height) / 4;
 
     const total = data.reduce((sum, item) => sum + item.value, 0);
-    let currentAngle = -Math.PI / 2; // เริ่มจากด้านบน
+    let currentAngle = -Math.PI / 2;
 
-    // วาดชิ้นส่วนของวงกลม
+    // สร้างรายชื่อโรคที่เรียงลำดับ
+    const sortedDiseases = Object.keys(diseaseStats).sort();
+
     data.forEach((item, index) => {
       const sliceAngle = (item.value / total) * 2 * Math.PI;
 
@@ -349,29 +347,25 @@ function StatisticsAdmin() {
       ctx.moveTo(centerX, centerY);
       ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
       ctx.closePath();
-      ctx.fillStyle = colors[index % colors.length];
+
+      // ใช้สีที่ตรงกับโรค ไม่ใช่ index ของ data
+      const colorIndex = sortedDiseases.indexOf(item.name);
+      ctx.fillStyle = chartColors[colorIndex % chartColors.length];
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      // วาดเปอร์เซ็นต์และเส้นชี้
-      if (item.percentage > 3) { // แสดงเฉพาะที่มีพื้นที่เพียงพอ
+      // วาด label
+      if (item.percentage > 3) {
         const labelAngle = currentAngle + sliceAngle / 2;
-
-        // จุดบนวงกลม
         const innerX = centerX + Math.cos(labelAngle) * (radius * 0.8);
         const innerY = centerY + Math.sin(labelAngle) * (radius * 0.8);
-
-        // จุดปลายเส้นชี้ (ห่างจากวงกลม)
         const outerX = centerX + Math.cos(labelAngle) * (radius * 1.3);
         const outerY = centerY + Math.sin(labelAngle) * (radius * 1.3);
-
-        // จุดสำหรับข้อความ (แนวนอน)
         const textX = outerX + (labelAngle > Math.PI / 2 || labelAngle < -Math.PI / 2 ? -30 : 30);
         const textY = outerY;
 
-        // วาดเส้นชี้
         ctx.strokeStyle = '#666666';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -380,19 +374,16 @@ function StatisticsAdmin() {
         ctx.lineTo(textX, textY);
         ctx.stroke();
 
-        // วาดจุดที่ปลายเส้น
         ctx.fillStyle = '#666666';
         ctx.beginPath();
         ctx.arc(outerX, outerY, 2, 0, 2 * Math.PI);
         ctx.fill();
 
-        // วาดข้อความเปอร์เซ็นต์
         ctx.fillStyle = '#000000';
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = labelAngle > Math.PI / 2 || labelAngle < -Math.PI / 2 ? 'right' : 'left';
         ctx.textBaseline = 'middle';
 
-        // สร้างพื้นหลังสีขาวให้ข้อความ
         const textWidth = ctx.measureText(`${item.percentage}%`).width;
         const textHeight = 16;
         const bgX = labelAngle > Math.PI / 2 || labelAngle < -Math.PI / 2 ? textX - textWidth - 4 : textX - 4;
@@ -411,7 +402,7 @@ function StatisticsAdmin() {
       currentAngle += sliceAngle;
     });
 
-    // วาด Legend ทางขวา
+    // Legend - ใช้ลำดับเดียวกับกราฟ
     const legendX = centerX + radius + 80;
     const legendY = centerY - (data.length * 25) / 2;
 
@@ -423,14 +414,14 @@ function StatisticsAdmin() {
     data.forEach((item, index) => {
       const y = legendY + (index * 30);
 
-      // วาดสี่เหลี่ยมสี (ใหญ่ขึ้น)
-      ctx.fillStyle = colors[index % colors.length];
+      // ใช้สีที่ตรงกับโรค
+      const colorIndex = sortedDiseases.indexOf(item.name);
+      ctx.fillStyle = chartColors[colorIndex % chartColors.length];
       ctx.fillRect(legendX, y - 10, 18, 18);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.strokeRect(legendX, y - 10, 18, 18);
 
-      // วาดข้อความ
       ctx.fillStyle = '#333333';
       ctx.font = 'bold 11px Arial';
       ctx.fillText(item.name, legendX + 25, y - 5);
@@ -440,7 +431,6 @@ function StatisticsAdmin() {
       ctx.fillText(`${item.value} ครั้ง (${item.percentage}%)`, legendX + 25, y + 8);
     });
 
-    // วาดหัวเรื่องกราฟ
     ctx.fillStyle = '#2E7D32';
     ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'center';
@@ -448,6 +438,7 @@ function StatisticsAdmin() {
     ctx.fillText('สัดส่วนโรคที่พบ', width / 2, 20);
   };
 
+  // แก้ไขฟังก์ชัน drawBarChart
   const drawBarChart = (ctx, data, width, height, options) => {
     const margin = { top: 50, right: 50, bottom: 150, left: 80 };
     const chartWidth = width - margin.left - margin.right;
@@ -455,24 +446,20 @@ function StatisticsAdmin() {
 
     if (data.length === 0) return;
 
-    // หาค่าสูงสุด
-    const diseases = Object.keys(data[0]).filter(key =>
-      key !== 'district' && key !== 'locationLabel'
+    // เรียงลำดับโรคให้สอดคล้องกัน
+    const sortedDiseases = Object.keys(diseaseStats).sort();
+    const diseases = sortedDiseases.filter(disease =>
+      data.some(item => (item[disease] || 0) > 0)
     );
 
     const maxValue = Math.max(...data.map(item =>
       diseases.reduce((sum, disease) => sum + (item[disease] || 0), 0)
     ));
 
-    const colors = [
-      "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
-      "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9"
-    ];
-
     const barWidth = chartWidth / data.length * 0.8;
     const barSpacing = chartWidth / data.length * 0.2;
 
-    // วาดแกน Y
+    // แกน Y
     ctx.strokeStyle = '#cccccc';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 5; i++) {
@@ -484,7 +471,6 @@ function StatisticsAdmin() {
       ctx.lineTo(margin.left + chartWidth, y);
       ctx.stroke();
 
-      // ป้ายแกน Y
       ctx.fillStyle = '#666666';
       ctx.font = '10px Arial';
       ctx.textAlign = 'right';
@@ -497,12 +483,14 @@ function StatisticsAdmin() {
       const x = margin.left + (index * (barWidth + barSpacing)) + barSpacing / 2;
       let stackY = margin.top + chartHeight;
 
-      diseases.forEach((disease, diseaseIndex) => {
+      diseases.forEach((disease) => {
         const value = item[disease] || 0;
         if (value > 0) {
           const barHeight = (value / maxValue) * chartHeight;
 
-          ctx.fillStyle = colors[diseaseIndex % colors.length];
+          // ใช้ index ที่ถูกต้องตามการเรียงลำดับโรค
+          const colorIndex = sortedDiseases.indexOf(disease);
+          ctx.fillStyle = chartColors[colorIndex % chartColors.length];
           ctx.fillRect(x, stackY - barHeight, barWidth, barHeight);
 
           stackY -= barHeight;
@@ -515,7 +503,6 @@ function StatisticsAdmin() {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // แบ่งข้อความยาวๆ
       const label = item.locationLabel || item.district;
       const words = label.split(' ');
       const maxWordsPerLine = 2;
@@ -536,14 +523,14 @@ function StatisticsAdmin() {
     ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
     ctx.stroke();
 
-    // วาดหัวเรื่อง
+    // หัวเรื่อง
     ctx.fillStyle = '#333333';
     ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText(options.title || 'การกระจายโรคตามพื้นที่', width / 2, 10);
 
-    // วาด Legend
+    // Legend
     const legendX = width - 200;
     const legendY = margin.top;
 
@@ -555,34 +542,177 @@ function StatisticsAdmin() {
     diseases.forEach((disease, index) => {
       const y = legendY + 20 + (index * 20);
 
-      // วาดสี่เหลี่ยมสี
-      ctx.fillStyle = colors[index % colors.length];
+      // ใช้ index ที่ถูกต้องตามการเรียงลำดับโรค
+      const colorIndex = sortedDiseases.indexOf(disease);
+      ctx.fillStyle = chartColors[colorIndex % chartColors.length];
       ctx.fillRect(legendX, y - 6, 12, 12);
 
-      // วาดข้อความ
       ctx.fillStyle = '#000000';
       ctx.font = '10px Arial';
       ctx.fillText(disease, legendX + 20, y);
     });
   };
 
-  // แก้ไข handleDownloadPDF function
+  // แก้ไขฟังก์ชัน drawLineChart
+  const drawLineChart = (ctx, data, width, height, options) => {
+    const margin = { top: 50, right: 50, bottom: 80, left: 80 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    if (data.length === 0) return;
+
+    // เรียงลำดับโรคให้สอดคล้องกัน
+    const sortedDiseases = Object.keys(diseaseStats).sort();
+    const diseases = sortedDiseases.filter(disease =>
+      data.some(item => (item[disease] || 0) > 0)
+    );
+
+    const maxValue = Math.max(...data.map(item =>
+      diseases.reduce((max, disease) => Math.max(max, item[disease] || 0), 0)
+    ));
+
+    // วาดแกน Y และเส้นกริด
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const y = margin.top + (chartHeight / 5) * i;
+      const value = maxValue - (maxValue / 5) * i;
+
+      ctx.beginPath();
+      ctx.moveTo(margin.left, y);
+      ctx.lineTo(margin.left + chartWidth, y);
+      ctx.stroke();
+
+      ctx.fillStyle = '#666666';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(Math.round(value).toString(), margin.left - 10, y);
+    }
+
+    // วาดเส้นกราฟสำหรับแต่ละโรค
+    diseases.forEach((disease) => {
+      // ใช้ index ที่ถูกต้องตามการเรียงลำดับโรค
+      const colorIndex = sortedDiseases.indexOf(disease);
+      const color = chartColors[colorIndex % chartColors.length];
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+
+      ctx.beginPath();
+      let hasStarted = false;
+
+      data.forEach((item, dataIndex) => {
+        const value = item[disease] || 0;
+        const x = margin.left + (dataIndex / (data.length - 1)) * chartWidth;
+        const y = margin.top + chartHeight - (value / maxValue) * chartHeight;
+
+        if (!hasStarted) {
+          ctx.moveTo(x, y);
+          hasStarted = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+
+      // วาดเส้นกราฟ
+      ctx.stroke();
+
+      // วาดจุดบนเส้นกราฟ
+      ctx.fillStyle = color;
+      data.forEach((item, dataIndex) => {
+        const value = item[disease] || 0;
+        if (value > 0) {
+          const x = margin.left + (dataIndex / (data.length - 1)) * chartWidth;
+          const y = margin.top + chartHeight - (value / maxValue) * chartHeight;
+
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, 2 * Math.PI);
+          ctx.fill();
+
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+        }
+      });
+    });
+
+    // วาดป้ายแกน X
+    ctx.fillStyle = '#333333';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    data.forEach((item, index) => {
+      const x = margin.left + (index / (data.length - 1)) * chartWidth;
+      const words = item.month.split(' ');
+
+      words.forEach((word, wordIndex) => {
+        const y = margin.top + chartHeight + 15 + (wordIndex * 12);
+        ctx.fillText(word, x, y);
+      });
+    });
+
+    // วาดเส้นแกน
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top);
+    ctx.lineTo(margin.left, margin.top + chartHeight);
+    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+    ctx.stroke();
+
+    // หัวเรื่อง
+    ctx.fillStyle = '#333333';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('แนวโน้มการวิเคราะห์รายเดือน', width / 2, 10);
+
+    // Legend
+    const legendX = width - 200;
+    const legendY = margin.top;
+
+    ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'left';
+    ctx.fillText('โรค:', legendX, legendY);
+
+    diseases.forEach((disease, index) => {
+      const y = legendY + 20 + (index * 20);
+
+      // ใช้ index ที่ถูกต้องตามการเรียงลำดับโรค
+      const colorIndex = sortedDiseases.indexOf(disease);
+      const color = chartColors[colorIndex % chartColors.length];
+
+      ctx.fillStyle = color;
+      ctx.fillRect(legendX, y - 6, 12, 12);
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(legendX, y - 6, 12, 12);
+
+      ctx.fillStyle = '#000000';
+      ctx.font = '10px Arial';
+      ctx.fillText(disease, legendX + 20, y);
+    });
+  };
+
   const handleDownloadPDF = async () => {
     try {
       const currentDate = new Date().toLocaleDateString("th-TH");
 
-      // สร้างรูปกราฟ
       console.log("กำลังสร้างกราฟ...");
 
       let pieChartImage = null;
       let barChartImage = null;
+      let lineChartImage = null;
 
-      // สร้างกราฟวงกลม
       if (pieData.length > 0) {
         pieChartImage = await generateChartImage('pie', pieData, { width: 600, height: 400 });
       }
 
-      // สร้างกราฟแท่ง
       if (chartData.length > 0) {
         barChartImage = await generateChartImage('bar', chartData, {
           width: 800,
@@ -591,7 +721,14 @@ function StatisticsAdmin() {
         });
       }
 
-      // สร้างข้อมูลสำหรับตัวกรอง
+      if (timelineData.length > 0) {
+        lineChartImage = await generateChartImage('line', timelineData, {
+          width: 800,
+          height: 400,
+          title: 'แนวโน้มการวิเคราะห์รายเดือน'
+        });
+      }
+
       const filterInfo = [];
       if (startDate) {
         filterInfo.push(`วันที่เริ่มต้น: ${new Date(startDate + 'T00:00:00').toLocaleDateString('th-TH')}`);
@@ -606,7 +743,6 @@ function StatisticsAdmin() {
         filterInfo.push(`อำเภอ: ${selectedDistrict}`);
       }
 
-      // สร้างตารางสถิติโรค
       const diseaseTableData = [
         [{ text: 'ชื่อโรค', style: 'tableHeader' }, { text: 'จำนวน (ครั้ง)', style: 'tableHeader' }, { text: 'เปอร์เซ็นต์', style: 'tableHeader' }]
       ];
@@ -623,7 +759,6 @@ function StatisticsAdmin() {
           ]);
         });
 
-      // สร้างตารางสถิติตามพื้นที่
       const areaTableData = [
         [{ text: 'พื้นที่', style: 'tableHeader' }, { text: 'จำนวนรวม (ครั้ง)', style: 'tableHeader' }, { text: 'โรคที่พบ', style: 'tableHeader' }]
       ];
@@ -644,18 +779,15 @@ function StatisticsAdmin() {
         ]);
       });
 
-      // สร้าง Timeline Table
       const timelineTableData = [
         [{ text: 'เดือน', style: 'tableHeader' }, { text: 'จำนวนรวม', style: 'tableHeader' }]
       ];
 
-      // เพิ่มหัวข้อโรคแต่ละชนิด
       const diseaseNames = Object.keys(diseaseStats);
       diseaseNames.forEach(disease => {
         timelineTableData[0].push({ text: disease, style: 'tableHeader' });
       });
 
-      // เพิ่มข้อมูลแต่ละเดือน
       timelineData.forEach(monthData => {
         const row = [monthData.month, monthData.count.toString()];
         diseaseNames.forEach(disease => {
@@ -664,18 +796,15 @@ function StatisticsAdmin() {
         timelineTableData.push(row);
       });
 
-      // สร้างสรุปรายเดือน
       const monthlySummary = timelineData.map(monthData => {
         return `${monthData.month} จำนวนโรครวม = ${monthData.count} ครั้ง`;
       }).join('\n');
 
-      // หาตำแหน่งของคอลัมน์ที่มี text === 'จำนวนรวม'
       const totalIndex = timelineTableData[0].findIndex(cell => cell.text === 'จำนวนรวม');
 
-      // ถ้าเจอ "จำนวนรวม"
       if (totalIndex !== -1) {
         timelineTableData.forEach(row => {
-          row.splice(totalIndex, 1);  // ลบเซลล์ในแต่ละแถวออก
+          row.splice(totalIndex, 1);
         });
       }
 
@@ -684,7 +813,6 @@ function StatisticsAdmin() {
           { text: 'รายงานสถิติการวิเคราะห์โรคใบมะม่วง', style: 'header' },
           { text: `วันที่สร้างรายงาน: ${currentDate}`, style: 'subheader' },
 
-          // ข้อมูลตัวกรอง
           ...(hasActiveFilters ? [
             { text: 'เงื่อนไขการกรองข้อมูล:', style: 'sectionHeader' },
             {
@@ -693,7 +821,6 @@ function StatisticsAdmin() {
             }
           ] : []),
 
-          // สรุปผล
           { text: 'สรุปผลการวิเคราะห์:', style: 'sectionHeader' },
           {
             columns: [
@@ -709,7 +836,6 @@ function StatisticsAdmin() {
             margin: [0, 0, 0, 20]
           },
 
-          // กราฟวงกลม
           ...(pieChartImage ? [
             { text: 'สัดส่วนโรคที่พบ (กราฟวงกลม):', style: 'sectionHeader' },
             {
@@ -720,7 +846,6 @@ function StatisticsAdmin() {
             }
           ] : []),
 
-          // ตารางสถิติโรค
           { text: 'สถิติการพบโรคแต่ละชนิด:', style: 'sectionHeader', pageBreak: 'before' },
           {
             table: {
@@ -732,9 +857,18 @@ function StatisticsAdmin() {
             margin: [0, 0, 0, 20]
           },
 
-          // กราฟแท่ง
+          ...(lineChartImage ? [
+            { text: 'แนวโน้มการวิเคราะห์รายเดือน (กราฟเส้น):', style: 'sectionHeader' },
+            {
+              image: lineChartImage,
+              width: 500,
+              alignment: 'center',
+              margin: [0, 0, 0, 20]
+            }
+          ] : []),
+
           ...(barChartImage ? [
-            { text: 'การกระจายโรคตามพื้นที่ (กราฟแท่ง):', style: 'sectionHeader' },
+            { text: 'การกระจายโรคตามพื้นที่ (กราฟแท่ง):', style: 'sectionHeader', pageBreak: 'before' },
             {
               image: barChartImage,
               width: 500,
@@ -743,9 +877,8 @@ function StatisticsAdmin() {
             }
           ] : []),
 
-          // สถิติตามพื้นที่
           ...(Object.keys(districtDiseaseMap).length > 0 ? [
-            { text: 'สถิติการพบโรคตามพื้นที่:', style: 'sectionHeader', pageBreak: 'before' },
+            { text: 'สถิติการพบโรคตามพื้นที่:', style: 'sectionHeader' },
             {
               table: {
                 headerRows: 1,
@@ -757,9 +890,8 @@ function StatisticsAdmin() {
             }
           ] : []),
 
-          // Timeline
           ...(timelineData.length > 0 ? [
-            { text: 'แนวโน้มการวิเคราะห์รายเดือน:', style: 'sectionHeader' },
+            { text: 'แนวโน้มการวิเคราะห์รายเดือน:', style: 'sectionHeader', pageBreak: 'before' },
             {
               table: {
                 headerRows: 1,
@@ -824,7 +956,6 @@ function StatisticsAdmin() {
         pageMargins: [40, 60, 40, 60]
       };
 
-      // สร้างชื่อไฟล์
       let fileName = `รายงานสถิติโรคใบมะม่วง_${currentDate}`;
       if (hasActiveFilters) {
         if (selectedProvince) fileName += `_${selectedProvince}`;
@@ -864,16 +995,125 @@ function StatisticsAdmin() {
     }));
   }, [diseaseStats]);
 
-  const colors = useMemo(
-    () => ["#2196F3", "#FF9800", "#9c27b0", "#4CAF50"],
-    []
-  );
+  // ส่วนของ FullscreenChart Component ที่แก้ไขแล้ว
+  const FullscreenChart = ({ type, onClose }) => {
+    const chartDataToShow = useMemo(() => {
+      if (type === 'line') return timelineData;
+      if (type === 'bar') return chartData;
+      if (type === 'pie') return pieData;
+      return [];
+    }, [type]);
 
-  const getColorForDisease = useCallback((diseaseName) => {
-    const diseaseNames = Object.keys(diseaseStats).sort();
-    const index = diseaseNames.indexOf(diseaseName);
-    return colors[index % colors.length];
-  }, [diseaseStats, colors]);
+    const diseaseNames = useMemo(() => {
+      return Object.keys(diseaseStats).sort();
+    }, []); // ลบ diseaseStats ออก
+
+    return (
+      <div className="fullscreen-overlay" onClick={onClose}>
+        <div className="fullscreen-container" onClick={(e) => e.stopPropagation()}>
+          <div className="fullscreen-header">
+            <h2>
+              {type === 'line' && 'แนวโน้มการวิเคราะห์รายเดือน'}
+              {type === 'bar' && 'การกระจายโรคตามพื้นที่'}
+              {type === 'pie' && 'สัดส่วนโรคที่พบ'}
+            </h2>
+            <button className="close-btn" onClick={onClose}>✕</button>
+          </div>
+          <div className="fullscreen-chart">
+            {(type === 'bar' || type === 'line') ? (
+              <div className="fullscreen-scrollable-chart">
+                <div
+                  className="fullscreen-chart-wrapper"
+                  style={{
+                    minWidth: type === 'bar'
+                      ? `${Math.max(1000, chartDataToShow.length * 150)}px`
+                      : `${Math.max(1000, chartDataToShow.length * 80)}px`
+                  }}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    {type === 'bar' && (
+                      <BarChart data={chartDataToShow} margin={{ top: 20, right: 30, bottom: 80, left: 40 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="locationLabel"
+                          angle={-45}
+                          textAnchor="end"
+                          height={120}
+                          tick={{ fontSize: 14 }}
+                          interval={0}
+                        />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
+                        {diseaseNames.map((disease, idx) => (
+                          <Bar
+                            key={disease}
+                            dataKey={disease}
+                            stackId="a"
+                            fill={chartColors[idx % chartColors.length]}
+                          />
+                        ))}
+                      </BarChart>
+                    )}
+                    {type === 'line' && (
+                      <LineChart data={chartDataToShow} margin={{ top: 40, right: 50, left: 40, bottom: 80 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="month"
+                          angle={-30}
+                          textAnchor="end"
+                          height={70}
+                          tick={{ fontSize: 12 }}
+                          interval={0}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 12 }}
+                          domain={[0, 'dataMax + 2']}
+                        />
+                        <Tooltip formatter={(value) => [`${value} ครั้ง`]} />
+                        {diseaseNames.map((disease, idx) => (
+                          <Line
+                            key={disease}
+                            type="monotone"
+                            dataKey={disease}
+                            stroke={chartColors[idx % chartColors.length]}
+                            strokeWidth={3}
+                            dot={{ r: 6 }}
+                          />
+                        ))}
+                      </LineChart>
+                    )}
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartDataToShow}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    dataKey="value"
+                    label={({ name, percentage }) => `${name}: ${percentage}%`}
+                    labelLine={false}
+                  >
+                    {chartDataToShow.map((entry, index) => {
+                      const diseaseNames = Object.keys(diseaseStats).sort();
+                      const colorIndex = diseaseNames.indexOf(entry.name);
+                      return (
+                        <Cell key={`cell-${index}`} fill={chartColors[colorIndex % chartColors.length]} />
+                      );
+                    })}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -885,377 +1125,445 @@ function StatisticsAdmin() {
   }
 
   return (
-    <div className="statistics-admin-container">
-      <div className="header-section">
-        <h2>สถิติการวิเคราะห์โรคใบมะม่วง</h2>
-      </div>
+    <>
+      <div className="statistics-admin-container">
+        <div className="header-section">
+          <h2>สถิติการวิเคราะห์โรคใบมะม่วง</h2>
+        </div>
 
-      {/* Enhanced Filter Section */}
-      <div className="filter-section">
-        <div className="filter-container">
-          <h3>🔍 กรองข้อมูล</h3>
+        {/* Enhanced Filter Section */}
+        <div className="filter-section">
+          <div className="filter-container">
+            <h3>🔍 กรองข้อมูล</h3>
 
-          {/* Date Filters */}
-          <div className="filter-row">
-            <h4>📅 ช่วงเวลา</h4>
-            <div className="date-inputs">
-              <div className="input-group">
-                <label>
-                  วันที่เริ่มต้น:
-                  <input
-                    type="date"
-                    value={filters.startDate}
-                    onChange={(e) => updateFilter('startDate', e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="input-group">
-                <label>
-                  วันที่สิ้นสุด:
-                  <input
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) => updateFilter('endDate', e.target.value)}
-                  />
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Location Filters */}
-          <div className="filter-row">
-            <h4>🏛️ พื้นที่</h4>
-            <div className="location-inputs">
-              <div className="input-group">
-                <label>
-                  จังหวัด:
-                  <select
-                    value={filters.selectedProvince}
-                    onChange={(e) => updateFilter('selectedProvince', e.target.value)}
-                  >
-                    <option value="">ทุกจังหวัด</option>
-                    {availableProvinces.map(province => (
-                      <option key={province} value={province}>
-                        {province}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="input-group">
-                <label>
-                  อำเภอ:
-                  <select
-                    value={filters.selectedDistrict}
-                    onChange={(e) => updateFilter('selectedDistrict', e.target.value)}
-                    disabled={!availableDistricts.length}
-                  >
-                    <option value="">ทุกอำเภอ</option>
-                    {availableDistricts.map(district => (
-                      <option key={district} value={district}>
-                        {district}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Reset Button */}
-          <div className="button-group">
-            <button onClick={resetFilter} className="reset-btn" disabled={!hasActiveFilters}>
-              🔄 รีเซ็ตตัวกรอง
-            </button>
-          </div>
-
-          {/* Filter Status */}
-          <div className="filter-status">
-            {hasActiveFilters ? (
-              <div className="filter-info">
-                <span className="filter-badge active">
-                  🔍 กำลังกรองข้อมูล: <strong>{filteredPredictions.length}</strong> จาก <strong>{allPredictions.length}</strong> รายการ
-                </span>
-                <div className="active-filters">
-                  {startDate && (
-                    <span className="filter-tag">
-                      📅 เริ่ม: {new Date(startDate + 'T00:00:00').toLocaleDateString('th-TH')}
-                    </span>
-                  )}
-                  {endDate && (
-                    <span className="filter-tag">
-                      📅 สิ้นสุด: {new Date(endDate + 'T00:00:00').toLocaleDateString('th-TH')}
-                    </span>
-                  )}
-                  {selectedProvince && (
-                    <span className="filter-tag">
-                      🏛️ จังหวัด: {selectedProvince}
-                    </span>
-                  )}
-                  {selectedDistrict && (
-                    <span className="filter-tag">
-                      🏢 อำเภอ: {selectedDistrict}
-                    </span>
-                  )}
+            {/* Date Filters */}
+            <div className="filter-row">
+              <h4>📅 ช่วงเวลา</h4>
+              <div className="date-inputs">
+                <div className="input-group">
+                  <label>
+                    วันที่เริ่มต้น:
+                    <input
+                      type="date"
+                      value={filters.startDate}
+                      onChange={(e) => updateFilter('startDate', e.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="input-group">
+                  <label>
+                    วันที่สิ้นสุด:
+                    <input
+                      type="date"
+                      value={filters.endDate}
+                      onChange={(e) => updateFilter('endDate', e.target.value)}
+                    />
+                  </label>
                 </div>
               </div>
-            ) : (
-              <div className="filter-info">
-                <span className="filter-badge">
-                  📊 แสดงข้อมูลทั้งหมด: <strong>{allPredictions.length}</strong> รายการ
-                </span>
+            </div>
+
+            {/* Location Filters */}
+            <div className="filter-row">
+              <h4>🏛️ พื้นที่</h4>
+              <div className="location-inputs">
+                <div className="input-group">
+                  <label>
+                    จังหวัด:
+                    <select
+                      value={filters.selectedProvince}
+                      onChange={(e) => updateFilter('selectedProvince', e.target.value)}
+                    >
+                      <option value="">ทุกจังหวัด</option>
+                      {availableProvinces.map(province => (
+                        <option key={province} value={province}>
+                          {province}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="input-group">
+                  <label>
+                    อำเภอ:
+                    <select
+                      value={filters.selectedDistrict}
+                      onChange={(e) => updateFilter('selectedDistrict', e.target.value)}
+                      disabled={!availableDistricts.length}
+                    >
+                      <option value="">ทุกอำเภอ</option>
+                      {availableDistricts.map(district => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
+            </div>
 
-      {/* Summary Cards */}
-      <div className="summary-cards">
-        <div className="summary-card">
-          <div className="card-icon">🦠</div>
-          <div className="card-content">
-            <h3>ประเภทโรค</h3>
-            <div className="card-number">{Object.keys(diseaseStats).length}</div>
-            <p>ชนิด</p>
-          </div>
-        </div>
+            {/* Reset Button */}
+            <div className="button-group">
+              <button onClick={resetFilter} className="reset-btn" disabled={!hasActiveFilters}>
+                🔄 รีเซ็ตตัวกรอง
+              </button>
+            </div>
 
-        <div className="summary-card">
-          <div className="card-icon">📍</div>
-          <div className="card-content">
-            <h3>พื้นที่</h3>
-            <div className="card-number">{Object.keys(districtDiseaseMap).length}</div>
-            <p>อำเภอ</p>
-          </div>
-        </div>
-
-        <div className="summary-card">
-          <div className="card-icon">📈</div>
-          <div className="card-content">
-            <h3>ช่วงเวลา</h3>
-            <div className="card-number">{timelineData.length}</div>
-            <p>เดือน</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Section */}
-      <div className="charts-section">
-        {/* Disease Statistics */}
-        <div className="chart-container">
-          <div className="chart-header">
-            <h3>📊 สัดส่วนโรคที่พบ</h3>
-          </div>
-          <div className="chart-content">
-            <div className="chart-left">
-              {Object.keys(diseaseStats).length > 0 ? (
-                <div className="disease-list">
-                  {Object.entries(diseaseStats)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([disease, count], index) => {
-                      const totalCount = Object.values(diseaseStats).reduce((sum, val) => sum + val, 0);
-                      const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
-                      return (
-                        <div key={disease} className="disease-item">
-                          <div className="disease-info">
-                            <div className="disease-label">
-                              <div
-                                className="disease-color"
-                                style={{ backgroundColor: getColorForDisease(disease) }}
-                              ></div>
-                              <span className="disease-name">{disease}</span>
-                            </div>
-                            <div className="disease-stats">
-                              <span className="disease-count">{count} ครั้ง</span>
-                              <span className="disease-percentage">({percentage}%)</span>
-                            </div>
-                          </div>
-                          <div className="disease-bar">
-                            <div
-                              className="disease-fill"
-                              style={{
-                                width: `${percentage}%`,
-                                backgroundColor: getColorForDisease(disease)
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
+            {/* Filter Status */}
+            <div className="filter-status">
+              {hasActiveFilters ? (
+                <div className="filter-info">
+                  <span className="filter-badge active">
+                    🔍 กำลังกรองข้อมูล: <strong>{filteredPredictions.length}</strong> จาก <strong>{allPredictions.length}</strong> รายการ
+                  </span>
+                  <div className="active-filters">
+                    {startDate && (
+                      <span className="filter-tag">
+                        📅 เริ่ม: {new Date(startDate + 'T00:00:00').toLocaleDateString('th-TH')}
+                      </span>
+                    )}
+                    {endDate && (
+                      <span className="filter-tag">
+                        📅 สิ้นสุด: {new Date(endDate + 'T00:00:00').toLocaleDateString('th-TH')}
+                      </span>
+                    )}
+                    {selectedProvince && (
+                      <span className="filter-tag">
+                        🏛️ จังหวัด: {selectedProvince}
+                      </span>
+                    )}
+                    {selectedDistrict && (
+                      <span className="filter-tag">
+                        🏢 อำเภอ: {selectedDistrict}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="no-data">
-                  <div className="no-data-icon">📊</div>
-                  <p>ยังไม่มีข้อมูلการวิเคราะห์</p>
+                <div className="filter-info">
+                  <span className="filter-badge">
+                    📊 แสดงข้อมูลทั้งหมด: <strong>{allPredictions.length}</strong> รายการ
+                  </span>
                 </div>
               )}
             </div>
-
-            {pieData.length > 0 && (
-              <div className="chart-right">
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      dataKey="value"
-                      label={({ name, percentage }) => `${percentage}%`}
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={getColorForDisease(entry.name)} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Timeline Chart */}
-        {timelineData.length > 0 && (
+        {/* Summary Cards */}
+        <div className="summary-cards">
+          <div className="summary-card">
+            <div className="card-icon">🦠</div>
+            <div className="card-content">
+              <h3>ประเภทโรค</h3>
+              <div className="card-number">{Object.keys(diseaseStats).length}</div>
+              <p>ชนิด</p>
+            </div>
+          </div>
+
+          <div className="summary-card">
+            <div className="card-icon">📍</div>
+            <div className="card-content">
+              <h3>พื้นที่</h3>
+              <div className="card-number">{Object.keys(districtDiseaseMap).length}</div>
+              <p>อำเภอ</p>
+            </div>
+          </div>
+
+          <div className="summary-card">
+            <div className="card-icon">📈</div>
+            <div className="card-content">
+              <h3>ช่วงเวลา</h3>
+              <div className="card-number">{timelineData.length}</div>
+              <p>เดือน</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="charts-section">
+          {/* Disease Statistics - มีปุ่ม fullscreen */}
           <div className="chart-container">
             <div className="chart-header">
-              <h3>📈 แนวโน้มการวิเคราะห์รายเดือน</h3>
-              <p style={{ fontSize: '14px', color: '#666', margin: '5px 0' }}>
-                แสดงแนวโน้มการวิเคราะห์แต่ละโรคตามเดือน
-              </p>
+              <h3>📊 สัดส่วนโรคที่พบ</h3>
+              {pieData.length > 0 && (
+                <button
+                  className="fullscreen-btn"
+                  onClick={() => openFullscreen('pie')}
+                  title="ดูแบบเต็มหน้าจอ"
+                >
+                  ⛶
+                </button>
+              )}
             </div>
             <div className="chart-content">
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={timelineData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip
-                    formatter={(value, name) => [`${value} ครั้ง`, name]}
-                  />
+              <div className="chart-left">
+                {Object.keys(diseaseStats).length > 0 ? (
+                  <div className="disease-list">
+                    {Object.entries(diseaseStats)
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([disease, count], index) => {
+                        const totalCount = Object.values(diseaseStats).reduce((sum, val) => sum + val, 0);
+                        const percentage = totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0;
+                        const diseaseNames = Object.keys(diseaseStats).sort();
+                        const colorIndex = diseaseNames.indexOf(disease);
+                        return (
+                          <div key={disease} className="disease-item">
+                            <div className="disease-info">
+                              <div className="disease-label">
+                                <div
+                                  className="disease-color"
+                                  style={{ backgroundColor: chartColors[colorIndex % chartColors.length] }}
+                                ></div>
+                                <span className="disease-name">{disease}</span>
+                              </div>
+                              <div className="disease-stats">
+                                <span className="disease-count">{count} ครั้ง</span>
+                                <span className="disease-percentage">({percentage}%)</span>
+                              </div>
+                            </div>
+                            <div className="disease-bar">
+                              <div
+                                className="disease-fill"
+                                style={{
+                                  width: `${percentage}%`,
+                                  backgroundColor: chartColors[colorIndex % chartColors.length]
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <div className="no-data">
+                    <div className="no-data-icon">📊</div>
+                    <p>ยังไม่มีข้อมูลการวิเคราะห์</p>
+                  </div>
+                )}
+              </div>
 
-                  {/* เส้นแต่ละโรค */}
-                  {Object.keys(diseaseStats).map((disease, idx) => (
-                    <Line
-                      key={disease}
-                      type="monotoneX"
-                      dataKey={disease}
-                      stroke={getColorForDisease(disease)}
-                      strokeWidth={4}
-                      dot={{
-                        fill: getColorForDisease(disease),
-                        strokeWidth: 3,
-                        r: 8,
-                        stroke: '#fff'
-                      }}
-                      activeDot={{
-                        r: 10,
-                        stroke: getColorForDisease(disease),
-                        strokeWidth: 3,
-                        fill: '#fff'
-                      }}
-                      name={disease}
-                      connectNulls={false}
-                    />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
+              {pieData.length > 0 && (
+                <div className="chart-right">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        dataKey="value"
+                        label={({ name, percentage }) => `${percentage}%`}
+                      >
+                        {pieData.map((entry, index) => {
+                          const diseaseNames = Object.keys(diseaseStats).sort();
+                          const colorIndex = diseaseNames.indexOf(entry.name);
+                          return (
+                            <Cell key={`cell-${index}`} fill={chartColors[colorIndex % chartColors.length]} />
+                          );
+                        })}
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
 
-              {/* Legend สำหรับ Timeline */}
-              <div className="timeline-legend" style={{ marginTop: '20px' }}>
-                <h4>โรคที่แสดงในกราฟ</h4>
-                <div className="legend-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                  {Object.keys(diseaseStats).map((disease, idx) => (
-                    <div key={disease} className="legend-item" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          backgroundColor: getColorForDisease(disease),
-                          border: '3px solid #fff',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}
-                      ></div>
-                      <span style={{ fontWeight: '500' }}>{disease}</span>
-                    </div>
-                  ))}
+          {/* Timeline Chart - มีปุ่ม fullscreen และแสดงกราฟในคอนเทนเนอร์ที่เลื่อนได้ */}
+          {timelineData.length > 0 && (
+            <div className="chart-container">
+              <div className="chart-header">
+                <h3>📈 แนวโน้มการวิเคราะห์รายเดือน</h3>
+                <button
+                  className="fullscreen-btn"
+                  onClick={() => openFullscreen('line')}
+                  title="ดูแบบเต็มหน้าจอ"
+                >
+                  ⛶
+                </button>
+                <p style={{ fontSize: '14px', color: '#666', margin: '5px 0' }}>
+                  แสดงแนวโน้มการวิเคราะห์แต่ละโรคตามเดือน
+                </p>
+              </div>
+              <div className="chart-content">
+                <div className="scrollable-chart-container">
+                  <div className="chart-wrapper" style={{ minWidth: `${Math.max(800, timelineData.length * 60)}px` }}>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <LineChart data={timelineData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="month"
+                          interval={0}
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                        />
+                        <YAxis />
+                        <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
+
+                        {Object.keys(diseaseStats).map((disease, idx) => {
+                          const diseaseNames = Object.keys(diseaseStats).sort();
+                          const colorIndex = diseaseNames.indexOf(disease);
+                          return (
+                            <Line
+                              key={disease}
+                              type="monotoneX"
+                              dataKey={disease}
+                              stroke={chartColors[colorIndex % chartColors.length]}
+                              strokeWidth={4}
+                              dot={{
+                                fill: chartColors[colorIndex % chartColors.length],
+                                strokeWidth: 3,
+                                r: 8,
+                                stroke: '#fff'
+                              }}
+                              activeDot={{
+                                r: 10,
+                                stroke: chartColors[colorIndex % chartColors.length],
+                                strokeWidth: 3,
+                                fill: '#fff'
+                              }}
+                              name={disease}
+                              connectNulls={false}
+                            />
+                          );
+                        })}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="timeline-legend" style={{ marginTop: '20px' }}>
+                  <h4>โรคที่แสดงในกราฟ</h4>
+                  <div className="legend-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                    {Object.keys(diseaseStats).map((disease) => {
+                      const diseaseNames = Object.keys(diseaseStats).sort();
+                      const colorIndex = diseaseNames.indexOf(disease);
+                      return (
+                        <div key={disease} className="legend-item" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              backgroundColor: chartColors[colorIndex % chartColors.length],
+                              border: '3px solid #fff',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }}
+                          ></div>
+                          <span style={{ fontWeight: '500' }}>{disease}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* District Chart */}
-        {chartData.length > 0 && (
-          <div className="chart-container full-width">
-            <div className="chart-header">
-              <h3>📍 การกระจายโรคตามพื้นที่</h3>
-            </div>
-            <div className="chart-content">
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={chartData} margin={{ top: 20, right: 30, bottom: 60, left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="locationLabel"
-                    angle={-45}
-                    textAnchor="end"
-                    interval={0}
-                    height={100}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  {Object.keys(diseaseStats).map((disease, idx) => (
-                    <Bar
-                      key={disease}
-                      dataKey={disease}
-                      stackId="a"
-                      // ใช้ชื่อโรคเป็นตัวกำหนด (คงที่)
-                      fill={getColorForDisease(disease)}
-                    />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
+          {/* District Chart - มีปุ่ม fullscreen และแสดงกราฟในคอนเทนเนอร์ที่เลื่อนได้ */}
+          {chartData.length > 0 && (
+            <div className="chart-container full-width">
+              <div className="chart-header">
+                <h3>📍 การกระจายโรคตามพื้นที่</h3>
+                <button
+                  className="fullscreen-btn"
+                  onClick={() => openFullscreen('bar')}
+                  title="ดูแบบเต็มหน้าจอ"
+                >
+                  ⛶
+                </button>
+                <p style={{ fontSize: '14px', color: '#666', margin: '5px 0' }}>
+                  การกระจายโรคแต่ละชนิดตามพื้นที่
+                </p>
+              </div>
+              <div className="chart-content">
+                <div className="scrollable-chart-container">
+                  <div className="chart-wrapper" style={{ minWidth: `${Math.max(800, chartData.length * 120)}px` }}>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={chartData} margin={{ top: 20, right: 30, bottom: 120, left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="locationLabel"
+                          angle={-45}
+                          textAnchor="end"
+                          interval={0}
+                          height={120}
+                        />
+                        <YAxis />
+                        <Tooltip formatter={(value, name) => [`${value} ครั้ง`, name]} />
+                        {Object.keys(diseaseStats).map((disease, idx) => {
+                          const diseaseNames = Object.keys(diseaseStats).sort();
+                          const colorIndex = diseaseNames.indexOf(disease);
+                          return (
+                            <Bar
+                              key={disease}
+                              dataKey={disease}
+                              stackId="a"
+                              fill={chartColors[colorIndex % chartColors.length]}
+                            />
+                          );
+                        })}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
 
-              <div className="chart-legend">
-                <h4>สีแทนโรค</h4>
-                <div className="legend-grid">
-                  {Object.keys(diseaseStats).map((disease, idx) => (
-                    <div key={disease} className="legend-item">
-                      <div
-                        className="legend-color"
-                        style={{ backgroundColor: getColorForDisease(disease) }}
-                      ></div>
-                      <span className="legend-text">{disease}</span>
-                    </div>
-                  ))}
+                <div className="chart-legend">
+                  <h4>สีแทนโรค</h4>
+                  <div className="legend-grid">
+                    {Object.keys(diseaseStats).map((disease) => {
+                      const diseaseNames = Object.keys(diseaseStats).sort();
+                      const colorIndex = diseaseNames.indexOf(disease);
+                      return (
+                        <div key={disease} className="legend-item">
+                          <div
+                            className="legend-color"
+                            style={{ backgroundColor: chartColors[colorIndex % chartColors.length] }}
+                          ></div>
+                          <span className="legend-text">{disease}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Download PDF Button */}
+          <div className="header-actions">
+            <button
+              onClick={handleDownloadPDF}
+              className="download-pdf-btn"
+              disabled={Object.keys(diseaseStats).length === 0}
+              title={Object.keys(diseaseStats).length === 0 ? "ไม่มีข้อมูลสำหรับสร้าง PDF" : "ดาวน์โหลดรายงาน PDF"}
+            >
+              📄 ดาวน์โหลดรายงาน PDF
+            </button>
           </div>
-        )}
-        {/* เพิ่มปุ่ม Download PDF */}
-        <div className="header-actions">
-          <button
-            onClick={handleDownloadPDF}
-            className="download-pdf-btn"
-            disabled={Object.keys(diseaseStats).length === 0}
-            title={Object.keys(diseaseStats).length === 0 ? "ไม่มีข้อมูลสำหรับสร้าง PDF" : "ดาวน์โหลดรายงาน PDF"}
-          >
-            📄 ดาวน์โหลดรายงาน PDF
-          </button>
         </div>
+
+        {!Object.keys(diseaseStats).length && (
+          <div className="empty-state">
+            <div className="empty-icon">📊</div>
+            <h3>ไม่มีข้อมูลสถิติ</h3>
+            <p>ยังไม่มีการวิเคราะห์โรคในระบบ หรือไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
+          </div>
+        )}
       </div>
 
-      {!Object.keys(diseaseStats).length && (
-        <div className="empty-state">
-          <div className="empty-icon">📊</div>
-          <h3>ไม่มีข้อมูลสถิติ</h3>
-          <p>ยังไม่มีการวิเคราะห์โรคในระบบ หรือไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
-        </div>
+      {/* Fullscreen Chart Modal */}
+      {fullscreenChart && (
+        <FullscreenChart
+          type={fullscreenChart}
+          onClose={closeFullscreen}
+        />
       )}
-    </div>
+    </>
   );
 }
 
