@@ -649,9 +649,9 @@ function UserDetails() {
                     name="currentPassword"
                     value={passwordData.currentPassword}
                     onChange={handlePasswordChange}
-                    placeholder="กรอกรหัสผ่านเดิม"
+                    placeholder="รหัสผ่านเดิม"
                     className={`form-input-edit ${passwordErrors.currentPassword ? "error" : ""}`}
-                    style={{ paddingRight: '40px' }}
+                    style={{ paddingRight: '40px', fontSize: '14px' }}
                   />
                   <button
                     type="button"
@@ -693,9 +693,9 @@ function UserDetails() {
                     name="newPassword"
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
-                    placeholder="กรอกรหัสผ่านใหม่ เช่น Test123"
+                    placeholder="รหัสผ่านใหม่ เช่น Test123"
                     className={`form-input-edit ${passwordErrors.newPassword ? "error" : ""}`}
-                    style={{ paddingRight: '40px' }}
+                    style={{ paddingRight: '40px', fontSize: '14px' }}
                   />
                   <button
                     type="button"
@@ -781,9 +781,9 @@ function UserDetails() {
                     name="confirmPassword"
                     value={passwordData.confirmPassword}
                     onChange={handlePasswordChange}
-                    placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                    placeholder="ยืนยันรหัสผ่านใหม่"
                     className={`form-input-edit ${passwordErrors.confirmPassword ? "error" : ""}`}
-                    style={{ paddingRight: '40px' }}
+                    style={{ paddingRight: '40px', fontSize: '14px' }}
                   />
                   <button
                     type="button"

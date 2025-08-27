@@ -85,7 +85,6 @@
 
 /* ลิงก์คอนเทนเนอร์ */
 .link-container {
-  margin-top: 30px;
   display: flex;
   justify-content: center;
   gap: 15px;

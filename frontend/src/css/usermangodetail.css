@@ -1,9 +1,9 @@
 .user-disease-detail-container {
-  width: 100%;
-  max-width: 100% !important;
-  padding: 20px !important;
-  box-sizing: border-box;
-  min-height: 100vh;
+    width: 100%;
+    max-width: 100% !important;
+    padding: 20px !important;
+    box-sizing: border-box;
+    min-height: 100vh;
 }
 
 .container-state {
@@ -22,15 +22,15 @@
 }
 
 .user-boxmango {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 20px 0;
-  padding: 25px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 20px 0;
+    padding: 25px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
 }
 
 .user-boxmango p {
@@ -72,8 +72,13 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .user-namedisease {
@@ -99,15 +104,19 @@
 
 .user-img-disease {
     width: 100%;
-    max-width: 750px;
-    height: 400px;
-    object-fit: cover;
+    max-width: 400px;
+    /* เพิ่มขนาดขึ้นเล็กน้อย */
+    height: auto;
+    /* ให้ความสูงปรับตามสัดส่วนรูปภาพ */
+    object-fit: contain;
+    /* เปลี่ยนจาก cover เป็น contain เพื่อให้แสดงรูปเต็ม */
     border-radius: 15px;
     margin: 0 auto;
     display: block;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-sizing: border-box;
+    /* ลบ background-color ออกเพื่อไม่ให้มีกล่องสีขาว */
 }
 
 .user-img-disease:hover {
@@ -161,7 +170,8 @@
 }
 
 /* Error and Loading States */
-.error-message, .loading-message {
+.error-message,
+.loading-message {
     text-align: center;
     font-size: 1.1rem;
     color: #4a5568;
@@ -194,8 +204,8 @@
     }
 
     .user-img-disease {
-        max-width: 350px;
-        height: 200px;
+        max-width: 300px; /* เพิ่มขนาดขึ้นจาก 280px */
+        height: auto; /* ให้ความสูงปรับตามสัดส่วน */
         border-radius: 12px;
     }
 
@@ -241,8 +251,8 @@
     }
 
     .user-img-disease {
-        max-width: 300px;
-        height: 180px;
+        max-width: 200px; /* เพิ่มขนาดขึ้นจาก 240px */
+        height: auto; /* ให้ความสูงปรับตามสัดส่วน */
         border-radius: 10px;
     }
 
@@ -279,8 +289,8 @@
     }
 
     .user-img-disease {
-        max-width: 280px;
-        height: 160px;
+        max-width: 150px; /* เพิ่มขนาดขึ้นจาก 200px */
+        height: auto; /* ให้ความสูงปรับตามสัดส่วน */
     }
 
     .user-boxmango p {
@@ -299,6 +309,7 @@
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -335,7 +346,7 @@
         background: rgba(0, 0, 0, 0.1);
         border-left: 4px solid #000;
     }
-    
+
     .back-button {
         border: 2px solid #000;
     }

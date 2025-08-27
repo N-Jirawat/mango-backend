@@ -19,7 +19,7 @@ function SignupForm() {
   // เพิ่ม state สำหรับการแสดง/ซ่อนรหัสผ่าน
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // เพิ่ม state สำหรับแสดงสถานะการตรวจสอบรหัสผ่าน
   const [passwordValidation, setPasswordValidation] = useState({
     hasMinLength: false,
@@ -100,7 +100,7 @@ function SignupForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // ป้องกันช่องว่างในชื่อบัญชี
     if (name === "username") {
       // ลบช่องว่างทั้งหมด
@@ -108,7 +108,7 @@ function SignupForm() {
       setFormData({ ...formData, [name]: noSpaceValue });
     } else {
       setFormData({ ...formData, [name]: value });
-      
+
       // ตรวจสอบรหัสผ่าน real-time
       if (name === "password") {
         setPasswordValidation({
@@ -140,32 +140,32 @@ function SignupForm() {
   };
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  
+
   const validatePassword = (password) => {
     // ตรวจสอบความยาวอย่างน้อย 6 หลัก
     if (password.length < 6) {
       return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัว!" };
     }
-    
+
     // ตรวจสอบว่ามีตัวอักษรอย่างน้อย 1 ตัว
     const hasLetter = /[a-zA-Z]/.test(password);
     if (!hasLetter) {
       return { isValid: false, message: "รหัสผ่านต้องมีตัวอักษรอย่างน้อย 1 ตัว!" };
     }
-    
+
     // ตรวจสอบว่ามีตัวเลขอย่างน้อย 1 ตัว
     const hasNumber = /[0-9]/.test(password);
     if (!hasNumber) {
       return { isValid: false, message: "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว!" };
     }
-    
+
     return { isValid: true, message: "" };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     // ตรวจสอบรหัสผ่าน
     const passwordValidation = validatePassword(formData.password);
     if (!passwordValidation.isValid) {
@@ -173,37 +173,37 @@ function SignupForm() {
       setLoading(false);
       return;
     }
-  
+
     if (formData.password !== formData.confirmPassword) {
       alert("รหัสผ่านไม่ตรงกัน!");
       setLoading(false);
       return;
     }
-  
+
     if (!validateEmail(formData.email)) {
       alert("รูปแบบอีเมลไม่ถูกต้อง!");
       setLoading(false);
       return;
     }
-  
+
     try {
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("username", "==", formData.username));
       const querySnapshot = await getDocs(q);
-  
+
       if (!querySnapshot.empty) {
         alert("ชื่อบัญชีนี้ถูกใช้งานแล้ว!");
         setLoading(false);
         return;
       }
-  
+
       const allUsers = await getDocs(usersRef);
       const isFirstUser = allUsers.empty;
       const role = isFirstUser ? "admin" : "user";
-  
+
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
-  
+
       const docRef = doc(usersRef, user.uid);
       await setDoc(docRef, {
         uid: user.uid,
@@ -267,25 +267,25 @@ function SignupForm() {
       {step === 1 && (
         <div className="card">
           <h3>{currentUserRole === "admin" ? "เพิ่มสมาชิกใหม่" : "สมัครสมาชิก"}</h3>
-          <input type="text" name="username" placeholder="ชื่อบัญชี :" value={formData.username} onChange={handleChange} />
-          <p style={{display: 'flex',fontSize: "12px", color: "#666", margin: "5px 0"}}>*ชื่อบัญชีไม่สามารถมีช่องว่างได้</p>
-          <input type="email" name="email" placeholder="อีเมล : เช่น Test000@gmail.com" value={formData.email} onChange={handleChange} />
-          
+          <input style={{ fontSize: '14px' }} type="text" name="username" placeholder="ชื่อบัญชี :" value={formData.username} onChange={handleChange} />
+          <input style={{ fontSize: '14px' }} type="email" name="email" placeholder="อีเมล : เช่น Test000@gmail.com" value={formData.email} onChange={handleChange} />
+
           {/* Password field with toggle */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <input 
-              type={showPassword ? "text" : "password"} 
-              name="password" 
-              placeholder="รหัสผ่าน : เช่น Test123" 
-              value={formData.password} 
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="รหัสผ่าน : เช่น Test123"
+              value={formData.password}
               onChange={handleChange}
-              style={{ 
-                width: '100%', 
-                paddingRight: '40px', 
+              style={{
+                width: '100%',
+                paddingRight: '40px',
                 boxSizing: 'border-box',
                 border: '1px solid #ccc',
                 borderRadius: '4px',
-                padding: '10px'
+                padding: '10px',
+                fontSize: '14px'
               }}
             />
             <button
@@ -308,24 +308,24 @@ function SignupForm() {
                 height: '24px'
               }}
             >
-              <img 
-                src={showPassword ? "/img/hide.png" : "/img/view.png"} 
+              <img
+                src={showPassword ? "/img/hide.png" : "/img/view.png"}
                 alt={showPassword ? "hide" : "view"}
                 style={{ width: '20px', height: '20px' }}
               />
             </button>
           </div>
-          
-          <p style={{ display: 'flex',fontSize: "12px", color: "#666", margin: "5px 0"}}>
+
+          <p style={{ display: 'flex', fontSize: "12px", color: "#666", margin: "5px 0" }}>
             *รหัสผ่านอย่างน้อย 6 ตัว ต้องมีตัวอักษรและตัวเลขอย่างน้อยตัวละ 1 ตัว
           </p>
-          
+
           {/* แสดงสถานะการตรวจสอบรหัสผ่าน */}
           {formData.password && (
             <div style={{ margin: "10px 0", fontSize: "12px" }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 margin: "3px 0",
                 color: passwordValidation.hasMinLength ? "#28a745" : "#dc3545"
               }}>
@@ -334,9 +334,9 @@ function SignupForm() {
                 </span>
                 อย่างน้อย 6 ตัวอักษร
               </div>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 margin: "3px 0",
                 color: passwordValidation.hasLetter ? "#28a745" : "#dc3545"
               }}>
@@ -345,9 +345,9 @@ function SignupForm() {
                 </span>
                 มีตัวอักษรอย่างน้อย 1 ตัว (a-z, A-Z)
               </div>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 margin: "3px 0",
                 color: passwordValidation.hasNumber ? "#28a745" : "#dc3545"
               }}>
@@ -358,22 +358,23 @@ function SignupForm() {
               </div>
             </div>
           )}
-          
+
           {/* Confirm Password field with toggle */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <input 
-              type={showConfirmPassword ? "text" : "password"} 
-              name="confirmPassword" 
-              placeholder="ยืนยันรหัสผ่าน" 
-              value={formData.confirmPassword} 
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="ยืนยันรหัสผ่าน"
+              value={formData.confirmPassword}
               onChange={handleChange}
-              style={{ 
-                width: '100%', 
-                paddingRight: '40px', 
+              style={{
+                width: '100%',
+                paddingRight: '40px',
                 boxSizing: 'border-box',
                 border: '1px solid #ccc',
                 borderRadius: '4px',
-                padding: '10px'
+                padding: '10px',
+                fontSize: '14px'
               }}
             />
             <button
@@ -396,14 +397,14 @@ function SignupForm() {
                 height: '24px'
               }}
             >
-              <img 
-                src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"} 
+              <img
+                src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"}
                 alt={showConfirmPassword ? "hide" : "view"}
                 style={{ width: '20px', height: '20px' }}
               />
             </button>
           </div>
-          
+
           <button onClick={() => setStep(2)} disabled={loading}>ต่อไป ➡️</button>
         </div>
       )}
@@ -411,25 +412,25 @@ function SignupForm() {
       {step === 2 && (
         <div className="card">
           <h3>ข้อมูลเพิ่มเติม</h3>
-          <input type="text" name="fullName" placeholder="ชื่อผู้ใช้ : ชื่อ-นามสกุล" value={userInfo.fullName} onChange={handleUserInfoChange} />
-          <input type="text" name="address" placeholder="ที่อยู่ : เช่น 55/5 หรือ บ้านเลขที่ 55 หมู่ 5" value={userInfo.address} onChange={handleUserInfoChange} />
-          <input type="text" name="village" placeholder="ชื่อหมู่บ้าน : เช่น กำเนิดเพขร" value={userInfo.village} onChange={handleUserInfoChange} />
+          <input style={{ fontSize: '14px' }} type="text" name="fullName" placeholder="ชื่อผู้ใช้ : ชื่อ-นามสกุล" value={userInfo.fullName} onChange={handleUserInfoChange} />
+          <input style={{ fontSize: '14px' }} type="text" name="address" placeholder="ที่อยู่ : เช่น 55/5 หรือ บ้านเลขที่ 55 หมู่ 5" value={userInfo.address} onChange={handleUserInfoChange} />
+          <input style={{ fontSize: '14px' }} type="text" name="village" placeholder="ชื่อหมู่บ้าน : เช่น กำเนิดเพขร" value={userInfo.village} onChange={handleUserInfoChange} />
           <div className="location-container">
-            <select name="province" value={userInfo.province} onChange={handleUserInfoChange}>
+            <select style={{ fontSize: '14px' }} name="province" value={userInfo.province} onChange={handleUserInfoChange}>
               <option value="">เลือกจังหวัด</option>
               {provinces.map((province) => (
                 <option key={province.id} value={province.id}>{province.name_th}</option>
               ))}
             </select>
 
-            <select name="district" value={userInfo.district} onChange={handleUserInfoChange}>
+            <select style={{ fontSize: '14px' }} name="district" value={userInfo.district} onChange={handleUserInfoChange}>
               <option value="">เลือกอำเภอ</option>
               {districts.map((district) => (
                 <option key={district.id} value={district.id}>{district.name_th}</option>
               ))}
             </select>
 
-            <select name="subdistrict" value={userInfo.subdistrict} onChange={handleUserInfoChange}>
+            <select style={{ fontSize: '14px' }} name="subdistrict" value={userInfo.subdistrict} onChange={handleUserInfoChange}>
               <option value="">เลือกตำบล</option>
               {subdistricts.map((subdistrict) => (
                 <option key={subdistrict.id} value={subdistrict.id}>{subdistrict.name_th}</option>
@@ -437,6 +438,7 @@ function SignupForm() {
             </select>
           </div>
           <input
+            style={{ fontSize: '14px' }}
             type="text"
             name="tel"
             placeholder="หมายเลขโทรศัพท์ :"
