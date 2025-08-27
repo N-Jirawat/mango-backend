@@ -189,6 +189,14 @@ footer {
   box-sizing: border-box; /* เพิ่ม box-sizing */
 }
 
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-clear-button {
+  display: none !important;
+}
+
+
 /* Responsive */
 @media (max-width: 768px) {
   header {

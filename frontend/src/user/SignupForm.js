@@ -19,6 +19,13 @@ function SignupForm() {
   // เพิ่ม state สำหรับการแสดง/ซ่อนรหัสผ่าน
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // เพิ่ม state สำหรับแสดงสถานะการตรวจสอบรหัสผ่าน
+  const [passwordValidation, setPasswordValidation] = useState({
+    hasMinLength: false,
+    hasLetter: false,
+    hasNumber: false
+  });
 
   const [formData, setFormData] = useState({
     username: "",
@@ -101,6 +108,15 @@ function SignupForm() {
       setFormData({ ...formData, [name]: noSpaceValue });
     } else {
       setFormData({ ...formData, [name]: value });
+      
+      // ตรวจสอบรหัสผ่าน real-time
+      if (name === "password") {
+        setPasswordValidation({
+          hasMinLength: value.length >= 6,
+          hasLetter: /[a-zA-Z]/.test(value),
+          hasNumber: /[0-9]/.test(value)
+        });
+      }
     }
   };
 
@@ -128,13 +144,19 @@ function SignupForm() {
   const validatePassword = (password) => {
     // ตรวจสอบความยาวอย่างน้อย 6 หลัก
     if (password.length < 6) {
-      return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 6 หลัก!" };
+      return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัว!" };
     }
     
-    // ตรวจสอบตัวอักษรพิเศษ (อย่างน้อย 1 ตัว)
-    const specialCharRegex = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
-    if (!specialCharRegex.test(password)) {
-      return { isValid: false, message: "รหัสผ่านต้องมีตัวอักษรพิเศษอย่างน้อย 1 ตัว! (!@#$%^&*)" };
+    // ตรวจสอบว่ามีตัวอักษรอย่างน้อย 1 ตัว
+    const hasLetter = /[a-zA-Z]/.test(password);
+    if (!hasLetter) {
+      return { isValid: false, message: "รหัสผ่านต้องมีตัวอักษรอย่างน้อย 1 ตัว!" };
+    }
+    
+    // ตรวจสอบว่ามีตัวเลขอย่างน้อย 1 ตัว
+    const hasNumber = /[0-9]/.test(password);
+    if (!hasNumber) {
+      return { isValid: false, message: "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว!" };
     }
     
     return { isValid: true, message: "" };
@@ -254,7 +276,7 @@ function SignupForm() {
             <input 
               type={showPassword ? "text" : "password"} 
               name="password" 
-              placeholder="รหัสผ่าน : เช่น #12345" 
+              placeholder="รหัสผ่าน : เช่น Test123" 
               value={formData.password} 
               onChange={handleChange}
               style={{ 
@@ -295,8 +317,47 @@ function SignupForm() {
           </div>
           
           <p style={{ display: 'flex',fontSize: "12px", color: "#666", margin: "5px 0"}}>
-            *รหัสผ่านอย่างน้อย 6 หลัก และต้องมีตัวอักษรพิเศษ 1 ตัว (!@#$%^&*)
+            *รหัสผ่านอย่างน้อย 6 ตัว ต้องมีตัวอักษรและตัวเลขอย่างน้อยตัวละ 1 ตัว
           </p>
+          
+          {/* แสดงสถานะการตรวจสอบรหัสผ่าน */}
+          {formData.password && (
+            <div style={{ margin: "10px 0", fontSize: "12px" }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                margin: "3px 0",
+                color: passwordValidation.hasMinLength ? "#28a745" : "#dc3545"
+              }}>
+                <span style={{ marginRight: "5px" }}>
+                  {passwordValidation.hasMinLength ? "✅" : "❌"}
+                </span>
+                อย่างน้อย 6 ตัวอักษร
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                margin: "3px 0",
+                color: passwordValidation.hasLetter ? "#28a745" : "#dc3545"
+              }}>
+                <span style={{ marginRight: "5px" }}>
+                  {passwordValidation.hasLetter ? "✅" : "❌"}
+                </span>
+                มีตัวอักษรอย่างน้อย 1 ตัว (a-z, A-Z)
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                margin: "3px 0",
+                color: passwordValidation.hasNumber ? "#28a745" : "#dc3545"
+              }}>
+                <span style={{ marginRight: "5px" }}>
+                  {passwordValidation.hasNumber ? "✅" : "❌"}
+                </span>
+                มีตัวเลขอย่างน้อย 1 ตัว (0-9)
+              </div>
+            </div>
+          )}
           
           {/* Confirm Password field with toggle */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>

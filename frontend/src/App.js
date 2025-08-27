@@ -17,7 +17,6 @@ import MangoDetail from "./editmango/MangoDetail";
 import LoginPage from "./LoginPage";
 import AccountManagement from "./admin/AccountManagement";
 import AddminDashbord from "./admin/AddminDashbord";
-import UserDashboard from "./user/UserDashbord";
 import UserDetails from "./user/UserDetail";
 import ProfileButton from "./ProfileButton";
 import ShowMango from "./mango/showMango";
@@ -229,15 +228,6 @@ function App() {
           />
 
           {/* Protected User Routes */}
-          <Route
-            path="/user-dashboard"
-            element={
-              <PrivateRoute
-                currentUser={currentUser}
-                element={<UserDashboard />}
-              />
-            }
-          />
           <Route
             path="/userdetails/:id"
             element={

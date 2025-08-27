@@ -64,7 +64,7 @@ function LoginPage() {
         if (userData.role === "admin") {
           navigate("/admin-dashboard");
         } else {
-          navigate("/user-dashboard");
+          navigate("/");
         }
       } else {
         alert("ไม่พบข้อมูลผู้ใช้ในฐานข้อมูล");

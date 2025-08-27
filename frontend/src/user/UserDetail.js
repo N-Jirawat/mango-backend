@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import "../css/UserDetails.css";
 
 function UserDetails() {
@@ -22,9 +22,34 @@ function UserDetails() {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState(false);
+  const [changePassword, setChangePassword] = useState(false);
 
   const [phoneError, setPhoneError] = useState("");
   const [emailError, setEmailError] = useState("");
+
+  // เพิ่ม state สำหรับแสดง/ซ่อนรหัสผ่าน
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Password change states
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [passwordErrors, setPasswordErrors] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+
+  // เพิ่ม state สำหรับแสดงสถานะการตรวจสอบรหัสผ่าน
+  const [passwordValidation, setPasswordValidation] = useState({
+    hasMinLength: false,
+    hasLetter: false,
+    hasNumber: false
+  });
 
   // Province/District/Subdistrict data - แสดงค่าที่มีใน database ด้วย
   const [provinces] = useState([]);
@@ -94,12 +119,144 @@ function UserDetails() {
     return regex.test(email);
   };
 
+  const validatePassword = (password) => {
+    // ตรวจสอบความยาวอย่างน้อย 6 หลัก
+    if (password.length < 6) {
+      return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัว!" };
+    }
+    
+    // ตรวจสอบว่ามีตัวอักษรอย่างน้อย 1 ตัว
+    const hasLetter = /[a-zA-Z]/.test(password);
+    if (!hasLetter) {
+      return { isValid: false, message: "รหัสผ่านต้องมีตัวอักษรอย่างน้อย 1 ตัว!" };
+    }
+    
+    // ตรวจสอบว่ามีตัวเลขอย่างน้อย 1 ตัว
+    const hasNumber = /[0-9]/.test(password);
+    if (!hasNumber) {
+      return { isValid: false, message: "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว!" };
+    }
+    
+    return { isValid: true, message: "" };
+  };
+
+  // ฟังก์ชันสำหรับ toggle การแสดงรหัสผ่าน
+  const toggleCurrentPasswordVisibility = () => {
+    setShowCurrentPassword(!showCurrentPassword);
+  };
+
+  const toggleNewPasswordVisibility = () => {
+    setShowNewPassword(!showNewPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear errors when user types
+    setPasswordErrors((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
+
+    // ตรวจสอบรหัสผ่านใหม่ real-time
+    if (name === "newPassword") {
+      setPasswordValidation({
+        hasMinLength: value.length >= 6,
+        hasLetter: /[a-zA-Z]/.test(value),
+        hasNumber: /[0-9]/.test(value)
+      });
+    }
+  };
+
+  const handleSubmitPasswordChange = async () => {
+    // Reset errors
+    setPasswordErrors({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+
+    // Validate form
+    let hasErrors = false;
+
+    if (!passwordData.currentPassword) {
+      setPasswordErrors(prev => ({ ...prev, currentPassword: "กรุณากรอกรหัสผ่านเดิม" }));
+      hasErrors = true;
+    }
+
+    if (!passwordData.newPassword) {
+      setPasswordErrors(prev => ({ ...prev, newPassword: "กรุณากรอกรหัสผ่านใหม่" }));
+      hasErrors = true;
+    } else {
+      const passwordValidationResult = validatePassword(passwordData.newPassword);
+      if (!passwordValidationResult.isValid) {
+        setPasswordErrors(prev => ({ ...prev, newPassword: passwordValidationResult.message }));
+        hasErrors = true;
+      }
+    }
+
+    if (!passwordData.confirmPassword) {
+      setPasswordErrors(prev => ({ ...prev, confirmPassword: "กรุณายืนยันรหัสผ่านใหม่" }));
+      hasErrors = true;
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordErrors(prev => ({ ...prev, confirmPassword: "รหัสผ่านใหม่ไม่ตรงกัน" }));
+      hasErrors = true;
+    }
+
+    if (hasErrors) return;
+
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user || !user.email) {
+        alert("ไม่สามารถระบุผู้ใช้งานได้");
+        return;
+      }
+
+      // Re-authenticate user with current password
+      const credential = EmailAuthProvider.credential(user.email, passwordData.currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Update password
+      await updatePassword(user, passwordData.newPassword);
+
+      // Close modal and reset form
+      setChangePassword(false);
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+
+      alert("เปลี่ยนรหัสผ่านสำเร็จ");
+    } catch (error) {
+      console.error("Error changing password:", error);
+      
+      if (error.code === 'auth/wrong-password') {
+        setPasswordErrors(prev => ({ ...prev, currentPassword: "รหัสผ่านเดิมไม่ถูกต้อง" }));
+      } else if (error.code === 'auth/weak-password') {
+        setPasswordErrors(prev => ({ ...prev, newPassword: "รหัสผ่านใหม่ไม่ปลอดภัยเพียงพอ" }));
+      } else {
+        alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + error.message);
+      }
+    }
   };
 
   const handleSubmitUpdate = async () => {
@@ -155,14 +312,62 @@ function UserDetails() {
     setEditUser(true);
   };
 
+  const openPasswordModal = () => {
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+    setPasswordErrors({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+    setPasswordValidation({
+      hasMinLength: false,
+      hasLetter: false,
+      hasNumber: false
+    });
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setChangePassword(true);
+  };
+
   const closeEditModal = () => {
     setEditUser(false);
     setPhoneError("");
     setEmailError("");
   };
 
+  const closePasswordModal = () => {
+    setChangePassword(false);
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+    setPasswordErrors({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+    setPasswordValidation({
+      hasMinLength: false,
+      hasLetter: false,
+      hasNumber: false
+    });
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+  };
+
   const handleOverlayClick = () => {
     closeEditModal();
+  };
+
+  const handlePasswordOverlayClick = () => {
+    closePasswordModal();
   };
 
   useEffect(() => {
@@ -228,15 +433,31 @@ function UserDetails() {
         </span>
         )
       </h2>
-      <p><strong>ชื่อบัญชีผู้ใช้:</strong> {userInfo.username || "-"}</p>
-      <p><strong>ชื่อเต็ม:</strong> {userInfo.fullName || "-"}</p>
-      <p><strong>ที่อยู่:</strong>
+      <p><strong>ชื่อบัญชี :</strong> {userInfo.username || "-"}</p>
+      <p><strong>ชื่อ-นามสกุล :</strong> {userInfo.fullName || "-"}</p>
+      <p><strong>ที่อยู่ :</strong>
         {userInfo.address ? `${userInfo.address}, บ้าน ${userInfo.village || "-"}, ตำบล ${userInfo.subdistrict || "-"}, อำเภอ ${userInfo.district || "-"}, จังหวัด ${userInfo.province || "-"}` : "-"}
       </p>
-      <p><strong>เบอร์โทร:</strong> {userInfo.tel ? userInfo.tel.toString() : "-"}</p>
-      <p><strong>อีเมล:</strong> {userInfo.email || "-"}</p>
+      <p><strong>เบอร์โทร :</strong> {userInfo.tel ? userInfo.tel.toString() : "-"}</p>
+      <p><strong>อีเมล :</strong> {userInfo.email || "-"}</p>
 
       <div className="link-container">
+        <button 
+          onClick={openPasswordModal} 
+          className="report-link" 
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            color: '#007bff', 
+            textDecoration: 'underline', 
+            cursor: 'pointer',
+            fontSize: 'inherit',
+            padding: 0,
+            marginLeft: '10px'
+          }}
+        >
+          เปลี่ยนรหัสผ่าน
+        </button>
         <Link to="/Reportuser" className="report-link">
           ข้อมูลการใช้งาน
         </Link>
@@ -405,6 +626,211 @@ function UserDetails() {
                   className="btn-edit-user btn-green"
                 >
                   บันทึกการเปลี่ยนแปลง
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {changePassword && (
+        <div className="modal-overlay" onClick={handlePasswordOverlayClick}>
+          <div className="modal-content-edit" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">เปลี่ยนรหัสผ่าน</h2>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group-edit">
+                <label>รหัสผ่านเดิม:</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="กรอกรหัสผ่านเดิม"
+                    className={`form-input-edit ${passwordErrors.currentPassword ? "error" : ""}`}
+                    style={{ paddingRight: '40px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleCurrentPasswordVisibility}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '0',
+                      zIndex: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '24px',
+                      height: '24px'
+                    }}
+                  >
+                    <img 
+                      src={showCurrentPassword ? "/img/hide.png" : "/img/view.png"} 
+                      alt={showCurrentPassword ? "hide" : "view"}
+                      style={{ width: '20px', height: '20px', marginBottom: '20px' }}
+                    />
+                  </button>
+                </div>
+                {passwordErrors.currentPassword && (
+                  <p className="error-message">{passwordErrors.currentPassword}</p>
+                )}
+              </div>
+
+              <div className="form-group-edit">
+                <label>รหัสผ่านใหม่:</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="กรอกรหัสผ่านใหม่ เช่น Test123"
+                    className={`form-input-edit ${passwordErrors.newPassword ? "error" : ""}`}
+                    style={{ paddingRight: '40px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleNewPasswordVisibility}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '0',
+                      zIndex: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '24px',
+                      height: '24px'
+                    }}
+                  >
+                    <img 
+                      src={showNewPassword ? "/img/hide.png" : "/img/view.png"} 
+                      alt={showNewPassword ? "hide" : "view"}
+                      style={{ width: '20px', height: '20px' ,marginBottom: '20px'}}
+                    />
+                  </button>
+                </div>
+                
+                <p style={{ display: 'flex',fontSize: "12px", color: "#666", margin: "5px 0"}}>
+                  *รหัสผ่านอย่างน้อย 6 ตัว ต้องมีตัวอักษรและตัวเลขอย่างน้อยตัวละ 1 ตัว
+                </p>
+                
+                {/* แสดงสถานะการตรวจสอบรหัสผ่าน */}
+                {passwordData.newPassword && (
+                  <div style={{ margin: "10px 0", fontSize: "12px" }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      margin: "3px 0",
+                      color: passwordValidation.hasMinLength ? "#28a745" : "#dc3545"
+                    }}>
+                      <span style={{ marginRight: "5px" }}>
+                        {passwordValidation.hasMinLength ? "✅" : "❌"}
+                      </span>
+                      อย่างน้อย 6 ตัวอักษร
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      margin: "3px 0",
+                      color: passwordValidation.hasLetter ? "#28a745" : "#dc3545"
+                    }}>
+                      <span style={{ marginRight: "5px" }}>
+                        {passwordValidation.hasLetter ? "✅" : "❌"}
+                      </span>
+                      มีตัวอักษรอย่างน้อย 1 ตัว (a-z, A-Z)
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      margin: "3px 0",
+                      color: passwordValidation.hasNumber ? "#28a745" : "#dc3545"
+                    }}>
+                      <span style={{ marginRight: "5px" }}>
+                        {passwordValidation.hasNumber ? "✅" : "❌"}
+                      </span>
+                      มีตัวเลขอย่างน้อย 1 ตัว (0-9)
+                    </div>
+                  </div>
+                )}
+
+                {passwordErrors.newPassword && (
+                  <p className="error-message">{passwordErrors.newPassword}</p>
+                )}
+              </div>
+
+              <div className="form-group-edit">
+                <label>ยืนยันรหัสผ่านใหม่:</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                    className={`form-input-edit ${passwordErrors.confirmPassword ? "error" : ""}`}
+                    style={{ paddingRight: '40px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleConfirmPasswordVisibility}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '0',
+                      zIndex: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '24px',
+                      height: '24px'
+                    }}
+                  >
+                    <img 
+                      src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"} 
+                      alt={showConfirmPassword ? "hide" : "view"}
+                      style={{ width: '20px', height: '20px', marginBottom: '20px' }}
+                    />
+                  </button>
+                </div>
+                {passwordErrors.confirmPassword && (
+                  <p className="error-message">{passwordErrors.confirmPassword}</p>
+                )}
+              </div>
+
+              <div className="form-buttons-edit">
+                <button
+                  type="button"
+                  onClick={closePasswordModal}
+                  className="btn-edit-user btn-gray"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitPasswordChange}
+                  className="btn-edit-user btn-green"
+                >
+                  เปลี่ยนรหัสผ่าน
                 </button>
               </div>
             </div>
