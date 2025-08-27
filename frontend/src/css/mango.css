@@ -1,106 +1,452 @@
-/* สไตล์เฉพาะสำหรับหน้า Mango.js */
+/* สไตล์เฉพาะสำหรับหน้า Mango.js - Responsive Design */
 
-/* ปุ่มเพิ่มข้อมูล */
-.card button {
-  background-color: #4CAF50;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s ease;
-  margin-bottom: 20px;
+/* การตั้งค่าพื้นฐาน */
+.card {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.card button:hover {
-  background-color: #45a049;
+.card h2 {
+  text-align: center;
+  color: #2c5530;
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* ปุ่มเพิ่มข้อมูล */
+.add-button {
+  background: linear-gradient(135deg, #4CAF50, #45a049) !important;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  min-height: 48px; /* สำหรับการแตะบนมือถือ */
+}
+
+.add-button:hover {
+  background: linear-gradient(135deg, #45a049, #3d8b40) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.add-button:active {
+  transform: translateY(0);
 }
 
 /* รายการโรค */
 .disease-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr;
 }
 
 .disease-item {
-  background-color: #f8f8f8;
+  background: linear-gradient(145deg, #ffffff, #f8f8f8);
   padding: 20px;
   border: 2px solid #109d00;
-  border-radius: 10px;
-  text-align: center;
-  font-size: 18px;
+  border-radius: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 200px;
 }
 
 .disease-item:hover {
-  background-color: #e0ffe0;
+  background: linear-gradient(145deg, #e8f5e8, #f0f8f0);
   border-color: #079d00;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.disease-item:active {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.disease-item h3 {
-  margin: 0 0 10px 0;
-  font-size: 20px;
-  font-weight: bold;
-  color: #2c5530;
-}
-
-.disease-item p {
-  margin: 0;
-  color: #666;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-/* ข้อความเมื่อไม่มีข้อมูล */
-.disease-list p {
-  text-align: center;
-  font-size: 18px;
-  color: #666;
-  font-style: italic;
-  padding: 40px 20px;
-}
-
-/* สถานะการโหลด */
-.loading-message {
-  text-align: center;
-  font-size: 18px;
-  color: #666;
-  padding: 40px 20px;
-}
-
-.error-message {
-  text-align: center;
-  font-size: 18px;
-  color: #e74c3c;
-  padding: 40px 20px;
-  background-color: #ffeaea;
-  border: 1px solid #f5c6cb;
-  border-radius: 5px;
-  margin: 20px 0;
 }
 
 /* กล่องเก็บรูป */
 .disease-image-container {
   display: flex;
-  justify-content: center; /* จัดรูปให้อยู่กลางแนวนอน */
-  margin-bottom: 12px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+  width: 100%;
 }
 
 /* รูปภาพของโรค */
 .disease-thumbnail {
-  width: 100px;        /* ขนาดความกว้าง */
-  height: 100px;       /* ขนาดความสูง */
-  object-fit: cover;   /* ครอบภาพไม่ให้ยืดผิดสัดส่วน */
-  border-radius: 12px; /* มุมโค้งนิดหน่อย */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2); /* เงาเบาๆ */
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+  border: 3px solid #ffffff;
 }
 
-.add-button{
-  background-color: #45a049 !important;
+.disease-item:hover .disease-thumbnail {
+  transform: scale(1.05);
+}
+
+/* ข้อมูลโรค */
+.disease-info {
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+}
+
+.disease-info h3 {
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  font-weight: bold;
+  color: #2c5530;
+  line-height: 1.3;
+}
+
+.disease-symptoms {
+  margin: 8px 0 !important;
+  color: #555;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  padding: 0 10px;
+}
+
+.disease-symptoms strong {
+  color: #2c5530;
+  font-weight: 600;
+}
+
+.disease-meta {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.disease-meta small {
+  color: #888;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ปุ่มแก้ไข */
+.disease-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+
+.edit-quick-btn {
+  background: linear-gradient(135deg, #e6ff8e, #85ff8b);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-quick-btn:hover {
+  background: linear-gradient(135deg, #c8ff6f, #ef6c00);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+.edit-quick-btn:active {
+  transform: scale(1.05);
+}
+
+/* ข้อความเมื่อไม่มีข้อมูล */
+.disease-list > div[style*="text-align: center"] {
+  background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+  border: 2px dashed #6c757d;
+  border-radius: 16px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.disease-list > div[style*="text-align: center"] p {
+  font-size: 18px;
+  color: #6c757d;
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.disease-list > div[style*="text-align: center"] p:first-child {
+  font-weight: 600;
+  color: #495057;
+}
+
+/* สถานะการโหลด */
+.loading-message,
+.card > div[style*="textAlign: center"] {
+  text-align: center;
+  font-size: 18px;
+  color: #6c757d;
+  padding: 40px 20px;
+  background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.error-message,
+.card > div[style*="color: red"] {
+  text-align: center;
+  font-size: 18px;
+  color: #dc3545 !important;
+  padding: 40px 20px;
+  background: linear-gradient(145deg, #f8d7da, #f5c6cb);
+  border: 2px solid #f5c6cb;
+  border-radius: 12px;
+  margin: 20px 0;
+  font-weight: 500;
+}
+
+/* Responsive Design สำหรับ Tablet */
+@media (min-width: 768px) {
+  .card {
+    padding: 32px;
+  }
+  
+  .card h2 {
+    font-size: 32px;
+    margin-bottom: 32px;
+  }
+  
+  .disease-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  
+  .disease-item {
+    padding: 24px;
+    min-height: 220px;
+  }
+  
+  .disease-thumbnail {
+    width: 140px;
+    height: 140px;
+  }
+  
+  .disease-info h3 {
+    font-size: 24px;
+  }
+  
+  .disease-symptoms {
+    font-size: 16px;
+  }
+}
+
+/* Responsive Design สำหรับ Desktop */
+@media (min-width: 1024px) {
+  .disease-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  
+  .disease-item {
+    padding: 28px;
+    min-height: 240px;
+  }
+  
+  .disease-thumbnail {
+    width: 160px;
+    height: 160px;
+  }
+}
+
+/* Responsive Design สำหรับ Mobile (โฟกัสหลัก) */
+@media (max-width: 767px) {
+  .card {
+    margin: 0 10px;
+    padding: 16px;
+    border-radius: 8px;
+  }
+  
+  .card h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .add-button {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .disease-list {
+    gap: 16px;
+  }
+  
+  .disease-item {
+    padding: 16px;
+    border-radius: 12px;
+    min-height: 180px;
+  }
+  
+  .disease-thumbnail {
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+  }
+  
+  .disease-info h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  
+  .disease-symptoms {
+    font-size: 14px;
+    padding: 0 5px;
+  }
+  
+  .disease-meta small {
+    font-size: 12px;
+  }
+  
+  .edit-quick-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    top: 8px;
+    right: 8px;
+  }
+}
+
+/* สำหรับโทรศัพท์ขนาดเล็กมาก */
+@media (max-width: 480px) {
+  .card {
+    margin: 0 5px;
+    padding: 12px;
+  }
+  
+  .card h2 {
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+  
+  .disease-item {
+    padding: 12px;
+    min-height: 160px;
+  }
+  
+  .disease-thumbnail {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .disease-info h3 {
+    font-size: 18px;
+  }
+  
+  .disease-symptoms {
+    font-size: 13px;
+  }
+  
+  .edit-quick-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+}
+
+/* การปรับปรุงสำหรับการแตะบนมือถือ */
+@media (hover: none) and (pointer: coarse) {
+  .disease-item:hover {
+    transform: none;
+  }
+  
+  .disease-item:active {
+    background: linear-gradient(145deg, #e8f5e8, #f0f8f0);
+    transform: scale(0.98);
+  }
+  
+  .edit-quick-btn:hover {
+    transform: none;
+  }
+  
+  .edit-quick-btn:active {
+    transform: scale(0.95);
+  }
+  
+  .add-button:hover {
+    transform: none;
+  }
+  
+  .add-button:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Loading Animation */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.card > div[style*="textAlign: center"]:not([style*="color: red"]) {
+  animation: pulse 2s infinite;
+}
+
+/* Accessibility Improvements */
+.disease-item:focus,
+.add-button:focus,
+.edit-quick-btn:focus {
+  outline: 3px solid #4CAF50;
+  outline-offset: 2px;
+}
+
+/* Dark mode support (เตรียมไว้) */
+@media (prefers-color-scheme: dark) {
+  .card {
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+  
+  .disease-item {
+    background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+    border-color: #4CAF50;
+    color: #ffffff;
+  }
+  
+  .disease-info h3 {
+    color: #4CAF50;
+  }
+  
+  .disease-symptoms {
+    color: #cccccc;
+  }
+  
+  .disease-symptoms strong {
+    color: #4CAF50;
+  }
 }

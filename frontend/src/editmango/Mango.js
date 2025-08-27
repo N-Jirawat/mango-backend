@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebaseConfig";
-import { collection, getDocs} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import "../css/mango.css";
 
@@ -16,11 +16,11 @@ function Mango() {
       try {
         // 1. ดึงข้อมูลจาก MangoDisease collection
         const mangoDiseaseSnapshot = await getDocs(collection(db, "MangoDisease"));
-        
+
         // 2. ดึงข้อมูลรูปภาพจาก ImageMango collection
         const imageMangoSnapshot = await getDocs(collection(db, "ImageMango"));
         const imageMap = {};
-        
+
         // สร้าง map ของรูปภาพตาม DiseaseID
         imageMangoSnapshot.docs.forEach((doc) => {
           const imageData = doc.data();
@@ -35,7 +35,7 @@ function Mango() {
         const diseasesData = mangoDiseaseSnapshot.docs.map((doc) => {
           const diseaseData = doc.data();
           const imageInfo = imageMap[doc.id] || {};
-          
+
           return {
             id: doc.id,
             DiseaseName: diseaseData.DiseaseName || "",
@@ -118,8 +118,8 @@ function Mango() {
               {/* แสดงรูปภาพถ้ามี */}
               {disease.ImgPath && (
                 <div className="disease-image-container">
-                  <img 
-                    src={disease.ImgPath} 
+                  <img
+                    src={disease.ImgPath}
                     alt={disease.DiseaseName}
                     className="disease-thumbnail"
                     onError={(e) => {
@@ -128,12 +128,9 @@ function Mango() {
                   />
                 </div>
               )}
-              
+
               <div className="disease-info">
                 <h3>{disease.DiseaseName}</h3>
-                <p className="disease-symptoms">
-                  <strong>อาการ:</strong> {disease.Style}
-                </p>
                 <p className="disease-meta">
                   {disease.UpdateAt && (
                     <small>
@@ -142,7 +139,7 @@ function Mango() {
                   )}
                 </p>
               </div>
-              
+
               {/* ปุ่มแก้ไขแยกจากการคลิกหลัก */}
               <div className="disease-actions">
                 <button

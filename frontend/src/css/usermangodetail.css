@@ -1,30 +1,31 @@
 .user-disease-detail-container {
   width: 100%;
   max-width: 100% !important;
-  padding: 40px 80px !important;
+  padding: 20px !important;
   box-sizing: border-box;
+  min-height: 100vh;
 }
 
 .container-state {
-    width: 100%; /* ให้เต็มความกว้าง */
-    max-width: 1000px; /* ไม่เกิน 1000px */
+    width: 100%;
+    max-width: 1200px;
     background: linear-gradient(135deg, #f1f8e9, #ffffff);
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     justify-content: center !important;
     margin: 0 auto;
-    margin-top: 50px;
-    margin-bottom: 50px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-height: calc(100vh - 40px);
 }
-
 
 .user-boxmango {
   width: 100% !important;
-  max-width: 1000px !important;
-  margin: 30px auto;
-  padding: 50px;
+  max-width: 100% !important;
+  margin: 20px 0;
+  padding: 25px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 20px;
@@ -33,10 +34,19 @@
 }
 
 .user-boxmango p {
-    font-size: 1.3rem;
-    padding: 20px 25px;
-    line-height: 2;
-    margin-bottom: 25px;
+    font-size: 1.1rem;
+    padding: 20px;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    color: #4a5568;
+    text-align: left;
+    background: rgba(74, 144, 226, 0.05);
+    border-radius: 12px;
+    border-left: 4px solid #4ae24c;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Loading State */
@@ -46,174 +56,240 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    color: white;
+    color: #4a5568;
     padding: 20px;
+    text-align: center;
 }
 
 .loading-spinner {
     width: 50px;
     height: 50px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top: 3px solid white;
+    border: 3px solid rgba(76, 175, 80, 0.3);
+    border-top: 3px solid #4caf50;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
 }
 
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 .user-namedisease {
     text-align: center;
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #2d3748;
-    margin: 30px 0;
-    /* background-clip: text; อันนี้ปกติใช้กับ text-shadow หรือ gradient text */
-    padding: 10px 0;
+    margin: 20px 0;
+    padding: 15px 10px;
     box-sizing: border-box;
+    word-wrap: break-word;
+    line-height: 1.3;
+}
+
+.image-section {
+    width: 100%;
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
 }
 
 .user-img-disease {
     width: 100%;
-    max-width: 500px;
-    height: 300px;
+    max-width: 750px;
+    height: 400px;
     object-fit: cover;
-    border-radius: 20px;
-    margin: 0 auto 30px;
+    border-radius: 15px;
+    margin: 0 auto;
     display: block;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-sizing: border-box;
 }
 
 .user-img-disease:hover {
-    transform: scale(1.02);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-}
-
-.user-boxmango:hover {
-    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
 }
 
 .back-button {
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 12px 20px;
+    font-size: 16px;
     background-color: #4caf50;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
+    gap: 8px;
     box-sizing: border-box;
+    margin-bottom: 20px;
+    font-weight: 500;
 }
 
 .back-button:hover {
     background-color: #388e3c;
-    transform: scale(1.05);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
-.back-button:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(72, 180, 97, 0.6);
+.back-button:active {
+    transform: translateY(0);
 }
 
-.user-boxmango p {
-    font-size: 1.1rem;
-    line-height: 1.8;
-    margin-bottom: 20px;
-    color: #4a5568;
-    text-align: justify;
-    padding: 15px;
-    background: rgba(74, 144, 226, 0.05);
-    border-radius: 12px;
-    border-left: 4px solid #4ae24c;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
+.user-boxmango p strong {
+    color: #2d3748;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    border-bottom: 2px solid #4ae24c;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
 }
 
 .user-boxmango p:hover {
-    background: rgba(74, 144, 226, 0.1);
-    transform: translateX(5px);
+    background: rgba(74, 144, 226, 0.08);
 }
 
 .user-boxmango p:last-child {
     margin-bottom: 0;
 }
 
-.user-boxmango strong {
-    color: #2d3748;
-    font-weight: 700;
-    display: inline-block;
-    margin-bottom: 8px;
-    font-size: 1.15rem;
-}
-
-/* Loading and Error States */
-.user-disease-detail-container>div {
+/* Error and Loading States */
+.error-message, .loading-message {
     text-align: center;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #4a5568;
-    padding: 40px;
-    background: rgba(255, 255, 255, 0.8);
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 15px;
-    margin: 50px auto;
-    max-width: 400px;
+    margin: 30px auto;
+    max-width: 90%;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     box-sizing: border-box;
-    /* เพิ่ม box-sizing */
 }
 
-/* Responsive Design */
+/* Responsive Design - Mobile First */
 @media (max-width: 768px) {
     .user-disease-detail-container {
-        padding: 15px;
-        margin: 0 auto;
-        /* จัดกึ่งกลางบนมือถือด้วย */
+        padding: 15px !important;
+    }
+
+    .container-state {
+        margin: 10px;
+        border-radius: 10px;
+        min-height: calc(100vh - 20px);
     }
 
     .user-namedisease {
-        font-size: 2rem;
-        margin: 20px 0;
+        font-size: 1.6rem;
+        margin: 15px 0;
+        padding: 10px;
+        line-height: 1.4;
     }
 
     .user-img-disease {
-        height: 250px;
-        margin-bottom: 20px;
+        max-width: 350px;
+        height: 200px;
+        border-radius: 12px;
     }
 
     .user-boxmango {
-        padding: 30px;
-        margin: 20px auto;
+        padding: 20px;
+        margin: 15px 0;
     }
 
     .user-boxmango p {
         font-size: 1rem;
-        padding: 12px;
+        padding: 15px;
+        line-height: 1.7;
+        margin-bottom: 15px;
+    }
+
+    .user-boxmango p strong {
+        font-size: 1.1rem;
+        margin-bottom: 12px;
     }
 
     .back-button {
-        /* เปลี่ยนจาก .user-back-button เป็น .back-button */
         padding: 10px 16px;
         font-size: 14px;
+        width: auto;
+        min-width: 120px;
     }
 }
 
 @media (max-width: 480px) {
+    .user-disease-detail-container {
+        padding: 10px !important;
+    }
+
+    .container-state {
+        margin: 5px;
+        border-radius: 8px;
+    }
+
     .user-namedisease {
-        font-size: 1.8rem;
+        font-size: 1.4rem;
+        margin: 10px 0;
+        padding: 8px;
     }
 
     .user-img-disease {
-        height: 200px;
+        max-width: 300px;
+        height: 180px;
+        border-radius: 10px;
     }
 
     .user-boxmango {
         padding: 15px;
+        margin: 10px 0;
     }
 
     .user-boxmango p {
         font-size: 0.95rem;
+        padding: 12px;
+        line-height: 1.6;
+        margin-bottom: 12px;
+    }
+
+    .user-boxmango p strong {
+        font-size: 1rem;
+        margin-bottom: 10px;
+    }
+
+    .back-button {
+        padding: 8px 14px;
+        font-size: 13px;
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+    .user-namedisease {
+        font-size: 1.2rem;
+    }
+
+    .user-img-disease {
+        max-width: 280px;
+        height: 160px;
+    }
+
+    .user-boxmango p {
+        font-size: 0.9rem;
         padding: 10px;
+    }
+
+    .user-boxmango p strong {
+        font-size: 0.95rem;
     }
 }
 
@@ -223,7 +299,6 @@
         opacity: 0;
         transform: translateY(20px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -234,16 +309,34 @@
     animation: fadeIn 0.6s ease-out;
 }
 
-/* Hover effects for better interactivity */
-.user-boxmango p strong::after {
-    content: '';
-    display: block;
-    width: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #4a90e2, #50c878);
-    transition: width 0.3s ease;
+/* Touch-friendly hover effects for mobile */
+@media (hover: hover) {
+    .user-boxmango:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
 }
 
-.user-boxmango p:hover strong::after {
-    width: 100%;
+/* Ensure text is always readable */
+.user-boxmango p {
+    hyphens: auto;
+    word-break: break-word;
+}
+
+/* Accessibility improvements */
+.back-button:focus {
+    outline: 3px solid rgba(76, 175, 80, 0.5);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .user-boxmango p {
+        background: rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #000;
+    }
+    
+    .back-button {
+        border: 2px solid #000;
+    }
 }
