@@ -10,6 +10,7 @@ import {
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "../PDF/vfs_fonts"; // ไฟล์ฟอนต์ Sarabun ต้องมีในโฟลเดอร์นี้
 import { saveStatisticsToFirestore } from './FirebaseStateLogger';
+import { useNavigate } from 'react-router-dom';
 
 // กำหนดฟอนต์ให้ pdfMake
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
@@ -733,11 +734,8 @@ function StatisticsAdmin() {
       let saveResult = null;
       try {
         saveResult = await saveStatisticsToFirestore(diseaseStats, filteredPredictions, filters);
-        console.log("บันทึกสถิติลง Firebase สำเร็จ:", saveResult);
       } catch (error) {
-        console.error("เกิดข้อผิดพลาดในการบันทึกสถิติ:", error);
-        // แสดงข้อความแจ้งเตือนแต่ยังคงสร้าง PDF ต่อไป
-        alert("เกิดข้อผิดพลาดในการบันทึกสถิติลงฐานข้อมูล แต่จะสร้าง PDF ให้ต่อไป");
+        console.error("เกิดข้อผิดพลาดในการบันทึกสถิติ:", error); 
       }
 
       let pieChartImage = null;
@@ -1034,11 +1032,10 @@ function StatisticsAdmin() {
 
       // แสดงข้อความสำเร็จ
       if (saveResult) {
-        alert(`สร้างรายงาน PDF และบันทึกสถิติสำเร็จ!\nรหัสอ้างอิง: ${saveResult.statisticAnalyId}`);
+        alert('สร้างรายงาน PDF สำเร็จ!');
       }
 
     } catch (error) {
-      console.error("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF:", error);
       alert("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF");
     }
   };
@@ -1301,6 +1298,12 @@ function StatisticsAdmin() {
     );
   };
 
+  const navigate = useNavigate();
+
+  const handleGoHome = () => {
+    navigate('/');
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -1313,6 +1316,9 @@ function StatisticsAdmin() {
   return (
     <>
       <div className="statistics-admin-container">
+        <button onClick={handleGoHome} className="back-button">
+          หน้าหลัก
+        </button>
         <div className="header-section">
           <h2>สถิติการวิเคราะห์โรคใบมะม่วง</h2>
         </div>

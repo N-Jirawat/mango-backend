@@ -243,7 +243,6 @@ function ReportAdmin() {
             await saveReportToFirestore(usersReport);
 
         } catch (error) {
-            console.error("เกิดข้อผิดพลาดในการสร้าง PDF:", error);
             alert("เกิดข้อผิดพลาด: " + error.message);
         } finally {
             setSaving(false);

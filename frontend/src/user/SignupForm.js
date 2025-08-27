@@ -275,7 +275,7 @@ function SignupForm() {
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="รหัสผ่าน : เช่น Test123"
+              placeholder="รหัสผ่าน :"
               value={formData.password}
               onChange={handleChange}
               style={{
@@ -317,7 +317,7 @@ function SignupForm() {
           </div>
 
           <p style={{ display: 'flex', fontSize: "12px", color: "#666", margin: "5px 0" }}>
-            *รหัสผ่านอย่างน้อย 6 ตัว ต้องมีตัวอักษรและตัวเลขอย่างน้อยตัวละ 1 ตัว
+            *รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร และต้องประกอบด้วยตัวอักษรและตัวเลขอย่างน้อยอย่างละ 1 ตัว (เช่น: Test123)
           </p>
 
           {/* แสดงสถานะการตรวจสอบรหัสผ่าน */}
@@ -405,14 +405,13 @@ function SignupForm() {
             </button>
           </div>
 
-          <button onClick={() => setStep(2)} disabled={loading}>ต่อไป ➡️</button>
-        </div>
+          <button className="next-button" onClick={() => setStep(2)} disabled={loading} > ถัดไป →</button> </div>
       )}
 
       {step === 2 && (
         <div className="card">
           <h3>ข้อมูลเพิ่มเติม</h3>
-          <input style={{ fontSize: '14px' }} type="text" name="fullName" placeholder="ชื่อผู้ใช้ : ชื่อ-นามสกุล" value={userInfo.fullName} onChange={handleUserInfoChange} />
+          <input style={{ fontSize: '14px' }} type="text" name="fullName" placeholder="ชื่อ-นามสกุล :" value={userInfo.fullName} onChange={handleUserInfoChange} />
           <input style={{ fontSize: '14px' }} type="text" name="address" placeholder="ที่อยู่ : เช่น 55/5 หรือ บ้านเลขที่ 55 หมู่ 5" value={userInfo.address} onChange={handleUserInfoChange} />
           <input style={{ fontSize: '14px' }} type="text" name="village" placeholder="ชื่อหมู่บ้าน : เช่น กำเนิดเพขร" value={userInfo.village} onChange={handleUserInfoChange} />
           <div className="location-container">
@@ -446,12 +445,22 @@ function SignupForm() {
             onChange={handleUserInfoChange}
             maxLength="10"
           />
-          <div className="button-container">
-            <button onClick={() => setStep(1)}>⬅️ ย้อนกลับ</button>
-            <button onClick={handleSubmit} disabled={loading}>
-              {loading ? "กำลังบันทึก..." : currentUserRole === "admin" ? "เพิ่มสมาชิก ✅" : "บันทึก ✅"}
+          <div className="button-save-signin">
+            <button onClick={() => setStep(1)}>⬅ ย้อนกลับ</button>
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="save-button"
+            >
+              {loading
+                ? "กำลังบันทึก..."
+                : currentUserRole === "admin"
+                  ? "เพิ่มสมาชิก ✅"
+                  : "บันทึก ✅"}
             </button>
           </div>
+
         </div>
       )}
     </div>

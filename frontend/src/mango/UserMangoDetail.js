@@ -128,7 +128,7 @@ function UserMangoDetail() {
         <div className="container-state">
             <div className="user-disease-detail-container">
                 <button onClick={handleBack} className="back-button">
-                    ⬅️ กลับสู่รายการโรค
+                    ⬅ กลับสู่รายการโรค
                 </button>
                 
                 <h3 className="user-namedisease">{mango.DiseaseName || 'ไม่มีชื่อโรค'}</h3>

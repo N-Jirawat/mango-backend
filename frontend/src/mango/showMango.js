@@ -136,7 +136,7 @@ function ShowMango() {
   return (
     <div className="show-mango-container">
       <button onClick={handleBack} className="back-button">
-        ⬅️ หน้าหลัก
+        หน้าหลัก
       </button>
       <h2>รายการโรคใบมะม่วง</h2>
       <div className="mango-card-grid">

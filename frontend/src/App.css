@@ -211,6 +211,60 @@ footer {
   /* เพิ่ม box-sizing */
 }
 
+.next-button {
+  background-color: #209a1e !important;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.next-button:hover {
+  background-color: #5ec45e !important; /* เขียวอ่อน */
+}
+.button-save-signin {
+  display: flex;
+  justify-content: space-between; /* ดันปุ่มไปซ้าย-ขวา */
+  gap: 10px; /* ระยะห่างระหว่างปุ่ม */
+  margin-top: 16px;
+}
+
+.button-save-signin button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+/* ปุ่มย้อนกลับ */
+.button-save-signin button:first-child {
+  background-color: #cbcaca; /* เทาอ่อน */
+  color: black;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.button-save-signin button:first-child:hover {
+  background-color: #969595; /* เทาเข้มขึ้นเล็กน้อยตอน hover */
+}
+
+/* ปุ่มบันทึก */
+.save-button {
+  background-color: #0a8f08 !important; /* เขียว */
+  color: white;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: #00ff66 !important; /* เขียวอ่อน */
+}
+
+.save-button:disabled {
+  background-color: #bdbdbd; /* เทาเมื่อ disabled */
+  cursor: not-allowed;
+}
+
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear,
 input[type="password"]::-webkit-credentials-auto-fill-button,

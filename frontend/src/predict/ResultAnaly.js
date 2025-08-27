@@ -147,7 +147,7 @@ function ResultAnaly() {
         <div className="result-container">
             <div className="result-header">
                 <button onClick={handleGoHome} className="back-button">
-                    ⬅️ หน้าหลัก
+                    หน้าหลัก
                 </button>
             </div>
 

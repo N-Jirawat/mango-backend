@@ -63,27 +63,6 @@
   box-sizing: border-box;
 }
 
-/* ปุ่มย้อนกลับ */
-.button-back {
-  padding: 12px 20px;
-  font-size: 16px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-sizing: border-box;
-}
-
-.button-back:hover {
-  background-color: #5a6268;
-  transform: translateY(-1px);
-}
-
 /* ปุ่มแก้ไข */
 .edit-btn {
   padding: 12px 20px;

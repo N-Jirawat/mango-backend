@@ -9,7 +9,7 @@ function UserManualMobile() {
     <div className="user-manual-container">
       <div className="Manual-header">
         <button onClick={() => navigate("/usermanual")} className="back-button">
-          ⬅️ กลับไปเลือกคู่มือ
+          ⬅ กลับไปเลือกคู่มือ
         </button>
       </div>
       <h2>📱 คู่มือการใช้งานเว็บ LeafAnalyzer (มือถือ)</h2>

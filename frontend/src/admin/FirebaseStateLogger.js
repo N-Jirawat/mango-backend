@@ -32,8 +32,6 @@ export const saveStatisticsToFirestore = async (diseaseStats, filteredPrediction
             diseaseBreakdown: diseaseStats, // เก็บรายละเอียดของโรคแต่ละชนิด
         });
 
-        console.log("บันทึกข้อมูล StatisticAnaly สำเร็จ ID:", statisticAnalyDoc.id);
-
         // 2. บันทึกลงตาราง StatisticMostComDisease
         // ก่อนหน้านี้มี AnalysisID
         const statisticMostComDiseaseDoc = await addDoc(collection(db, "StatisticMostComDisease"), {
@@ -43,8 +41,6 @@ export const saveStatisticsToFirestore = async (diseaseStats, filteredPrediction
             MostComDisease: mostCommonDiseaseName,
             DiseaseID: generateDiseaseId(mostCommonDiseaseName),
         });
-
-        console.log("บันทึกข้อมูล StatisticMostComDisease สำเร็จ ID:", statisticMostComDiseaseDoc.id);
 
         return {
             statisticAnalyId: statisticAnalyDoc.id,
@@ -57,7 +53,6 @@ export const saveStatisticsToFirestore = async (diseaseStats, filteredPrediction
         };
 
     } catch (error) {
-        console.error("เกิดข้อผิดพลาดในการบันทึกสถิติลง Firestore:", error);
         throw error;
     }
 };

@@ -118,7 +118,7 @@ function History() {
   return (
     <div className="history-container">
       <div className="analy-header">
-        <button onClick={handleGoHome} className="back-button">⬅️ หน้าหลัก</button>
+        <button onClick={handleGoHome} className="back-button">หน้าหลัก</button>
       </div>
 
       <h2>ประวัติการวิเคราะห์โรค</h2>

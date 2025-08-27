@@ -30,7 +30,8 @@
 
 /* ปุ่มย้อนกลับ */
 .back-button {
-  background: #66f46d !important;
+  background: #0a8f08 !important;
+  color: #e0e0e0 !important;
   border: none;
   padding: 8px 14px;
   border-radius: 8px;

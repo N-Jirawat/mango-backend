@@ -133,7 +133,7 @@ function HistoryDetail() {
     <div className="details-container">
       <div className="analyDetail-header">
         <button onClick={handleGoHome} className="back-button">
-          ⬅️ หน้าหลัก
+          หน้าหลัก
         </button>
       </div>
       <h2>รายละเอียดการทำนายโรค</h2>

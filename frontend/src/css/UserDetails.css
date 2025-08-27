@@ -61,14 +61,14 @@
 
 /* ปุ่มกลับ สีเขียว */
 .button-container button:first-child {
-  background-color: #28a745;
+  background-color: #46c463 !important; 
   color: white;
 }
 
 /* ปุ่มแก้ไข สีฟ้า */
 .button-container button:last-child {
-  background-color: #007bff;
-  color: white;
+  background-color: #b5b5b5;
+  color: rgb(4, 4, 4);
 }
 
 /* hover effect */

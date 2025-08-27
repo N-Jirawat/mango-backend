@@ -406,7 +406,7 @@ function UserDetails() {
   const handleBack = () => {
     // สมมติ role มีค่า "admin" หรือ "user"
     if (role === "admin") {
-      navigate("/accountmanagement");
+      navigate("/");
     } else {
       navigate("/");
     }
@@ -464,11 +464,11 @@ function UserDetails() {
       </div>
 
       <div className="button-container">
-        <button onClick={handleBack}>
-          กลับ
-        </button>
         <button onClick={openEditModal} style={{ backgroundColor: '#757575' }}>
           แก้ไขข้อมูล
+        </button>
+        <button onClick={handleBack}>
+          หน้าหลัก
         </button>
       </div>
 
@@ -693,7 +693,7 @@ function UserDetails() {
                     name="newPassword"
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
-                    placeholder="รหัสผ่านใหม่ เช่น Test123"
+                    placeholder="รหัสผ่านใหม่"
                     className={`form-input-edit ${passwordErrors.newPassword ? "error" : ""}`}
                     style={{ paddingRight: '40px', fontSize: '14px' }}
                   />
