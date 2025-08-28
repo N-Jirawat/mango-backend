@@ -56,7 +56,7 @@ function ReportAdmin() {
                     }))
                     .filter(user => user.role !== "admin");
 
-                const analysisSnapshot = await getDocs(collection(db, "prediction_results"));
+                const analysisSnapshot = await getDocs(collection(db, "AnalysisHistory"));
 
                 // map ตาม userId
                 const userReportsMap = {};

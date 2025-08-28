@@ -181,7 +181,7 @@
 
 /* Form Styles */
 .form-group-edit {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .form-group-edit label {
@@ -227,7 +227,7 @@
 
 /* Row สำหรับเบอร์โทรและอีเมล - อีเมลกว้างกว่า */
 .form-row-edit.contact-row {
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr;
 }
 
 /* Error Styles */

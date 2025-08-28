@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import "../css/historyanaly.css";
+import "../css/PredictHistory.css";
 
 function History() {
   const [allPredictions, setAllPredictions] = useState([]);
@@ -37,13 +37,13 @@ function History() {
     let filtered = [...allPredictions];
     if (searchDisease.trim()) {
       filtered = filtered.filter(prediction =>
-        (prediction.diseaseName || "").toLowerCase().includes(searchDisease.toLowerCase())
+        (prediction.DiseaseName || "").toLowerCase().includes(searchDisease.toLowerCase())
       );
     }
     if (searchDate) {
       filtered = filtered.filter(prediction => {
-        if (!prediction.timestamp?.seconds) return false;
-        const predictionDate = new Date(prediction.timestamp.seconds * 1000).toISOString().split('T')[0];
+        if (!prediction.UpdateAt?.seconds) return false;
+        const predictionDate = new Date(prediction.UpdateAt.seconds * 1000).toISOString().split('T')[0];
         return predictionDate === searchDate;
       });
     }
@@ -54,9 +54,9 @@ function History() {
   const fetchHistory = async (currentUser) => {
     try {
       const q = query(
-        collection(db, "prediction_results"),
+        collection(db, "AnalysisHistory"),
         where("userId", "==", currentUser.uid),
-        orderBy("timestamp", "desc")
+        orderBy("UpdateAt", "desc")
       );
       const querySnapshot = await getDocs(q);
       const historyData = [];
@@ -67,7 +67,7 @@ function History() {
     } catch (error) {
       try {
         const fallbackQuery = query(
-          collection(db, "prediction_results"),
+          collection(db, "AnalysisHistory"),
           where("userId", "==", currentUser.uid)
         );
         const snapshot = await getDocs(fallbackQuery);
@@ -178,8 +178,8 @@ function History() {
                 )}
                 <p><strong>ความมั่นใจ:</strong> {prediction.confidence !== undefined ? prediction.confidence.toFixed(4) + "%" : "ไม่ระบุ"}</p>
                 <p><strong>วันที่:</strong> {
-                  prediction.timestamp?.seconds
-                    ? new Date(prediction.timestamp.seconds * 1000).toLocaleString("th-TH")
+                  prediction.UpdateAt?.seconds
+                    ? new Date(prediction.UpdateAt.seconds * 1000).toLocaleString("th-TH")
                     : "ไม่ระบุวันที่"
                 }</p>
                 <button

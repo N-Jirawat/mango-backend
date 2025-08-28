@@ -81,6 +81,18 @@ function ShowMango() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // ฟังก์ชันสำหรับกรองใบมะม่วงปกติออก
+  const isNormalMango = (diseaseName) => {
+    if (!diseaseName) return false;
+    
+    const normalKeywords = ['ปกติ', 'normal', 'healthy', 'สุขภาพดี', 'ไม่มีโรค'];
+    const lowerDiseaseName = diseaseName.toLowerCase();
+    
+    return normalKeywords.some(keyword => 
+      lowerDiseaseName.includes(keyword.toLowerCase())
+    );
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -89,7 +101,11 @@ function ShowMango() {
           const docData = doc.data();
           return { id: doc.id, ...docData };
         });
-        setMangoData(data);
+        
+        // กรองข้อมูลให้แสดงเฉพาะโรค ไม่แสดงใบมะม่วงปกติ
+        const filteredData = data.filter(item => !isNormalMango(item.DiseaseName));
+        
+        setMangoData(filteredData);
       } catch (error) {
         console.error("Error fetching mango data:", error);
       } finally {
@@ -149,7 +165,6 @@ function ShowMango() {
                 diseaseName={item.DiseaseName}
                 fallbackSrc="/placeholder-image.png"
               />
-              {/* Debug info - ลบออกได้เมื่อแก้เสร็จ */}
             </div>
             <h3>{item.DiseaseName || 'ไม่มีชื่อโรค'}</h3>
             <Link to={`/usermangodetail/${item.id}`}>

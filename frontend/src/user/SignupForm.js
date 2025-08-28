@@ -162,29 +162,74 @@ function SignupForm() {
     return { isValid: true, message: "" };
   };
 
+  // ฟังก์ชันตรวจสอบความสมบูรณ์ของ Step 1
+  const validateStep1 = () => {
+    const { username, email, password, confirmPassword } = formData;
+    
+    if (!username.trim()) {
+      alert("กรุณากรอกชื่อบัญชี");
+      return false;
+    }
+    
+    if (!email.trim()) {
+      alert("กรุณากรอกอีเมล");
+      return false;
+    }
+    
+    if (!validateEmail(email)) {
+      alert("รูปแบบอีเมลไม่ถูกต้อง");
+      return false;
+    }
+    
+    if (!password.trim()) {
+      alert("กรุณากรอกรหัสผ่าน");
+      return false;
+    }
+    
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.isValid) {
+      alert(passwordCheck.message);
+      return false;
+    }
+    
+    if (!confirmPassword.trim()) {
+      alert("กรุณายืนยันรหัสผ่าน");
+      return false;
+    }
+    
+    if (password !== confirmPassword) {
+      alert("รหัสผ่านไม่ตรงกัน");
+      return false;
+    }
+    
+    return true;
+  };
+
+  // ฟังก์ชันตรวจสอบความสมบูรณ์ของ Step 2
+  const validateStep2 = () => {
+    if (!userInfo.fullName.trim()) {
+      alert("กรุณากรอกชื่อ-นามสกุล");
+      return false;
+    }
+    return true;
+  };
+
+  // ฟังก์ชันสำหรับไปขั้นตอนถัดไป
+  const handleNextStep = () => {
+    if (validateStep1()) {
+      setStep(2);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // ตรวจสอบ Step 2 ก่อนส่ง
+    if (!validateStep2()) {
+      return;
+    }
+    
     setLoading(true);
-
-    // ตรวจสอบรหัสผ่าน
-    const passwordValidation = validatePassword(formData.password);
-    if (!passwordValidation.isValid) {
-      alert(passwordValidation.message);
-      setLoading(false);
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      alert("รหัสผ่านไม่ตรงกัน!");
-      setLoading(false);
-      return;
-    }
-
-    if (!validateEmail(formData.email)) {
-      alert("รูปแบบอีเมลไม่ถูกต้อง!");
-      setLoading(false);
-      return;
-    }
 
     try {
       const usersRef = collection(db, "users");
@@ -215,7 +260,7 @@ function SignupForm() {
         subdistrict: subdistricts.find(s => s.id === Number(userInfo.subdistrict))?.name_th || "",
         district: districts.find(d => d.id === Number(userInfo.district))?.name_th || "",
         province: provinces.find(p => p.id === Number(userInfo.province))?.name_th || "",
-        tel: userInfo.tel.startsWith("0") ? userInfo.tel : "0" + userInfo.tel,
+        tel: userInfo.tel.startsWith("") ? userInfo.tel : "0" + userInfo.tel,
         role: role,
       });
 
@@ -405,13 +450,20 @@ function SignupForm() {
             </button>
           </div>
 
-          <button className="next-button" onClick={() => setStep(2)} disabled={loading} > ถัดไป →</button> </div>
+          <button className="next-button" onClick={handleNextStep} disabled={loading}>
+            ถัดไป →
+          </button>
+        </div>
       )}
 
       {step === 2 && (
         <div className="card">
           <h3>ข้อมูลเพิ่มเติม</h3>
+          
           <input style={{ fontSize: '14px' }} type="text" name="fullName" placeholder="ชื่อ-นามสกุล :" value={userInfo.fullName} onChange={handleUserInfoChange} />
+          <p style={{ display: 'flex', fontSize: "12px", color: "#666", margin: "5px 0" }}>
+            *จำเป็นต้องกรอกชื่อ
+          </p>
           <input style={{ fontSize: '14px' }} type="text" name="address" placeholder="ที่อยู่ : เช่น 55/5 หรือ บ้านเลขที่ 55 หมู่ 5" value={userInfo.address} onChange={handleUserInfoChange} />
           <input style={{ fontSize: '14px' }} type="text" name="village" placeholder="ชื่อหมู่บ้าน : เช่น กำเนิดเพขร" value={userInfo.village} onChange={handleUserInfoChange} />
           <div className="location-container">

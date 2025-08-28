@@ -39,13 +39,13 @@ function ForgotPasswordPage() {
                 emailToUse = foundEmail;
             }
 
-            await sendPasswordResetEmail(auth, emailToUse);
-            setMessage("ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลแล้ว กรุณาตรวจสอบกล่องจดหมาย");
+            const actionCodeSettings = {
+                url: "https://mangoleafanalyzer.onrender.com/reset-password", // ลิงก์ไปหน้าของคุณ
+                handleCodeInApp: true,
+            };
 
-            // รอ 8 วินาที แล้วพาไปหน้า login
-            setTimeout(() => {
-                navigate("/login");
-            }, 8000);
+            await sendPasswordResetEmail(auth, emailToUse, actionCodeSettings);
+            setMessage("ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลแล้ว กรุณาตรวจสอบกล่องจดหมาย");
 
         } catch (err) {
             console.error(err);

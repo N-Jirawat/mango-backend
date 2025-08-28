@@ -24,7 +24,7 @@ import UserMangoDetail from "./mango/UserMangoDetail";
 import PredictPage from "./predict/PredictButton";
 import ImageUpload from "./predict/ImageUpLoad";
 import ResultAnaly from "./predict/ResultAnaly";
-import History from "./history/HistoryAnaly";
+import PrefictHistory from "./history/PredictHistory"
 import HistoryDetail from "./history/HistoryDetail";
 import UserManual from "./UserManual";
 import ResponsiveNav from "./ResponsiveNav";
@@ -34,6 +34,7 @@ import StatisticsAdmin from "./admin/StatisticsAdmin";
 import ReportAdmin from "./admin/ReportAdmin";
 import UserManualMobile from "./UserManualMobile";
 import UserManualPC from "./UserManualPC";
+import ResetPasswordPage from "./user/ResetPassword";
 
 // CSS
 import "./css/allstyle.css";
@@ -145,6 +146,7 @@ function App() {
           <Route path="/resultanaly" element={<ResultAnaly />} />
           <Route path="/usermanualmobile" element={<UserManualMobile />} />
           <Route path="/usermanualpc" element={<UserManualPC />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Protected Admin Routes */}
           <Route
@@ -254,7 +256,7 @@ function App() {
             element={
               <PrivateRoute
                 currentUser={currentUser}
-                element={<History />}
+                element={<PrefictHistory />}
               />
             }
           />

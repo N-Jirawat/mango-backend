@@ -188,7 +188,7 @@ def predict_image():
                 is_leaf, similarity = checkMango.is_mango_leaf_from_embedding(image, checkMango.mango_embeddings)
                 if similarity < MANGO_LEAF_THRESHOLD:
                     return jsonify({
-                        "prediction": "ไม่ใช่ภาพใบมะม่วง",
+                        "prediction": "ไม่พบโรคที่ตรงกับข้อมูลในระบบ",
                         "confidence": float(similarity), # Use similarity as confidence for rejection
                         "raw_class": None,
                         "accuracy": 0,
@@ -215,7 +215,7 @@ def predict_image():
         # ตรวจสอบ confidence ของการทำนายโรค
         if confidence < DISEASE_CONFIDENCE_THRESHOLD:
             return jsonify({
-                "prediction": "ไม่พบโรคที่ตรงกับข้อมูล",
+                "prediction": "ไม่พบโรคที่ตรงกับข้อมูลในระบบ",
                 "confidence": confidence,
                 "raw_class": class_eng,
                 "accuracy": 0,

@@ -67,7 +67,8 @@ function ImageUpload({ setPredictionResult }) {
     formData.append('image', file);
 
     try {
-      const response = await fetch('https://mango-backend-665966382004.asia-southeast1.run.app/predict', {
+      //const response = await fetch('https://mango-backend-665966382004.asia-southeast1.run.app/predict', {
+      const response = await fetch('http://192.168.1.179:5000/predict', {
         method: 'POST',
         body: formData,
       });
@@ -77,8 +78,6 @@ function ImageUpload({ setPredictionResult }) {
       }
 
       const data = await response.json();
-
-      console.log('Accuracy from backend:', data.accuracy);
 
       if (data.prediction && data.confidence >= 0.5) {
         setPredictionResult({
@@ -95,7 +94,7 @@ function ImageUpload({ setPredictionResult }) {
           },
         });
       } else {
-        setError(`ไม่พบข้อมูล (ความมั่นใจ: ${(data.confidence * 100).toFixed(4)}%)`);
+        setError(`ภาพดังกล่าวไม่ใช่ภาพใบมะม่วง (ความมั่นใจ: ${(data.confidence * 100).toFixed(4)}%)`);
       }
 
     } catch (err) {

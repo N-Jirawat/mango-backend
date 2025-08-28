@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { getAuth } from "firebase/auth"; // ดึง Firebase Authentication
-import { query, where, getDocs } from "firebase/firestore"; // นำเข้า query, where, getDocs
+import { getAuth } from "firebase/auth";
+import { query, getDocs } from "firebase/firestore";
 import "../css/resultanaly.css";
 
 function ResultAnaly() {
@@ -13,23 +13,15 @@ function ResultAnaly() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    // // ฟังก์ชันสำหรับแปลง blob URL เป็นไฟล์
-    // const blobUrlToFile = async (blobUrl) => {
-    //     const response = await fetch(blobUrl);
-    //     const blob = await response.blob();
-    //     const file = new File([blob], "image.jpg", { type: blob.type });
-    //     return file;
-    // };
-
     // ฟังก์ชันสำหรับอัปโหลดภาพไปยัง Cloudinary
     const uploadImageToCloudinary = async (file) => {
         if (!file) {
             console.error("No file provided!");
-            return null; // คืนค่า null ถ้าไม่มีไฟล์
+            return null;
         }
 
         const formData = new FormData();
-        formData.append("file", file); // ส่งไฟล์จริงไปยัง Cloudinary
+        formData.append("file", file);
         formData.append("upload_preset", "ml_default");
         formData.append("folder", "Result_Analy");
         formData.append("cloud_name", "dsf25dlca");
@@ -37,7 +29,7 @@ function ResultAnaly() {
         try {
             const response = await fetch("https://api.cloudinary.com/v1_1/dsf25dlca/image/upload", {
                 method: "POST",
-                body: formData, // ส่งไฟล์จริงผ่าน FormData
+                body: formData,
             });
 
             const data = await response.json();
@@ -47,7 +39,7 @@ function ResultAnaly() {
             }
 
             if (data.secure_url) {
-                return data.secure_url; // ส่ง URL ของภาพที่อัปโหลด
+                return data.secure_url;
             } else {
                 throw new Error("Upload failed: No URL returned from Cloudinary");
             }
@@ -63,7 +55,6 @@ function ResultAnaly() {
         const user = auth.currentUser;
 
         if (!user) {
-            // แทนที่จะ alert ให้นำทางไปหน้า login พร้อมข้อความ
             navigate("/login", {
                 state: {
                     message: "กรุณาเข้าสู่ระบบเพื่อบันทึกข้อมูล",
@@ -74,53 +65,132 @@ function ResultAnaly() {
         }
 
         try {
-            await addDoc(collection(db, "prediction_results"), {
+            await addDoc(collection(db, "AnalysisHistory"), {
                 diseaseName: prediction,
                 confidence: confidence,
-                symptoms: resultInfo?.symptoms || "ไม่มีข้อมูลอาการ",
-                prevention: resultInfo?.prevention || "ไม่มีข้อมูลวิธีการป้องกัน",
-                treatment: resultInfo?.treatment || "ไม่มีข้อมูลวิธีการรักษา",
+                Style: resultInfo?.Style || "ไม่มีข้อมูลอาการ",
+                Protection: resultInfo?.Protection || "ไม่มีข้อมูลวิธีการป้องกัน",
+                Treatment: resultInfo?.Treatment || "ไม่มีข้อมูลวิธีการรักษา",
                 userId: user.uid,
-                timestamp: new Date(),
+                UpdateAt: new Date(),
                 imageUrl: imageUrl,
             });
             alert("บันทึกข้อมูลสำเร็จ!");
+            navigate("/history");
         } catch (error) {
             console.error("Error saving data:", error);
             alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         }
     };
 
+    // ฟังก์ชันสำหรับจับคู่ชื่อโรค
+    const findDiseaseMatch = (searchTerm, documents) => {
+        const normalizedSearch = searchTerm.toLowerCase().trim();
+        
+        // หาแบบตรงกัน 100%
+        for (const doc of documents) {
+            const data = doc.data();
+            if (data.DiseaseName) {
+                const diseaseName = data.DiseaseName.toLowerCase().trim();
+                
+                if (diseaseName === normalizedSearch) {
+                    return data;
+                }
+            }
+        }
+
+        // หาแบบมีคำที่ตรงกัน
+        for (const doc of documents) {
+            const data = doc.data();
+            if (data.DiseaseName) {
+                const diseaseName = data.DiseaseName.toLowerCase().trim();
+                
+                // ตรวจสอบว่าชื่อโรคมีคำที่ค้นหาอยู่หรือไม่
+                if (diseaseName.includes(normalizedSearch)) {
+                    return data;
+                }
+                
+                if (normalizedSearch.includes(diseaseName)) {
+                    return data;
+                }
+                
+                // ตรวจสอบคำสำคัญ - แยกคำและเปรียบเทียบ
+                const searchWords = normalizedSearch.split(/\s+/);
+                const diseaseWords = diseaseName.split(/\s+/);
+                
+                // ตรวจสอบว่ามีคำที่ตรงกันหรือไม่
+                for (const searchWord of searchWords) {
+                    for (const diseaseWord of diseaseWords) {
+                        if (searchWord === diseaseWord || 
+                            searchWord.includes(diseaseWord) || 
+                            diseaseWord.includes(searchWord)) {
+                            return data;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    };
+
     useEffect(() => {
         const fetchResult = async () => {
             if (prediction) {
-                // สร้าง query เพื่อตรวจสอบว่า diseaseName ตรงกับ prediction หรือไม่
-                const q = query(
-                    collection(db, "mango_diseases"),
-                    where("diseaseName", "==", prediction) // ค้นหาจากฟิลด์ diseaseName
-                );
+                try {
+                    // ดึงข้อมูลทั้งหมดจาก collection
+                    const allDocsQuery = query(collection(db, "MangoDisease"));
+                    const allDocsSnapshot = await getDocs(allDocsQuery);
 
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    // หากพบเอกสารที่มีชื่อโรคตรงกับ prediction
-                    querySnapshot.forEach(doc => {
-                        setResultInfo(doc.data()); // ตั้งค่าข้อมูลที่ได้จาก Firestore
-                    });
-                } else {
-                    setResultInfo(null); // หากไม่พบข้อมูล
+                    if (!allDocsSnapshot.empty) {
+                        const allDocs = [];
+                        allDocsSnapshot.forEach(doc => {
+                            allDocs.push(doc);
+                        });
+
+                        // หาข้อมูลที่ตรงกัน
+                        const matchedData = findDiseaseMatch(prediction, allDocs);
+                        
+                        if (matchedData) {
+                            setResultInfo(matchedData);
+                        } else {
+                            // วิธีสำรอง: ค้นหาแบบง่าย ๆ สำหรับ "ใบปกติ"
+                            if (prediction.toLowerCase().includes("ใบปกติ") || prediction.toLowerCase().includes("ปกติ")) {
+                                const normalLeafData = allDocs.find(doc => {
+                                    const data = doc.data();
+                                    return data.DiseaseName && 
+                                           (data.DiseaseName.includes("ใบปกติ") || 
+                                            data.DiseaseName.includes("ปกติ") ||
+                                            data.DiseaseName.includes("ใบมะม่วงปกติ"));
+                                });
+                                
+                                if (normalLeafData) {
+                                    setResultInfo(normalLeafData.data());
+                                } else {
+                                    setResultInfo(null);
+                                }
+                            } else {
+                                setResultInfo(null);
+                            }
+                        }
+                    } else {
+                        setResultInfo(null);
+                    }
+                } catch (error) {
+                    console.error("❌ เกิดข้อผิดพลาดในการค้นหาข้อมูล:", error);
+                    setResultInfo(null);
                 }
             }
         };
 
         fetchResult();
-    }, [prediction]); // useEffect จะทำงานเมื่อ prediction เปลี่ยนแปลง
+    }, [prediction]);
 
-    if (!prediction) return <p className="not-found">ไม่พบข้อมูลการทำนาย</p>;
+    if (!prediction) return <p className="not-found">ไม่พบข้อมูลการวินิจฉัย</p>;
 
     const handleSaveData = async () => {
         setLoading(true);
 
-        // ใช้ไฟล์ต้นฉบับแทน blobUrl
         if (!imageFile) {
             alert("ไม่พบไฟล์ภาพต้นฉบับ");
             setLoading(false);
@@ -135,19 +205,18 @@ function ResultAnaly() {
         setLoading(false);
     };
 
-    const handleGoHome = () => {
-        navigate('/');
+    const handleGoUpLoad = () => {
+        navigate('/predict');
     };
 
-    // ตรวจสอบสถานะ login สำหรับแสดงปุ่มบันทึก
     const auth = getAuth();
     const isLoggedIn = auth.currentUser !== null;
 
     return (
         <div className="result-container">
             <div className="result-header">
-                <button onClick={handleGoHome} className="back-button">
-                    หน้าหลัก
+                <button onClick={handleGoUpLoad} className="back-button">
+                    ย้อนกลับ
                 </button>
             </div>
 
@@ -165,36 +234,39 @@ function ResultAnaly() {
             {resultInfo ? (
                 <>
                     <div className="result-item">
-                        <strong>รายละเอียดโรค:</strong> {resultInfo.symptoms || "ไม่มีข้อมูลรายละเอียดโรค"}
+                        <strong>รายละเอียดโรค:</strong> {resultInfo.Style || "ไม่มีข้อมูลรายละเอียดโรค"}
                     </div>
                     <div className="result-item">
-                        <strong>วิธีป้องกัน:</strong> {resultInfo.prevention || "ไม่มีข้อมูลวิธีการป้องกัน"}
+                        <strong>วิธีป้องกัน:</strong> {resultInfo.Protection || "ไม่มีข้อมูลวิธีการป้องกัน"}
                     </div>
                     <div className="result-item">
-                        <strong>วิธีการรักษา:</strong> {resultInfo.treatment || "ไม่มีข้อมูลวิธีการรักษา"}
+                        <strong>วิธีการรักษา:</strong> {resultInfo.Treatment || "ไม่มีข้อมูลวิธีการรักษา"}
                     </div>
 
-                    {/* แสดงปุ่มบันทึกเฉพาะเมื่อ login แล้ว */}
                     {isLoggedIn ? (
                         <button onClick={handleSaveData} className="save-btn" disabled={loading}>
                             {loading ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
                         </button>
                     ) : (
                         <div className="login-prompt">
-                            <p>หากต้องการบันทึกผลการวิเคราะห์ กรุณาเข้าสู่ระบบ<button
-                                onClick={() => navigate("/login", {
-                                    state: {
-                                        message: "กรุณาเข้าสู่ระบบเพื่อบันทึกข้อมูล",
-                                        redirectTo: "/resultanaly"
-                                    }
-                                })}
-                                className="login-link-btn"
-                            >เข้าสู่ระบบ</button></p>
+                            <p>หากต้องการบันทึกผลการวิเคราะห์ กรุณาเข้าสู่ระบบ
+                                <button
+                                    onClick={() => navigate("/login", {
+                                        state: {
+                                            message: "กรุณาเข้าสู่ระบบเพื่อบันทึกข้อมูล",
+                                            redirectTo: "/resultanaly"
+                                        }
+                                    })}
+                                    className="login-link-btn"
+                                >เข้าสู่ระบบ</button>
+                            </p>
                         </div>
                     )}
                 </>
             ) : (
-                <p className="not-found">ไม่พบข้อมูลในระบบ</p>
+                <div className="debug-info">
+                    <p className="not-found">ไม่พบโรคที่ตรงกับข้อมูลในระบบ</p>
+                </div>
             )}
         </div>
     );

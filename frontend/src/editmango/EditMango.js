@@ -19,8 +19,8 @@ function EditMango() {
   const [imageData, setImageData] = useState(null); // เก็บข้อมูลรูปภาพ
   const [isDeleting, setIsDeleting] = useState(false);
   
-  const BACKEND_URL = "https://mango-backend-665966382004.asia-southeast1.run.app";
-  //const BACKEND_URL = "http://localhost:5000";
+  //const BACKEND_URL = "https://mango-backend-665966382004.asia-southeast1.run.app";
+  const BACKEND_URL = "http://localhost:5000";
 
   useEffect(() => {
     const fetchMangoData = async () => {

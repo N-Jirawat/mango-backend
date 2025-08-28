@@ -50,14 +50,16 @@ function ReportUser() {
         try {
 
           // Prediction Results
-          const predictionQuery = query(collection(db, "prediction_results"), where("userId", "==", user.uid));
+          // Prediction Results
+          const predictionQuery = query(
+            collection(db, "AnalysisHistory"),
+            where("userId", "==", user.uid)
+          );
           const predictionSnapshot = await getDocs(predictionQuery);
 
           const filteredPredictionDocs = predictionSnapshot.docs.filter((doc) => {
             const data = doc.data();
-            const ts = data.timestamp?.seconds
-              ? new Date(data.timestamp.seconds * 1000)
-              : data.timestamp?.toDate?.();
+            const ts = data.UpdateAt?.toDate?.();
             if (!ts) return false;
             return (
               (!startDate || ts >= new Date(startDate)) &&
@@ -65,17 +67,16 @@ function ReportUser() {
             );
           });
 
-          if (filteredPredictionDocs.length === 0) throw new Error("ไม่มีข้อมูลใน prediction_results");
+          if (filteredPredictionDocs.length === 0)
+            throw new Error("ไม่มีข้อมูลใน AnalysisHistory");
 
           const diseaseMap = {};
           let latestDate = null;
 
           filteredPredictionDocs.forEach((doc) => {
             const data = doc.data();
-            const disease = data.diseaseName || data.predictedClass || "ไม่ระบุโรค";
-            const createdAt = data.timestamp?.seconds
-              ? new Date(data.timestamp.seconds * 1000)
-              : data.timestamp?.toDate?.();
+            const disease = data.diseaseName || "ไม่ระบุโรค";
+            const createdAt = data.UpdateAt?.toDate?.();
 
             diseaseMap[disease] = (diseaseMap[disease] || 0) + 1;
 
@@ -88,9 +89,13 @@ function ReportUser() {
           setDiseaseStats(diseaseMap);
           setLastActive(latestDate?.toLocaleString("th-TH"));
 
-          const mostFrequent = Object.entries(diseaseMap).sort(([, a], [, b]) => b - a)[0];
+          const mostFrequent = Object.entries(diseaseMap).sort(
+            ([, a], [, b]) => b - a
+          )[0];
           if (mostFrequent) {
-            setMostFrequentDisease(`${mostFrequent[0]} (${mostFrequent[1]} ครั้ง)`);
+            setMostFrequentDisease(
+              `${mostFrequent[0]} (${mostFrequent[1]} ครั้ง)`
+            );
           }
 
         } catch (error) {
@@ -101,7 +106,7 @@ function ReportUser() {
 
             const filteredDocs = analysisSnapshot.docs.filter((doc) => {
               const data = doc.data();
-              const createdAt = data.createdAt?.toDate?.();
+              const createdAt = data.UpdateAt?.toDate?.();
               if (!createdAt) return false;
               return (
                 (!startDate || createdAt >= new Date(startDate)) &&

@@ -49,7 +49,7 @@ cloudinary.config(
 # -------------------------------
 
 # ระบุ path ของโมเดลตรงๆ เลย
-MODEL_PATH = r'C:\Users\Asus\mango-app\backend\models\DenseNet121\model_densenet121_80_10_10_R5.keras'  # เปลี่ยน path นี้ตามที่ต้องการ
+MODEL_PATH = r'C:\Users\Asus\mango-app\backend\models\EfficientNetV2S\model_efficientnetv2s_224_R2.keras'  # เปลี่ยน path นี้ตามที่ต้องการ
 EMBEDDING_PATH = r'C:\Users\Asus\mango-app\api\models\mango_reference_embeddings.npy'  # เปลี่ยน path นี้ตามที่ต้องการ
 
 # หรือจะใช้ environment variable ก็ได้
@@ -179,7 +179,7 @@ def predict_image():
                 is_leaf, similarity = checkMango.is_mango_leaf_from_embedding(image, checkMango.mango_embeddings)
                 if similarity < MANGO_LEAF_THRESHOLD:
                     return jsonify({
-                        "prediction": "ไม่ใช่ภาพใบมะม่วง",
+                        "prediction": "ไม่พบโรคที่ตรงกับข้อมูลในระบบ",
                         "confidence": float(similarity),
                         "raw_class": None,
                         "accuracy": 0,
@@ -203,7 +203,7 @@ def predict_image():
         # ตรวจสอบ confidence ของการทำนายโรค
         if confidence < DISEASE_CONFIDENCE_THRESHOLD:
             return jsonify({
-                "prediction": "ไม่พบโรคที่ตรงกับข้อมูล",
+                "prediction": "ไม่พบโรคที่ตรงกับข้อมูลในระบบ",
                 "confidence": confidence,
                 "raw_class": class_eng,
                 "accuracy": 0,

@@ -46,7 +46,7 @@ function ProfileButton({ user, onUserUpdate }) {
       addressParts.push(`จังหวัด ${currentUser.province.trim()}`);
     }
 
-    return addressParts.length > 0 ? addressParts.join(", ") : "ไม่ได้ระบุ";
+    return addressParts.length > 0 ? addressParts.join(", ") : "-";
   };
 
   // ฟังการเปลี่ยนแปลงข้อมูลผู้ใช้แบบ real-time
@@ -136,13 +136,13 @@ function ProfileButton({ user, onUserUpdate }) {
             <span>แก้ไขรายละเอียด</span>
           </Link>
 
-          <p><strong>ชื่อเต็ม:</strong> {currentUser.fullName || "ไม่ได้ระบุ"}</p>
+          <p><strong>ชื่อเต็ม:</strong> {currentUser.fullName || "-"}</p>
 
           <p><strong>ที่อยู่:</strong> {formatAddress()}</p>
 
-          <p><strong>โทรศัพท์:</strong> {currentUser.tel && currentUser.tel.trim() ? currentUser.tel : "ไม่ได้ระบุ"}</p>
+          <p><strong>โทรศัพท์:</strong> {currentUser.tel && currentUser.tel.trim() ? currentUser.tel : "-"}</p>
 
-          <p><strong>อีเมล:</strong> {currentUser.email || "ไม่ได้ระบุ"}</p>
+          <p><strong>อีเมล:</strong> {currentUser.email || "-"}</p>
 
           <button onClick={handleSignOut}>ออกจากระบบ</button>
         </div>

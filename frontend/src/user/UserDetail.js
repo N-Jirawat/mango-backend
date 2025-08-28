@@ -15,6 +15,10 @@ import { db } from "../firebaseConfig";
 import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import "../css/UserDetails.css";
 
+import provincesData from "../่json/thai_provinces.json";
+import districtsData from "../่json/thai_amphures.json";
+import subdistrictsData from "../่json/thai_tambons.json";
+
 function UserDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -26,6 +30,10 @@ function UserDetails() {
 
   const [phoneError, setPhoneError] = useState("");
   const [emailError, setEmailError] = useState("");
+
+  const [provinces] = useState(provincesData);
+  const [districtList, setDistrictList] = useState([]);
+  const [subdistrictList, setSubdistrictList] = useState([]);
 
   // เพิ่ม state สำหรับแสดง/ซ่อนรหัสผ่าน
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -51,14 +59,57 @@ function UserDetails() {
     hasNumber: false
   });
 
-  // Province/District/Subdistrict data - แสดงค่าที่มีใน database ด้วย
-  const [provinces] = useState([]);
-  const [districtList] = useState([]);
-  const [subdistrictList] = useState([]);
+  // 👉 เวลามีการเลือก จังหวัด
+  const handleProvinceChange = (e) => {
+    const selectedProvince = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      province: selectedProvince,
+      district: "",
+      subdistrict: ""
+    }));
+
+    // หา province_id
+    const province = provinces.find((p) => p.name_th === selectedProvince);
+    if (province) {
+      const filteredDistricts = districtsData.filter(
+        (d) => d.province_id === province.id
+      );
+      setDistrictList(filteredDistricts);
+      setSubdistrictList([]); // reset
+    }
+  };
+
+  // 👉 เวลามีการเลือก อำเภอ
+  const handleDistrictChange = (e) => {
+    const selectedDistrict = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      district: selectedDistrict,
+      subdistrict: ""
+    }));
+
+    // หา district_id
+    const district = districtsData.find((d) => d.name_th === selectedDistrict);
+    if (district) {
+      const filteredSubdistricts = subdistrictsData.filter(
+        (s) => s.amphure_id === district.id
+      );
+      setSubdistrictList(filteredSubdistricts);
+    }
+  };
+
+  // 👉 เวลามีการเลือก ตำบล
+  const handleSubdistrictChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      subdistrict: e.target.value
+    }));
+  };
 
   const fetchUserReports = async (uid) => {
     try {
-      const q = query(collection(db, "prediction_results"), where("userId", "==", uid));
+      const q = query(collection(db, "AnalysisHistory"), where("userId", "==", uid));
       const snapshot = await getDocs(q);
 
       return snapshot.docs.map(doc => ({
@@ -124,19 +175,19 @@ function UserDetails() {
     if (password.length < 6) {
       return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัว!" };
     }
-    
+
     // ตรวจสอบว่ามีตัวอักษรอย่างน้อย 1 ตัว
     const hasLetter = /[a-zA-Z]/.test(password);
     if (!hasLetter) {
       return { isValid: false, message: "รหัสผ่านต้องมีตัวอักษรอย่างน้อย 1 ตัว!" };
     }
-    
+
     // ตรวจสอบว่ามีตัวเลขอย่างน้อย 1 ตัว
     const hasNumber = /[0-9]/.test(password);
     if (!hasNumber) {
       return { isValid: false, message: "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว!" };
     }
-    
+
     return { isValid: true, message: "" };
   };
 
@@ -155,10 +206,15 @@ function UserDetails() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    // สำหรับฟิลด์ที่ไม่ใช่ tel ใช้ logic เดิม
+    if (name !== 'tel') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value === "-" ? "" : value, // ไม่เก็บ "-" ลง state
+      }));
+    }
+    // สำหรับ tel จะใช้ handlePhoneInput แทน
   };
 
   const handlePasswordChange = (e) => {
@@ -248,7 +304,7 @@ function UserDetails() {
       alert("เปลี่ยนรหัสผ่านสำเร็จ");
     } catch (error) {
       console.error("Error changing password:", error);
-      
+
       if (error.code === 'auth/wrong-password') {
         setPasswordErrors(prev => ({ ...prev, currentPassword: "รหัสผ่านเดิมไม่ถูกต้อง" }));
       } else if (error.code === 'auth/weak-password') {
@@ -259,17 +315,23 @@ function UserDetails() {
     }
   };
 
+  // แก้ไขการตรวจสอบในฟังก์ชัน handleSubmitUpdate
   const handleSubmitUpdate = async () => {
-    // ตรวจสอบเบอร์โทร
-    const telRegex = /^[0-9]{10}$/;
-    if (!telRegex.test(formData.tel)) {
-      setPhoneError("กรุณากรอกเบอร์โทรให้ถูกต้อง 10 หลัก");
-      return;
+    // ตรวจสอบเบอร์โทร - อัปเดตเงื่อนไขการตรวจสอบ
+    if (formData.tel && formData.tel !== "-") {
+      // ตรวจสอบว่าเป็นตัวเลขทั้งหมดและมีความยาว 10 หลัก
+      const telRegex = /^[0-9]{10}$/;
+      if (!telRegex.test(formData.tel)) {
+        setPhoneError("กรุณากรอกเบอร์โทรให้ถูกต้อง 10 หลัก (ตัวเลขเท่านั้น)");
+        return;
+      } else {
+        setPhoneError("");
+      }
     } else {
       setPhoneError("");
     }
 
-    // ตรวจสอบอีเมล
+    // ตรวจสอบอีเมล (เหมือนเดิม)
     if (!validateEmail(formData.email)) {
       setEmailError("รูปแบบอีเมลไม่ถูกต้อง");
       return;
@@ -277,19 +339,11 @@ function UserDetails() {
       setEmailError("");
     }
 
+    // บันทึกข้อมูล (เหมือนเดิม)
     try {
-      // อัปเดตข้อมูลใน Firebase
       await updateDoc(doc(db, "users", id), formData);
-
-      // อัปเดต userInfo state
-      setUserInfo(prev => ({
-        ...prev,
-        ...formData
-      }));
-
-      // ปิด modal
+      setUserInfo(prev => ({ ...prev, ...formData }));
       setEditUser(false);
-
       alert("อัปเดตข้อมูลสำเร็จ");
     } catch (error) {
       console.error("Error updating user:", error);
@@ -309,6 +363,31 @@ function UserDetails() {
       tel: userInfo.tel || "",
       email: userInfo.email || "",
     });
+
+    // 👉 preload districts ตาม province ที่มีใน Firebase
+    if (userInfo.province) {
+      const province = provinces.find((p) => p.name_th === userInfo.province);
+      if (province) {
+        const filteredDistricts = districtsData.filter(
+          (d) => d.province_id === province.id
+        );
+        setDistrictList(filteredDistricts);
+
+        // 👉 preload subdistricts ตาม district ที่มีใน Firebase
+        if (userInfo.district) {
+          const district = filteredDistricts.find(
+            (d) => d.name_th === userInfo.district
+          );
+          if (district) {
+            const filteredSubdistricts = subdistrictsData.filter(
+              (s) => s.amphure_id === district.id
+            );
+            setSubdistrictList(filteredSubdistricts);
+          }
+        }
+      }
+    }
+
     setEditUser(true);
   };
 
@@ -412,6 +491,28 @@ function UserDetails() {
     }
   };
 
+  // ฟังก์ชันใหม่สำหรับจัดการการป้อนเบอร์โทร
+  const handlePhoneInput = (e) => {
+    const value = e.target.value;
+
+    // อนุญาตเฉพาะตัวเลข
+    const numericValue = value.replace(/[^0-9]/g, '');
+
+    // จำกัดไม่เกิน 10 หลัก
+    const limitedValue = numericValue.slice(0, 10);
+
+    // อัปเดต formData
+    setFormData(prev => ({
+      ...prev,
+      tel: limitedValue
+    }));
+
+    // ลบ error message เมื่อผู้ใช้พิมพ์
+    if (phoneError) {
+      setPhoneError("");
+    }
+  };
+
   const roleName = (role) => {
     switch (role) {
       case "admin": return "ผู้ดูแลระบบ";
@@ -442,14 +543,14 @@ function UserDetails() {
       <p><strong>อีเมล :</strong> {userInfo.email || "-"}</p>
 
       <div className="link-container">
-        <button 
-          onClick={openPasswordModal} 
-          className="report-link" 
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: '#007bff', 
-            textDecoration: 'underline', 
+        <button
+          onClick={openPasswordModal}
+          className="report-link"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#007bff',
+            textDecoration: 'underline',
             cursor: 'pointer',
             fontSize: 'inherit',
             padding: 0,
@@ -515,72 +616,60 @@ function UserDetails() {
                 />
               </div>
 
-              <div className="form-row-edit">
-                <div className="form-group-edit">
-                  <label>จังหวัด:</label>
-                  <select
-                    name="province"
-                    value={formData.province || ""}
-                    onChange={handleChange}
-                    required
-                    className="form-select-edit"
-                  >
-                    <option value="">เลือกจังหวัด</option>
-                    {/* แสดงข้อมูลปัจจุบันถ้ามี */}
-                    {formData.province && !provinces.find(p => p.name_th === formData.province) && (
-                      <option value={formData.province}>{formData.province}</option>
-                    )}
-                    {provinces.map((province) => (
-                      <option key={province.id} value={province.name_th}>
-                        {province.name_th}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* จังหวัด */}
+              <div className="form-group-edit">
+                <label>จังหวัด:</label>
+                <select
+                  name="province"
+                  value={formData.province || ""}
+                  onChange={handleProvinceChange}
+                  className="form-select-edit"
+                >
+                  <option value="">เลือกจังหวัด</option>
+                  {provinces.map((province) => (
+                    <option key={province.id} value={province.name_th}>
+                      {province.name_th}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="form-group-edit">
-                  <label>อำเภอ:</label>
-                  <select
-                    name="district"
-                    value={formData.district || ""}
-                    onChange={handleChange}
-                    required
-                    className="form-select-edit"
-                  >
-                    <option value="">เลือกอำเภอ</option>
-                    {/* แสดงข้อมูลปัจจุบันถ้ามี */}
-                    {formData.district && !districtList.find(d => d.name_th === formData.district) && (
-                      <option value={formData.district}>{formData.district}</option>
-                    )}
-                    {districtList.map((districtItem) => (
-                      <option key={districtItem.id} value={districtItem.name_th}>
-                        {districtItem.name_th}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* อำเภอ */}
+              <div className="form-group-edit">
+                <label>อำเภอ:</label>
+                <select
+                  name="district"
+                  value={formData.district || ""}
+                  onChange={handleDistrictChange}
+                  className="form-select-edit"
+                  disabled={!formData.province}
+                >
+                  <option value="">เลือกอำเภอ</option>
+                  {districtList.map((district) => (
+                    <option key={district.id} value={district.name_th}>
+                      {district.name_th}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="form-group-edit">
-                  <label>ตำบล:</label>
-                  <select
-                    name="subdistrict"
-                    value={formData.subdistrict || ""}
-                    onChange={handleChange}
-                    required
-                    className="form-select-edit"
-                  >
-                    <option value="">เลือกตำบล</option>
-                    {/* แสดงข้อมูลปัจจุบันถ้ามี */}
-                    {formData.subdistrict && !subdistrictList.find(s => s.name_th === formData.subdistrict) && (
-                      <option value={formData.subdistrict}>{formData.subdistrict}</option>
-                    )}
-                    {subdistrictList.map((subItem) => (
-                      <option key={subItem.id} value={subItem.name_th}>
-                        {subItem.name_th}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* ตำบล */}
+              <div className="form-group-edit">
+                <label>ตำบล:</label>
+                <select
+                  name="subdistrict"
+                  value={formData.subdistrict || ""}
+                  onChange={handleSubdistrictChange}
+                  className="form-select-edit"
+                  disabled={!formData.district}
+                >
+                  <option value="">เลือกตำบล</option>
+                  {subdistrictList.map((sub) => (
+                    <option key={sub.id} value={sub.name_th}>
+                      {sub.name_th}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-row-edit contact-row">
@@ -589,8 +678,8 @@ function UserDetails() {
                   <input
                     type="tel"
                     name="tel"
-                    value={formData.tel || ""}
-                    onChange={handleChange}
+                    value={formData.tel && formData.tel.trim() !== "" ? formData.tel : "-"}
+                    onChange={handlePhoneInput}
                     placeholder="0812345678"
                     className={`form-input-edit ${phoneError ? "error" : ""}`}
                   />
@@ -673,8 +762,8 @@ function UserDetails() {
                       height: '24px'
                     }}
                   >
-                    <img 
-                      src={showCurrentPassword ? "/img/hide.png" : "/img/view.png"} 
+                    <img
+                      src={showCurrentPassword ? "/img/hide.png" : "/img/view.png"}
                       alt={showCurrentPassword ? "hide" : "view"}
                       style={{ width: '20px', height: '20px', marginBottom: '20px' }}
                     />
@@ -717,24 +806,24 @@ function UserDetails() {
                       height: '24px'
                     }}
                   >
-                    <img 
-                      src={showNewPassword ? "/img/hide.png" : "/img/view.png"} 
+                    <img
+                      src={showNewPassword ? "/img/hide.png" : "/img/view.png"}
                       alt={showNewPassword ? "hide" : "view"}
-                      style={{ width: '20px', height: '20px' ,marginBottom: '20px'}}
+                      style={{ width: '20px', height: '20px', marginBottom: '20px' }}
                     />
                   </button>
                 </div>
-                
-                <p style={{ display: 'flex',fontSize: "12px", color: "#666", margin: "5px 0"}}>
+
+                <p style={{ display: 'flex', fontSize: "12px", color: "#666", margin: "5px 0" }}>
                   *รหัสผ่านอย่างน้อย 6 ตัว ต้องมีตัวอักษรและตัวเลขอย่างน้อยตัวละ 1 ตัว
                 </p>
-                
+
                 {/* แสดงสถานะการตรวจสอบรหัสผ่าน */}
                 {passwordData.newPassword && (
                   <div style={{ margin: "10px 0", fontSize: "12px" }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
                       margin: "3px 0",
                       color: passwordValidation.hasMinLength ? "#28a745" : "#dc3545"
                     }}>
@@ -743,9 +832,9 @@ function UserDetails() {
                       </span>
                       อย่างน้อย 6 ตัวอักษร
                     </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
                       margin: "3px 0",
                       color: passwordValidation.hasLetter ? "#28a745" : "#dc3545"
                     }}>
@@ -754,9 +843,9 @@ function UserDetails() {
                       </span>
                       มีตัวอักษรอย่างน้อย 1 ตัว (a-z, A-Z)
                     </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
                       margin: "3px 0",
                       color: passwordValidation.hasNumber ? "#28a745" : "#dc3545"
                     }}>
@@ -805,8 +894,8 @@ function UserDetails() {
                       height: '24px'
                     }}
                   >
-                    <img 
-                      src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"} 
+                    <img
+                      src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"}
                       alt={showConfirmPassword ? "hide" : "view"}
                       style={{ width: '20px', height: '20px', marginBottom: '20px' }}
                     />

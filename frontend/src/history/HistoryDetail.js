@@ -26,12 +26,12 @@ function HistoryDetail() {
   }
 
   const {
-    diseaseName,
+    DiseaseName,
     confidence,
-    symptoms,
-    prevention,
-    treatment,
-    timestamp,
+    Style,
+    Protection,
+    Treatment,
+    UpdateAt,
     imageUrl,
     docId,
   } = state;
@@ -55,8 +55,8 @@ function HistoryDetail() {
   };
 
   const handleDownloadPDF = async () => {
-    const thaiDate = timestamp?.seconds
-      ? new Date(timestamp.seconds * 1000).toLocaleString("th-TH")
+    const thaiDate = UpdateAt?.seconds
+      ? new Date(UpdateAt.seconds * 1000).toLocaleString("th-TH")
       : "ไม่ระบุวันที่";
 
     let base64Img = null;
@@ -81,19 +81,19 @@ function HistoryDetail() {
           }
           : null,
         { text: "ชื่อโรค:", style: "greenLabel" },
-        { text: diseaseName, margin: [0, 0, 0, 10] },
+        { text: DiseaseName, margin: [0, 0, 0, 10] },
 
         { text: "ความมั่นใจ (Confidence):", style: "greenLabel" },
         { text: `${Math.round(confidence * 100)}%`, margin: [0, 0, 0, 10] },
 
         { text: "รายละเอียดโรค:", style: "greenLabel" },
-        { text: symptoms || "ไม่มีข้อมูลรายละเอียดโรค", margin: [0, 0, 0, 10] },
+        { text: Style || "ไม่มีข้อมูลรายละเอียดโรค", margin: [0, 0, 0, 10] },
 
         { text: "วิธีป้องกัน:", style: "greenLabel" },
-        { text: prevention || "ไม่มีข้อมูลวิธีการป้องกัน", margin: [0, 0, 0, 10] },
+        { text: Protection || "ไม่มีข้อมูลวิธีการป้องกัน", margin: [0, 0, 0, 10] },
 
         { text: "วิธีการรักษา:", style: "greenLabel" },
-        { text: treatment || "ไม่มีข้อมูลวิธีการรักษา", margin: [0, 0, 0, 10] },
+        { text: Treatment || "ไม่มีข้อมูลวิธีการรักษา", margin: [0, 0, 0, 10] },
 
         { text: "วันที่วิเคราะห์:", style: "greenLabel" },
         { text: thaiDate },
@@ -111,7 +111,7 @@ function HistoryDetail() {
     pdfMake
       .createPdf(docDefinition)
       .download(
-        `รายงานโรค_${diseaseName}_${new Date().toLocaleDateString("th-TH")}.pdf`
+        `รายงานโรค_${DiseaseName}_${new Date().toLocaleDateString("th-TH")}.pdf`
       );
   };
 
@@ -144,26 +144,26 @@ function HistoryDetail() {
       )}
 
       <div className="details-item">
-        <strong>ชื่อโรค:</strong> {diseaseName}
+        <strong>ชื่อโรค:</strong> {DiseaseName}
       </div>
       <div className="details-item">
         <strong>ความมั่นใจ (confidence):</strong> {typeof confidence === 'number' ? confidence.toFixed(4) : 'ไม่มีข้อมูล'}%
       </div>
 
       <div className="details-item">
-        <strong>รายละเอียดโรค:</strong> {symptoms || "ไม่มีข้อมูลรายละเอียดโรค"}
+        <strong>รายละเอียดโรค:</strong> {Style || "ไม่มีข้อมูลรายละเอียดโรค"}
       </div>
       <div className="details-item">
-        <strong>วิธีป้องกัน:</strong> {prevention || "ไม่มีข้อมูลวิธีการป้องกัน"}
+        <strong>วิธีป้องกัน:</strong> {Protection || "ไม่มีข้อมูลวิธีการป้องกัน"}
       </div>
       <div className="details-item">
-        <strong>วิธีการรักษา:</strong> {treatment || "ไม่มีข้อมูลวิธีการรักษา"}
+        <strong>วิธีการรักษา:</strong> {Treatment || "ไม่มีข้อมูลวิธีการรักษา"}
       </div>
 
       <div className="details-item">
         <strong className="t">วันที่วิเคราะห์:</strong>{" "}
-        {timestamp?.seconds
-          ? new Date(timestamp.seconds * 1000).toLocaleString("th-TH")
+        {UpdateAt?.seconds
+          ? new Date(UpdateAt.seconds * 1000).toLocaleString("th-TH")
           : "ไม่ระบุวันที่"}
       </div>
 
