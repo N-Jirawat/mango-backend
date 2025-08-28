@@ -22,6 +22,9 @@ function ResetPasswordPage() {
 
     const oobCode = searchParams.get("oobCode");
 
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     useEffect(() => {
         if (!oobCode) {
             setError("ลิงก์ไม่ถูกต้อง");
@@ -69,7 +72,16 @@ function ResetPasswordPage() {
         }
     };
 
-    if (!oobCodeValid) return <p style={{ textAlign: "center", marginTop: "50px" }}>{error || "กำลังตรวจสอบลิงก์..."}</p>;
+    // ฟังก์ชันสำหรับ toggle การแสดงรหัสผ่าน
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
+    const toggleConfirmPasswordVisibility = () => {
+        setShowConfirmPassword(!showConfirmPassword);
+    };
+
+    if (!oobCodeValid) return <p className="loading-text">{error || "กำลังตรวจสอบลิงก์..."}</p>;
 
     return (
         <div className="reset-password-container">
@@ -77,34 +89,63 @@ function ResetPasswordPage() {
                 <>
                     <h2>ตั้งค่ารหัสผ่านใหม่</h2>
                     <form onSubmit={handleSubmit} className="reset-form">
-                        <input
-                            type="password"
-                            placeholder="รหัสผ่านใหม่"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                        />
-                        <input
-                            type="password"
-                            placeholder="ยืนยันรหัสผ่านใหม่"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                        />
+                        <div className="password-input-wrapper">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="รหัสผ่านใหม่"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                required
+                                className="password-input"
+                            />
+                            <button
+                                type="button"
+                                onClick={togglePasswordVisibility}
+                                className="password-toggle-btn"
+                            >
+                                <img
+                                    src={showPassword ? "/img/hide.png" : "/img/view.png"}
+                                    alt={showPassword ? "hide" : "view"}
+                                    className="password-toggle-icon"
+                                />
+                            </button>
+                        </div>
+
+                        <div className="password-input-wrapper">
+                            <input
+                                type={showConfirmPassword ? "text" : "password"}
+                                placeholder="ยืนยันรหัสผ่านใหม่"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                className="password-input"
+                            />
+                            <button
+                                type="button"
+                                onClick={toggleConfirmPasswordVisibility}
+                                className="password-toggle-btn"
+                            >
+                                <img
+                                    src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"}
+                                    alt={showConfirmPassword ? "hide" : "view"}
+                                    className="password-toggle-icon"
+                                />
+                            </button>
+                        </div>
 
                         <div className="password-validation">
-                            <div className={passwordValidation.hasMinLength ? "valid" : "invalid"}>
+                            <div className={`validation-item ${passwordValidation.hasMinLength ? "valid" : "invalid"}`}>
                                 {passwordValidation.hasMinLength ? "✅" : "❌"} อย่างน้อย 6 ตัวอักษร
                             </div>
-                            <div className={passwordValidation.hasLetter ? "valid" : "invalid"}>
+                            <div className={`validation-item ${passwordValidation.hasLetter ? "valid" : "invalid"}`}>
                                 {passwordValidation.hasLetter ? "✅" : "❌"} มีตัวอักษรอย่างน้อย 1 ตัว
                             </div>
-                            <div className={passwordValidation.hasNumber ? "valid" : "invalid"}>
+                            <div className={`validation-item ${passwordValidation.hasNumber ? "valid" : "invalid"}`}>
                                 {passwordValidation.hasNumber ? "✅" : "❌"} มีตัวเลขอย่างน้อย 1 ตัว
                             </div>
                         </div>
 
-                        <button type="submit">ยืนยัน</button>
+                        <button type="submit" className="submit-btn">ยืนยัน</button>
                     </form>
                     {error && <p className="error-text">{error}</p>}
                 </>
