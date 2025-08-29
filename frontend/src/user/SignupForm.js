@@ -27,6 +27,12 @@ function SignupForm() {
     hasNumber: false
   });
 
+  // เพิ่ม state สำหรับตรวจสอบการซ้ำของข้อมูล
+  const [duplicateCheck, setDuplicateCheck] = useState({
+    username: { isDuplicate: false, isChecking: false },
+    email: { isDuplicate: false, isChecking: false }
+  });
+
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -98,6 +104,93 @@ function SignupForm() {
     }
   }, [userInfo.district]);
 
+  // ฟังก์ชันตรวจสอบชื่อบัญชีซ้ำ
+  const checkDuplicateUsername = async (username) => {
+    if (!username.trim()) {
+      setDuplicateCheck(prev => ({
+        ...prev,
+        username: { isDuplicate: false, isChecking: false }
+      }));
+      return;
+    }
+
+    setDuplicateCheck(prev => ({
+      ...prev,
+      username: { ...prev.username, isChecking: true }
+    }));
+
+    try {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("username", "==", username));
+      const querySnapshot = await getDocs(q);
+
+      setDuplicateCheck(prev => ({
+        ...prev,
+        username: { isDuplicate: !querySnapshot.empty, isChecking: false }
+      }));
+    } catch (error) {
+      console.error("Error checking username:", error);
+      setDuplicateCheck(prev => ({
+        ...prev,
+        username: { isDuplicate: false, isChecking: false }
+      }));
+    }
+  };
+
+  // ฟังก์ชันตรวจสอบอีเมลซ้ำ
+  const checkDuplicateEmail = async (email) => {
+    if (!email.trim()) {
+      setDuplicateCheck(prev => ({
+        ...prev,
+        email: { isDuplicate: false, isChecking: false }
+      }));
+      return;
+    }
+
+    setDuplicateCheck(prev => ({
+      ...prev,
+      email: { ...prev.email, isChecking: true }
+    }));
+
+    try {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+
+      setDuplicateCheck(prev => ({
+        ...prev,
+        email: { isDuplicate: !querySnapshot.empty, isChecking: false }
+      }));
+    } catch (error) {
+      console.error("Error checking email:", error);
+      setDuplicateCheck(prev => ({
+        ...prev,
+        email: { isDuplicate: false, isChecking: false }
+      }));
+    }
+  };
+
+  // เพิ่ม debounce สำหรับการตรวจสอบ
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.username) {
+        checkDuplicateUsername(formData.username);
+      }
+    }, 500); // รอ 500ms หลังจากหยุดพิมพ์
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.username]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.email) {
+        checkDuplicateEmail(formData.email);
+      }
+    }, 500); // รอ 500ms หลังจากหยุดพิมพ์
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.email]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -165,43 +258,53 @@ function SignupForm() {
   // ฟังก์ชันตรวจสอบความสมบูรณ์ของ Step 1
   const validateStep1 = () => {
     const { username, email, password, confirmPassword } = formData;
-    
+
     if (!username.trim()) {
       alert("กรุณากรอกชื่อบัญชี");
       return false;
     }
-    
+
+    if (duplicateCheck.username.isDuplicate) {
+      alert("ชื่อบัญชีนี้ถูกใช้งานแล้ว กรุณาเลือกชื่อใหม่");
+      return false;
+    }
+
     if (!email.trim()) {
       alert("กรุณากรอกอีเมล");
       return false;
     }
-    
+
     if (!validateEmail(email)) {
       alert("รูปแบบอีเมลไม่ถูกต้อง");
       return false;
     }
-    
+
+    if (duplicateCheck.email.isDuplicate) {
+      alert("อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น");
+      return false;
+    }
+
     if (!password.trim()) {
       alert("กรุณากรอกรหัสผ่าน");
       return false;
     }
-    
+
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.isValid) {
       alert(passwordCheck.message);
       return false;
     }
-    
+
     if (!confirmPassword.trim()) {
       alert("กรุณายืนยันรหัสผ่าน");
       return false;
     }
-    
+
     if (password !== confirmPassword) {
       alert("รหัสผ่านไม่ตรงกัน");
       return false;
     }
-    
+
     return true;
   };
 
@@ -223,21 +326,48 @@ function SignupForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // ตรวจสอบ Step 2 ก่อนส่ง
     if (!validateStep2()) {
       return;
     }
-    
+
+    // ตรวจสอบการซ้ำอีกครั้งก่อนส่งข้อมูล
+    if (duplicateCheck.username.isDuplicate) {
+      alert("ชื่อบัญชีนี้ถูกใช้งานแล้ว กรุณาเลือกชื่อใหม่");
+      setStep(1);
+      return;
+    }
+
+    if (duplicateCheck.email.isDuplicate) {
+      alert("อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น");
+      setStep(1);
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // ตรวจสอบการซ้ำอีกครั้ง (double check)
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", formData.username));
-      const querySnapshot = await getDocs(q);
+      const usernameQuery = query(usersRef, where("username", "==", formData.username));
+      const emailQuery = query(usersRef, where("email", "==", formData.email));
 
-      if (!querySnapshot.empty) {
+      const [usernameSnapshot, emailSnapshot] = await Promise.all([
+        getDocs(usernameQuery),
+        getDocs(emailQuery)
+      ]);
+
+      if (!usernameSnapshot.empty) {
         alert("ชื่อบัญชีนี้ถูกใช้งานแล้ว!");
+        setStep(1);
+        setLoading(false);
+        return;
+      }
+
+      if (!emailSnapshot.empty) {
+        alert("อีเมลนี้ถูกใช้งานแล้ว!");
+        setStep(1);
         setLoading(false);
         return;
       }
@@ -281,6 +411,11 @@ function SignupForm() {
           tel: "",
         });
         setStep(1);
+        // Reset duplicate check
+        setDuplicateCheck({
+          username: { isDuplicate: false, isChecking: false },
+          email: { isDuplicate: false, isChecking: false }
+        });
       } else {
         // คนปกติที่มาสมัครสมาชิก - ออกจากระบบและไปหน้า login
         await signOut(auth);
@@ -298,10 +433,29 @@ function SignupForm() {
           tel: "",
         });
         setStep(1);
+        // Reset duplicate check
+        setDuplicateCheck({
+          username: { isDuplicate: false, isChecking: false },
+          email: { isDuplicate: false, isChecking: false }
+        });
       }
     } catch (error) {
       console.error("เกิดข้อผิดพลาด:", error);
-      alert("ไม่สามารถสมัครสมาชิกได้!");
+
+      // แปลข้อความ error จาก Firebase
+      let errorMessage = "ไม่สามารถสมัครสมาชิกได้!";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น";
+        setStep(1);
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "รหัสผ่านไม่ปลอดภัย กรุณาใช้รหัสผ่านที่แข็งแกร่งกว่านี้";
+        setStep(1);
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "รูปแบบอีเมลไม่ถูกต้อง";
+        setStep(1);
+      }
+
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -459,7 +613,7 @@ function SignupForm() {
       {step === 2 && (
         <div className="card">
           <h3>ข้อมูลเพิ่มเติม</h3>
-          
+
           <input style={{ fontSize: '14px' }} type="text" name="fullName" placeholder="ชื่อ-นามสกุล :" value={userInfo.fullName} onChange={handleUserInfoChange} />
           <p style={{ display: 'flex', fontSize: "12px", color: "#666", margin: "5px 0" }}>
             *จำเป็นต้องกรอกชื่อ
