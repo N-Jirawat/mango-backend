@@ -36,42 +36,42 @@ function History() {
 
   useEffect(() => {
     let filtered = [...allPredictions];
-    
+
     if (searchDisease.trim()) {
       filtered = filtered.filter(prediction => {
         // ตรวจสอบชื่อโรคจากหลายฟิลด์ที่เป็นไปได้
         const diseaseNames = [
           prediction.DiseaseName,
-          prediction.diseaseName, 
+          prediction.diseaseName,
           prediction.disease_name,
           prediction.predictedDisease,
           prediction.predicted_disease,
           prediction.result,
           prediction.prediction
         ];
-        
+
         // หาชื่อโรคที่ไม่เป็น null/undefined/empty
-        const validDiseaseName = diseaseNames.find(name => 
+        const validDiseaseName = diseaseNames.find(name =>
           name && typeof name === 'string' && name.trim().length > 0
         );
-        
+
         if (!validDiseaseName) {
           console.log('No valid disease name found for prediction:', prediction.id);
           return false;
         }
-        
+
         return validDiseaseName.toLowerCase().includes(searchDisease.toLowerCase());
       });
     }
-    
+
     // ค้นหาตามช่วงวันที่
     if (searchDateFrom || searchDateTo) {
       filtered = filtered.filter(prediction => {
         if (!prediction.UpdateAt?.seconds) return false;
-        
+
         const predictionDate = new Date(prediction.UpdateAt.seconds * 1000);
         const predictionDateStr = predictionDate.toISOString().split('T')[0];
-        
+
         // ถ้ามีทั้ง วันเริ่มต้น และ วันสิ้นสุด
         if (searchDateFrom && searchDateTo) {
           return predictionDateStr >= searchDateFrom && predictionDateStr <= searchDateTo;
@@ -84,11 +84,11 @@ function History() {
         else if (!searchDateFrom && searchDateTo) {
           return predictionDateStr <= searchDateTo;
         }
-        
+
         return true;
       });
     }
-    
+
     setFilteredPredictions(filtered);
     setCurrentPage(1);
   }, [allPredictions, searchDisease, searchDateFrom, searchDateTo]);
@@ -120,14 +120,12 @@ function History() {
         const fallbackData = [];
         snapshot.forEach((doc) => {
           const data = { id: doc.id, ...doc.data() };
-          console.log('Fallback document data:', data);
           fallbackData.push(data);
         });
         fallbackData.sort((a, b) => (b.UpdateAt?.seconds || 0) - (a.UpdateAt?.seconds || 0));
         setAllPredictions(fallbackData);
         setError(null);
       } catch (simpleError) {
-        console.error("Fallback error:", simpleError);
         setError("เกิดข้อผิดพลาดในการโหลดประวัติ");
       }
     } finally {
@@ -139,15 +137,15 @@ function History() {
   const getDiseaseName = (prediction) => {
     const diseaseNames = [
       prediction.DiseaseName,
-      prediction.diseaseName, 
+      prediction.diseaseName,
       prediction.disease_name,
       prediction.predictedDisease,
       prediction.predicted_disease,
       prediction.result,
       prediction.prediction
     ];
-    
-    return diseaseNames.find(name => 
+
+    return diseaseNames.find(name =>
       name && typeof name === 'string' && name.trim().length > 0
     ) || "ไม่ระบุชื่อโรค";
   };
@@ -205,9 +203,9 @@ function History() {
 
         <div className="search-field">
           <label>ค้นหาตามช่วงวันที่:</label>
-          <div className="date-range-container" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+          <div className="date-range-container" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div>
-              <label style={{fontSize: '12px', color: '#666'}}>จาก:</label>
+              <label style={{ fontSize: '12px', color: '#666' }}>จาก:</label>
               <input
                 type="date"
                 value={searchDateFrom}
@@ -215,9 +213,9 @@ function History() {
                 placeholder="วันเริ่มต้น"
               />
             </div>
-            <span>ถึง</span>
+
             <div>
-              <label style={{fontSize: '12px', color: '#666'}}>ถึง:</label>
+              <label style={{ fontSize: '12px', color: '#666' }}>ถึง:</label>
               <input
                 type="date"
                 value={searchDateTo}
@@ -226,13 +224,15 @@ function History() {
               />
             </div>
           </div>
-          <div style={{fontSize: '12px', color: '#888', marginTop: '5px'}}>
+          <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
             💡 สามารถเลือกเฉพาะวันเริ่มต้น หรือ วันสิ้นสุด หรือทั้งคู่ได้
           </div>
         </div>
 
-        <div className="search-buttons">
-          <button onClick={clearSearch} className="clear-search-btn">🔄 ล้างการค้นหา</button>
+        <div className="search-buttons" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={clearSearch} className="clear-search-btn-history" disabled={!searchDisease && !searchDateFrom && !searchDateTo}>
+            🔄 ล้างการค้นหา
+          </button>
         </div>
       </div>
 
@@ -243,9 +243,9 @@ function History() {
         )}
         {(searchDateFrom || searchDateTo) && (
           <p>📅 ช่วงวันที่: {
-            searchDateFrom && searchDateTo 
+            searchDateFrom && searchDateTo
               ? `${searchDateFrom} ถึง ${searchDateTo}`
-              : searchDateFrom 
+              : searchDateFrom
                 ? `ตั้งแต่ ${searchDateFrom} เป็นต้นไป`
                 : `จนถึง ${searchDateTo}`
           }</p>

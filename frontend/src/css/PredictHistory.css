@@ -1,6 +1,5 @@
 .history-container {
   max-width: 800px;
-  /* เพิ่มความกว้างเพื่อรองรับการค้นหา */
   width: 95%;
   margin: 40px auto;
   padding: 30px;
@@ -17,23 +16,21 @@
   font-size: 26px;
 }
 
-/* ส่วนการค้นหา */
+/* ส่วนการค้นหา - ปรับปรุงให้เหมาะกับมือถือ */
 .search-container {
   background: linear-gradient(135deg, #f1f8e9, #ffffff);
-  padding: 25px;
+  padding: 20px;
   border-radius: 12px;
   margin-bottom: 25px;
   border: 1px solid #c8e6c9;
   box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1);
-  position: relative;
-  overflow: visible;
 }
 
 .search-container h3 {
   margin-top: 0;
   margin-bottom: 20px;
   color: #2e7d32;
-  font-size: 20px;
+  font-size: 18px;
   text-align: center;
   border-bottom: 2px solid #c8e6c9;
   padding-bottom: 10px;
@@ -53,13 +50,17 @@
 
 .search-field input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 16px;
+  /* ป้องกัน zoom ใน iOS */
   transition: all 0.3s ease;
   background-color: #ffffff;
   box-sizing: border-box;
+  -webkit-appearance: none;
+  /* ลบสไตล์เริ่มต้นของ iOS */
+  appearance: none;
 }
 
 .search-field input:focus {
@@ -74,106 +75,101 @@
   font-style: italic;
 }
 
-/* ปรับปรุงส่วน date range สำหรับมือถือ */
+/* ส่วน Date Range - ปรับให้เหมาะกับมือถือ */
 .date-range-container {
   display: flex;
-  gap: 15px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 15px;
   flex-wrap: wrap;
 }
 
-.date-field {
+.date-range-container>div {
   flex: 1;
-  min-width: 200px;
+  min-width: 140px;
 }
 
-/* ปรับ input type="date" ให้กดเลือกวันที่ได้ และลดขนาด */
+.date-range-container span {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #666;
+  white-space: nowrap;
+}
+
 .search-field input[type="date"] {
-  padding: 8px 12px;
-  font-size: 14px; /* ลดขนาดฟอนต์ */
-  min-height: 36px; /* ลดความสูง */
-  border: 1px solid #e0e0e0; /* ลดขนาด border */
-  border-radius: 6px; /* ลดขนาด border radius */
+  padding: 14px 16px;
+  font-size: 16px;
+  /* ป้องกัน zoom ใน iOS */
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
   background-color: #ffffff;
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
   transition: all 0.3s ease;
-  /* ไม่ใส่ appearance: none เพื่อให้ calendar picker ทำงานได้ */
-}
-
-/* แก้ไข calendar picker indicator */
-.search-field input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  width: 16px; /* ลดขนาด */
-  height: 16px; /* ลดขนาด */
-}
-
-.search-field input[type="date"]::-webkit-inner-spin-button,
-.search-field input[type="date"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
-  margin: 0;
+  appearance: none;
 }
 
-/* Focus state */
+.search-field input[type="date"]::-webkit-calendar-picker-indicator {
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%234caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>') no-repeat center center;
+  background-size: 16px 16px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  opacity: 0.7;
+}
+
 .search-field input[type="date"]:focus {
   outline: none;
   border-color: #4caf50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2); /* ลดขนาด shadow */
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
   background-color: #fafafa;
 }
 
-/* ลดขนาด input ทั่วไป */
-.search-field input {
-  padding: 8px 12px; /* ลดขนาด padding */
-  font-size: 14px; /* ลดขนาดฟอนต์ */
-  min-height: 36px; /* ลดความสูง */
-  border: 1px solid #e0e0e0; /* ลดขนาด border */
-  border-radius: 6px; /* ลดขนาด border radius */
-}
-
-/* ปุ่มล้างการค้นหา */
-.search-buttons {
+/* ปุ่มล้างค้นหา */
+.search-buttons-history {
   width: 100%;
-  margin: 20px 0 15px 0;
-  padding: 0 0 10px 0;
-  text-align: center;
-  background-color: transparent;
-  clear: both;
-  display: block;
-  position: relative;
-  float: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 25px 0 15px 0;
+  padding: 0;
+  /* ลบ !important ทั้งหมด */
 }
 
-.clear-search-btn {
-  background: linear-gradient(135deg, #81c784, #66bb6a) !important;
-  color: white !important;
+.clear-search-btn-history {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #81c784, #66bb6a);
+  color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  /* ขนาดเล็กลง */
+  border-radius: 6px;
+  /* มุมเล็กลง */
   cursor: pointer;
-  font-size: 14px !important;
+  font-size: 14px;
+  /* ฟอนต์เล็กลง */
   font-weight: 500;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(129, 199, 132, 0.3);
-  display: inline-block;
-  margin: 0;
-  min-width: 150px;
-  position: static;
-  float: none;
-  min-height: 35px;
-  /* ขนาดมาตรฐานสำหรับการแตะ */
-}
-
-.clear-search-btn:hover {
-  background: linear-gradient(135deg, #66bb6a, #4caf50) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(129, 199, 132, 0.4);
-}
-
-.clear-search-btn:active {
-  transform: translateY(0);
   box-shadow: 0 2px 6px rgba(129, 199, 132, 0.3);
+  min-height: 36px;
+  /* สูงน้อยลง */
+  touch-action: manipulation;
+  margin-left: auto;
+  /* ดันไปด้านขวา */
+}
+
+.clear-search-btn-history:hover {
+  background: linear-gradient(135deg, #66bb6a, #4caf50);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(129, 199, 132, 0.4);
+}
+
+.clear-search-btn-history:active {
+  transform: scale(0.98);
 }
 
 /* แสดงผลลัพธ์การค้นหา */
@@ -190,12 +186,13 @@
   color: #2e7d32;
   font-weight: 500;
   font-size: 14px;
+  line-height: 1.4;
 }
 
-/* รายการประวัติ */
+/* รายการประวัติ - ปรับให้เป็น single column บนมือถือ */
 .history-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 20px;
   margin-top: 20px;
 }
@@ -205,8 +202,7 @@
   flex-direction: column;
   align-items: center;
   background: linear-gradient(135deg, #f0fdf4, #ffffff);
-  padding: 25px;
-  margin-bottom: 20px;
+  padding: 20px;
   border-radius: 16px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
@@ -214,17 +210,18 @@
 }
 
 .history-item:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   border-color: #c8e6c9;
 }
 
 .history-item h3 {
   margin: 0 0 15px 0;
-  font-size: 22px;
+  font-size: 20px;
   color: #1b5e20;
   text-align: center;
   font-weight: 600;
+  line-height: 1.3;
 }
 
 .history-item p {
@@ -246,8 +243,8 @@
 }
 
 .image-thumbnail {
-  width: 90px;
-  height: 90px;
+  width: 100px;
+  height: 100px;
   object-fit: cover;
   border-radius: 12px;
   border: 3px solid #c8e6c9;
@@ -257,7 +254,7 @@
 }
 
 .image-thumbnail:hover {
-  transform: scale(1.15);
+  transform: scale(1.05);
   border-color: #43a047;
   box-shadow: 0 6px 16px rgba(46, 125, 50, 0.3);
 }
@@ -266,16 +263,18 @@
   background: linear-gradient(135deg, #43a047, #388e3c);
   color: white;
   border: none;
-  padding: 12px 24px;
+  padding: 14px 28px;
   margin-top: 18px;
   cursor: pointer;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   transition: all 0.3s ease;
   box-shadow: 0 3px 10px rgba(67, 160, 71, 0.3);
   min-height: 48px;
-  /* ขนาดมาตรฐานสำหรับการแตะ */
+  touch-action: manipulation;
+  width: auto;
+  min-width: 150px;
 }
 
 .view-details-btn:hover {
@@ -284,44 +283,44 @@
   box-shadow: 0 5px 15px rgba(67, 160, 71, 0.4);
 }
 
+.view-details-btn:active {
+  transform: scale(0.98);
+}
+
 /* Pagination */
 .pagination-container {
   display: flex;
-  flex-direction: row;
   justify-content: center;
   align-items: center;
-  margin-top: 10px;     /* ลดระยะบน */
-  gap: 6px;             /* ลดช่องว่างระหว่างปุ่ม */
+  margin-top: 20px;
+  gap: 5px;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  padding: 6px;         /* ลด padding รอบ container */
-  -webkit-overflow-scrolling: touch; /* ให้เลื่อนลื่นบนมือถือ */
+  /* อยู่บรรทัดเดียว */
 }
 
-.pagination-btn {
-  padding: 4px 6px;               /* ลด padding ให้ปุ่มไม่ยาว */
-  border: 1px solid #e0e0e0;      
-  background-color: #ffffff;
-  color: #333;
-  border-radius: 4px;             /* มุมมนเล็กลง */
-  cursor: pointer;
-  font-size: 12px;                /* ตัวอักษรเล็กลง */
-  font-weight: 500;
-  transition: all 0.2s ease;
-  min-width: unset !important;    /* ยกเลิกความกว้างบังคับ */
-  min-height: 28px !important;    /* สูงพอดี ไม่ใหญ่เกินไป */
+.pagination-btn,
+.pagination-nav {
+  flex: 1 1 auto;
+  /* ย่อขยายอัตโนมัติ */
+  min-width: 28px;
+  max-width: 50px;
+  /* ปรับให้พอดีหน้าจอ */
   text-align: center;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* เงาเล็กลง */
+  padding: 6px 8px;
+  font-size: 12px;
 }
 
-.pagination-btn:hover:not(:disabled) {
+/* Hover and disabled states are fine as-is */
+.pagination-btn:hover:not(:disabled),
+.pagination-nav:hover:not(:disabled) {
   background-color: #f5f5f5;
   border-color: #4caf50;
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.pagination-btn:disabled {
+.pagination-btn:disabled,
+.pagination-nav:disabled {
   background-color: #f5f5f5;
   color: #999;
   cursor: not-allowed;
@@ -342,53 +341,6 @@
   box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
 }
 
-.pagination-nav {
-  padding: 4px 10px;              /* ลด padding */
-  border: 1px solid #e0e0e0;      /* เส้นบางลง */
-  background-color: #ffffff;
-  color: #333;
-  border-radius: 5px;             /* มุมมนเล็กลง */
-  cursor: pointer;
-  font-size: 11px !important;     /* ตัวอักษรเล็กลง */
-  font-weight: 500;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* เงาเบาลง */
-  min-height: 28px !important;    /* ลดความสูง */
-}
-
-.pagination-nav:hover:not(:disabled) {
-  background-color: #4caf50;
-  color: white;
-  border-color: #4caf50;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
-}
-
-.pagination-nav:disabled {
-  background-color: #f5f5f5;
-  color: #999;
-  cursor: not-allowed;
-  border-color: #e0e0e0;
-  box-shadow: none;
-}
-
-/* สถิติ Pagination */
-.pagination-stats {
-  text-align: center;
-  margin-top: 15px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.pagination-stats p {
-  margin: 0;
-  color: #6c757d;
-  font-size: 14px;
-  font-weight: 500;
-}
-
 /* ข้อความไม่พบข้อมูล */
 .no-data-message {
   text-align: center;
@@ -400,38 +352,17 @@
 }
 
 .no-data-message p {
-  margin: 0;
+  margin: 10px 0;
   color: #6c757d;
   font-size: 16px;
   font-weight: 500;
+  line-height: 1.4;
 }
 
 /* ปุ่มอื่นๆ */
-.delete-btn {
-  margin-top: 20px;
-  background: linear-gradient(135deg, #e53935, #c62828);
-  color: white;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 3px 10px rgba(229, 57, 53, 0.3);
-  min-height: 48px;
-  /* ขนาดมาตรฐานสำหรับการแตะ */
-}
-
-.delete-btn:hover {
-  background: linear-gradient(135deg, #c62828, #b71c1c);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(229, 57, 53, 0.4);
-}
-
 .back-button {
-  padding: 10px 18px;
-  font-size: 14px;
+  padding: 12px 20px;
+  font-size: 16px;
   background: linear-gradient(135deg, #4caf50, #43a047);
   color: white;
   border: none;
@@ -442,8 +373,8 @@
   align-items: center;
   font-weight: 500;
   box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
-  min-height: 44px;
-  /* ขนาดมาตรฐานสำหรับการแตะ */
+  min-height: 48px;
+  touch-action: manipulation;
 }
 
 .back-button:hover {
@@ -452,14 +383,13 @@
   box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
 }
 
-.back-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
+.back-button:active {
+  transform: scale(0.98);
 }
 
 .analy-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-bottom: 25px;
 }
@@ -470,15 +400,16 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  color: white;
+  color: #333;
   padding: 20px;
+  background-color: #f5f5f5;
 }
 
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top: 3px solid white;
+  border: 3px solid rgba(76, 175, 80, 0.3);
+  border-top: 3px solid #4caf50;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -494,13 +425,13 @@
   }
 }
 
-/* Media Queries สำหรับ Responsive - ปรับปรุงให้ดีขึ้น */
+/* Media Queries สำหรับมือถือ */
 @media (max-width: 768px) {
   .history-container {
-    margin: 20px 10px;
+    margin: 10px;
     padding: 20px;
     width: calc(100% - 20px);
-    max-width: none;
+    border-radius: 12px;
   }
 
   .history-container h2 {
@@ -509,65 +440,81 @@
   }
 
   .search-container {
-    padding: 20px;
-    position: relative;
+    padding: 16px;
+    border-radius: 8px;
   }
 
   .search-container h3 {
-    font-size: 18px;
+    font-size: 16px;
+    margin-bottom: 16px;
   }
 
-  /* ปรับ date range ให้เป็นแนวตั้งบนมือถือ */
-  .date-range-container {
-    flex-direction: column;
-    gap: 15px;
+  .search-field {
+    margin-bottom: 16px;
   }
 
-  .date-field {
-    min-width: unset;
-    width: 100%;
+  .search-field label {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .search-field input {
+    padding: 16px 14px;
+    font-size: 16px;
+    border-radius: 6px;
   }
 
   .search-field input[type="date"] {
-    padding: 10px 12px; /* ลดขนาด padding */
-    font-size: 14px; /* ลดขนาดฟอนต์ */
-    min-height: 40px; /* ลดความสูง */
-  }
-  
-  .search-field input {
-    padding: 10px 12px; /* ลดขนาดทั่วไป */
-    font-size: 14px;
-    min-height: 40px;
+    padding: 16px 14px;
+    font-size: 16px;
   }
 
-  .search-buttons {
+  /* Date Range บนมือถือ - แนวตั้ง */
+  .date-range-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .date-range-container>div {
+    flex: none;
+    min-width: auto;
     width: 100%;
-    margin: 20px 0 15px 0;
-    padding: 0 0 10px 0;
-    text-align: center;
-    display: block;
-    clear: both;
+  }
+
+  .date-range-container span {
+    display: none;
+    /* ซ่อนคำว่า "ถึง" เพราะเป็นแนวตั้ง */
   }
 
   .clear-search-btn {
-    padding: 8px 18px;   /* เล็กลงจากเดิม */
-    font-size: 14px !important;
-    min-width: 120px;   /* ไม่กว้างเกินไป */
-    min-height: 38px;   /* เล็กลงแต่ยังพอกดได้ */
-    border-radius: 7px;
+    width: 100%;
+    max-width: 250px;
+    margin: 0 auto;
+  }
+
+  .search-results-info {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .search-results-info p {
+    font-size: 13px;
+    margin-bottom: 4px;
   }
 
   .history-item {
-    padding: 20px;
-    margin-bottom: 15px;
+    padding: 16px;
+    margin-bottom: 16px;
   }
 
   .history-item h3 {
-    font-size: 20px;
+    font-size: 18px;
+    margin-bottom: 12px;
   }
 
   .history-item p {
     font-size: 14px;
+    margin: 6px 0;
   }
 
   .image-thumbnail {
@@ -575,189 +522,189 @@
     height: 80px;
   }
 
-  .view-details-btn,
-  .delete-btn {
-    padding: 14px 24px;
-    font-size: 16px;
-    min-height: 52px;
+  .view-details-btn {
     width: 100%;
+    max-width: 250px;
+    padding: 16px 20px;
+    font-size: 16px;
+    margin-top: 16px;
   }
 
   .pagination-container {
-    gap: 8px;
-    margin-top: 25px;
-    padding: 15px 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 30px;
+    gap: 5px;
+    flex-wrap: wrap;
+    /* บรรทัดนี้สำคัญมากที่สุด! */
+    padding: 10px 5px;
   }
 
   .pagination-btn,
   .pagination-nav {
-    padding: 12px 16px;
-    font-size: 14px;
-    min-width: 48px;
-    min-height: 48px;
+    padding: 6px 8px;
+    /* Reduce padding for smaller screens */
+    font-size: 12px;
+    /* Reduce font size */
+    min-width: 28px;
+    /* Slightly reduce min-width */
+    min-height: 28px;
+    /* Slightly reduce min-height */
+  }
+
+  .back-button {
+    padding: 14px 18px;
+    font-size: 15px;
   }
 }
 
 @media (max-width: 480px) {
   .history-container {
-    margin: 10px 5px;
-    padding: 15px;
+    margin: 5px;
+    padding: 16px;
   }
 
   .history-container h2 {
     font-size: 20px;
+    margin-bottom: 16px;
   }
 
   .search-container {
-    padding: 15px;
+    padding: 14px;
   }
 
-  .search-container h3 {
-    font-size: 16px;
-  }
-
-  .search-field label {
-    font-size: 14px;
-    margin-bottom: 10px;
-  }
-
-  .search-field {
-    position: relative;
-  }
-
+  .search-field input,
   .search-field input[type="date"] {
-    padding: 12px;
-    font-size: 14px;
-    min-height: 42px;
-  }
-  
-  .search-field input {
-    padding: 12px;
-    font-size: 14px;
-    min-height: 42px;
-  }
-
-  .search-buttons {
-    width: 100%;
-    margin: 20px 0;
-    padding: 10px;
-    text-align: center;
-    display: block;
+    padding: 18px 16px;
+    font-size: 16px;
+    min-height: 54px;
+    /* เพิ่มขนาดให้กดง่าย */
   }
 
   .clear-search-btn {
-    padding: 7px 16px;   /* ไม่หนาเกินไป */
-    font-size: 12px !important;
-    min-width: 110px;   /* กว้างพอประมาณ */
-    min-height: 34px;   /* พอดีสำหรับนิ้วโป้ง */
-    border-radius: 7px;
+    padding: 18px 24px;
+    font-size: 16px;
+    min-height: 54px;
+    width: 100%;
   }
 
   .history-item {
-    padding: 15px;
+    padding: 14px;
   }
 
   .history-item h3 {
-    font-size: 18px;
+    font-size: 17px;
   }
 
-  .view-details-btn,
-  .delete-btn {
-    width: 100%;
-    margin-top: 15px;
-    padding: 16px;
+  .image-thumbnail {
+    width: 70px;
+    height: 70px;
+  }
+
+  .view-details-btn {
+    padding: 18px 20px;
     font-size: 16px;
-    min-height: 56px;
-  }
-
-  .pagination-container {
-    gap: 6px;
-    padding: 15px 10px;
+    min-height: 54px;
+    width: 100%;
   }
 
   .pagination-btn,
   .pagination-nav {
-    padding: 12px 14px;
-    font-size: 14px;
-    min-width: 48px;
-    min-height: 48px;
-  }
-
-  .pagination-nav {
-    font-size: 13px;
-    padding: 12px 16px;
+    padding: 10px 8px;
+    font-size: 11px;
+    min-width: 28px;
+    min-height: 28px;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .back-button {
-    padding: 12px 18px;
-    font-size: 14px;
-    min-height: 48px;
+    padding: 16px 20px;
+    font-size: 15px;
+    min-height: 54px;
   }
 }
 
-/* เพิ่ม media query สำหรับ iPhone SE และหน้าจอเล็กมากๆ */
+/* สำหรับหน้าจอเล็กมากๆ เช่น iPhone SE */
 @media (max-width: 375px) {
-  .search-field input[type="date"] {
-    font-size: 16px;
-    padding: 20px 16px;
-    min-height: 58px;
-  }
-
-  .clear-search-btn {
-    width: 95%;
-    padding: 18px 20px;
-    min-height: 58px;
-    font-size: 16px;
-  }
-
-  .history-item {
+  .history-container {
+    margin: 3px;
     padding: 12px;
   }
 
-  .view-details-btn,
-  .delete-btn {
-    padding: 18px;
-    min-height: 58px;
+  .search-container {
+    padding: 12px;
+  }
+
+  .search-field input,
+  .search-field input[type="date"] {
+    padding: 20px 16px;
+    font-size: 16px;
+    min-height: 56px;
+  }
+
+  .clear-search-btn {
+    width: 100%;
+    max-width: none;
+  }
+
+  .view-details-btn {
+    padding: 20px;
+    min-height: 56px;
+  }
+
+  .back-button {
+    padding: 18px 20px;
+    min-height: 56px;
   }
 }
 
-/* ปรับปรุงการแสดงผลบน landscape mode ของมือถือ */
+/* Landscape mode บนมือถือ */
 @media (max-width: 768px) and (orientation: landscape) {
   .date-range-container {
     flex-direction: row;
-    gap: 15px;
+    gap: 10px;
   }
 
-  .date-field {
+  .date-range-container>div {
     flex: 1;
-    min-width: 0;
   }
 
-  .search-field input[type="date"] {
-    font-size: 14px;
-    padding: 12px 16px;
-    min-height: 44px;
+  .date-range-container span {
+    display: flex;
+    /* แสดงคำว่า "ถึง" กลับมาใน landscape */
+  }
+
+  .history-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 }
 
-/* เพิ่มการรองรับ touch events */
+/* การรองรับ Touch Events */
 @media (hover: none) and (pointer: coarse) {
 
   .clear-search-btn:hover,
   .view-details-btn:hover,
-  .delete-btn:hover,
   .pagination-btn:hover,
   .pagination-nav:hover,
-  .back-button:hover {
+  .back-button:hover,
+  .history-item:hover,
+  .image-thumbnail:hover {
     transform: none;
   }
 
   .clear-search-btn:active,
   .view-details-btn:active,
-  .delete-btn:active,
   .pagination-btn:active,
   .pagination-nav:active,
   .back-button:active {
+    transform: scale(0.96);
+    transition: transform 0.1s ease;
+  }
+
+  .image-thumbnail:active {
     transform: scale(0.95);
     transition: transform 0.1s ease;
   }
