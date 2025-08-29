@@ -1,66 +1,85 @@
-/* ปรับปรุง date input สำหรับให้ทำงานได้ดีบนทุกอุปกรณ์ */
-.search-field input[type="date"] {
-  padding: 14px 16px;
-  font-size: 16px; /* ป้องกัน zoom ใน iOS */
-  min-height: 48px; /* ขนาดมาตรฐานสำหรับการแตะ */
-  
-  /* Reset appearance ให้ทำงานได้บนทุก browser */
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  
-  /* สไตล์ที่กำหนดเอง */
+.history-container {
+  max-width: 800px;
+  /* เพิ่มความกว้างเพื่อรองรับการค้นหา */
+  width: 95%;
+  margin: 40px auto;
+  padding: 30px;
   background-color: #ffffff;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  color: #333333;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-  /* เพิ่มไอคอน calendar ถ้า browser ไม่แสดง */
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%234caf50'%3e%3cpath fill-rule='evenodd' d='M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z' clip-rule='evenodd'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 20px;
-  padding-right: 45px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', sans-serif;
 }
 
-.search-field input[type="date"]:focus {
+.history-container h2 {
+  text-align: center;
+  color: #2e7d32;
+  margin-bottom: 30px;
+  font-size: 26px;
+}
+
+/* ส่วนการค้นหา */
+.search-container {
+  background: linear-gradient(135deg, #f1f8e9, #ffffff);
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  border: 1px solid #c8e6c9;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1);
+  position: relative;
+  overflow: visible;
+}
+
+.search-container h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #2e7d32;
+  font-size: 20px;
+  text-align: center;
+  border-bottom: 2px solid #c8e6c9;
+  padding-bottom: 10px;
+}
+
+.search-field {
+  margin-bottom: 18px;
+}
+
+.search-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #1b5e20;
+  font-size: 14px;
+}
+
+.search-field input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.search-field input:focus {
   outline: none;
   border-color: #4caf50;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
   background-color: #fafafa;
 }
 
-/* ซ่อน default calendar picker indicator */
-.search-field input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  position: absolute;
-  right: 12px;
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
+.search-field input::placeholder {
+  color: #999;
+  font-style: italic;
 }
 
-/* ซ่อน spin buttons */
-.search-field input[type="date"]::-webkit-inner-spin-button,
-.search-field input[type="date"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* สำหรับ Firefox */
-.search-field input[type="date"]::-moz-focus-inner {
-  border: 0;
-}
-
-/* ปรับปรุง date range container */
+/* ปรับปรุงส่วน date range สำหรับมือถือ */
 .date-range-container {
   display: flex;
   gap: 15px;
   margin-bottom: 18px;
   flex-wrap: wrap;
-  align-items: flex-end;
 }
 
 .date-field {
@@ -68,89 +87,678 @@
   min-width: 200px;
 }
 
-.date-field label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #1b5e20;
-  font-size: 12px;
+/* ปรับ input type="date" ให้กดเลือกวันที่ได้ และลดขนาด */
+.search-field input[type="date"] {
+  padding: 8px 12px;
+  font-size: 14px; /* ลดขนาดฟอนต์ */
+  min-height: 36px; /* ลดความสูง */
+  border: 1px solid #e0e0e0; /* ลดขนาด border */
+  border-radius: 6px; /* ลดขนาด border radius */
+  background-color: #ffffff;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  /* ไม่ใส่ appearance: none เพื่อให้ calendar picker ทำงานได้ */
 }
 
-/* Media Queries สำหรับ Mobile */
+/* แก้ไข calendar picker indicator */
+.search-field input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  width: 16px; /* ลดขนาด */
+  height: 16px; /* ลดขนาด */
+}
+
+.search-field input[type="date"]::-webkit-inner-spin-button,
+.search-field input[type="date"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Focus state */
+.search-field input[type="date"]:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2); /* ลดขนาด shadow */
+  background-color: #fafafa;
+}
+
+/* ลดขนาด input ทั่วไป */
+.search-field input {
+  padding: 8px 12px; /* ลดขนาด padding */
+  font-size: 14px; /* ลดขนาดฟอนต์ */
+  min-height: 36px; /* ลดความสูง */
+  border: 1px solid #e0e0e0; /* ลดขนาด border */
+  border-radius: 6px; /* ลดขนาด border radius */
+}
+
+/* ปุ่มล้างการค้นหา */
+.search-buttons {
+  width: 100%;
+  margin: 20px 0 15px 0;
+  padding: 0 0 10px 0;
+  text-align: center;
+  background-color: transparent;
+  clear: both;
+  display: block;
+  position: relative;
+  float: none;
+}
+
+.clear-search-btn {
+  background: linear-gradient(135deg, #81c784, #66bb6a) !important;
+  color: white !important;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px !important;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(129, 199, 132, 0.3);
+  display: inline-block;
+  margin: 0;
+  min-width: 150px;
+  position: static;
+  float: none;
+  min-height: 35px;
+  /* ขนาดมาตรฐานสำหรับการแตะ */
+}
+
+.clear-search-btn:hover {
+  background: linear-gradient(135deg, #66bb6a, #4caf50) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(129, 199, 132, 0.4);
+}
+
+.clear-search-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(129, 199, 132, 0.3);
+}
+
+/* แสดงผลลัพธ์การค้นหา */
+.search-results-info {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #e8f5e8;
+  border-radius: 8px;
+  border-left: 4px solid #4caf50;
+}
+
+.search-results-info p {
+  margin: 0;
+  color: #2e7d32;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* รายการประวัติ */
+.history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #f0fdf4, #ffffff);
+  padding: 25px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #e8f5e8;
+}
+
+.history-item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  border-color: #c8e6c9;
+}
+
+.history-item h3 {
+  margin: 0 0 15px 0;
+  font-size: 22px;
+  color: #1b5e20;
+  text-align: center;
+  font-weight: 600;
+}
+
+.history-item p {
+  margin: 8px 0;
+  color: #444;
+  font-size: 15px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.history-item p strong {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.image-container {
+  margin: 15px 0;
+  text-align: center;
+}
+
+.image-thumbnail {
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 3px solid #c8e6c9;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.image-thumbnail:hover {
+  transform: scale(1.15);
+  border-color: #43a047;
+  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.3);
+}
+
+.view-details-btn {
+  background: linear-gradient(135deg, #43a047, #388e3c);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  margin-top: 18px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(67, 160, 71, 0.3);
+  min-height: 48px;
+  /* ขนาดมาตรฐานสำหรับการแตะ */
+}
+
+.view-details-btn:hover {
+  background: linear-gradient(135deg, #388e3c, #2e7d32);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(67, 160, 71, 0.4);
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;     /* ลดระยะบน */
+  gap: 6px;             /* ลดช่องว่างระหว่างปุ่ม */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 6px;         /* ลด padding รอบ container */
+  -webkit-overflow-scrolling: touch; /* ให้เลื่อนลื่นบนมือถือ */
+}
+
+.pagination-btn {
+  padding: 4px 6px;               /* ลด padding ให้ปุ่มไม่ยาว */
+  border: 1px solid #e0e0e0;      
+  background-color: #ffffff;
+  color: #333;
+  border-radius: 4px;             /* มุมมนเล็กลง */
+  cursor: pointer;
+  font-size: 12px;                /* ตัวอักษรเล็กลง */
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: unset !important;    /* ยกเลิกความกว้างบังคับ */
+  min-height: 28px !important;    /* สูงพอดี ไม่ใหญ่เกินไป */
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* เงาเล็กลง */
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f5f5f5;
+  border-color: #4caf50;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.pagination-btn:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+  border-color: #e0e0e0;
+  box-shadow: none;
+}
+
+.pagination-btn.active {
+  background: linear-gradient(135deg, #4caf50, #43a047);
+  color: white;
+  border-color: #4caf50;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.pagination-btn.active:hover {
+  background: linear-gradient(135deg, #43a047, #388e3c);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.pagination-nav {
+  padding: 4px 10px;              /* ลด padding */
+  border: 1px solid #e0e0e0;      /* เส้นบางลง */
+  background-color: #ffffff;
+  color: #333;
+  border-radius: 5px;             /* มุมมนเล็กลง */
+  cursor: pointer;
+  font-size: 11px !important;     /* ตัวอักษรเล็กลง */
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* เงาเบาลง */
+  min-height: 28px !important;    /* ลดความสูง */
+}
+
+.pagination-nav:hover:not(:disabled) {
+  background-color: #4caf50;
+  color: white;
+  border-color: #4caf50;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+}
+
+.pagination-nav:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+  border-color: #e0e0e0;
+  box-shadow: none;
+}
+
+/* สถิติ Pagination */
+.pagination-stats {
+  text-align: center;
+  margin-top: 15px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.pagination-stats p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ข้อความไม่พบข้อมูล */
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  border: 2px dashed #dee2e6;
+  margin: 20px 0;
+}
+
+.no-data-message p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ปุ่มอื่นๆ */
+.delete-btn {
+  margin-top: 20px;
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(229, 57, 53, 0.3);
+  min-height: 48px;
+  /* ขนาดมาตรฐานสำหรับการแตะ */
+}
+
+.delete-btn:hover {
+  background: linear-gradient(135deg, #c62828, #b71c1c);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(229, 57, 53, 0.4);
+}
+
+.back-button {
+  padding: 10px 18px;
+  font-size: 14px;
+  background: linear-gradient(135deg, #4caf50, #43a047);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+  min-height: 44px;
+  /* ขนาดมาตรฐานสำหรับการแตะ */
+}
+
+.back-button:hover {
+  background: linear-gradient(135deg, #43a047, #388e3c);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.back-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
+}
+
+.analy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  color: white;
+  padding: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Media Queries สำหรับ Responsive - ปรับปรุงให้ดีขึ้น */
 @media (max-width: 768px) {
+  .history-container {
+    margin: 20px 10px;
+    padding: 20px;
+    width: calc(100% - 20px);
+    max-width: none;
+  }
+
+  .history-container h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  .search-container {
+    padding: 20px;
+    position: relative;
+  }
+
+  .search-container h3 {
+    font-size: 18px;
+  }
+
+  /* ปรับ date range ให้เป็นแนวตั้งบนมือถือ */
   .date-range-container {
     flex-direction: column;
     gap: 15px;
-    align-items: stretch;
   }
 
   .date-field {
     min-width: unset;
     width: 100%;
-    flex: none;
   }
 
   .search-field input[type="date"] {
-    width: 100%;
-    padding: 16px 45px 16px 16px;
-    font-size: 16px;
-    min-height: 52px;
-    box-sizing: border-box;
+    padding: 10px 12px; /* ลดขนาด padding */
+    font-size: 14px; /* ลดขนาดฟอนต์ */
+    min-height: 40px; /* ลดความสูง */
+  }
+  
+  .search-field input {
+    padding: 10px 12px; /* ลดขนาดทั่วไป */
+    font-size: 14px;
+    min-height: 40px;
   }
 
-  .date-range-container > span {
-    align-self: center;
-    margin: 0;
+  .search-buttons {
+    width: 100%;
+    margin: 20px 0 15px 0;
+    padding: 0 0 10px 0;
     text-align: center;
-    font-weight: 500;
-    color: #666;
+    display: block;
+    clear: both;
+  }
+
+  .clear-search-btn {
+    padding: 8px 18px;   /* เล็กลงจากเดิม */
+    font-size: 14px !important;
+    min-width: 120px;   /* ไม่กว้างเกินไป */
+    min-height: 38px;   /* เล็กลงแต่ยังพอกดได้ */
+    border-radius: 7px;
+  }
+
+  .history-item {
+    padding: 20px;
+    margin-bottom: 15px;
+  }
+
+  .history-item h3 {
+    font-size: 20px;
+  }
+
+  .history-item p {
+    font-size: 14px;
+  }
+
+  .image-thumbnail {
+    width: 80px;
+    height: 80px;
+  }
+
+  .view-details-btn,
+  .delete-btn {
+    padding: 14px 24px;
+    font-size: 16px;
+    min-height: 52px;
+    width: 100%;
+  }
+
+  .pagination-container {
+    gap: 8px;
+    margin-top: 25px;
+    padding: 15px 5px;
+  }
+
+  .pagination-btn,
+  .pagination-nav {
+    padding: 12px 16px;
+    font-size: 14px;
+    min-width: 48px;
+    min-height: 48px;
   }
 }
 
 @media (max-width: 480px) {
+  .history-container {
+    margin: 10px 5px;
+    padding: 15px;
+  }
+
+  .history-container h2 {
+    font-size: 20px;
+  }
+
+  .search-container {
+    padding: 15px;
+  }
+
+  .search-container h3 {
+    font-size: 16px;
+  }
+
+  .search-field label {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .search-field {
+    position: relative;
+  }
+
   .search-field input[type="date"] {
-    padding: 18px 50px 18px 16px;
+    padding: 12px;
+    font-size: 14px;
+    min-height: 42px;
+  }
+  
+  .search-field input {
+    padding: 12px;
+    font-size: 14px;
+    min-height: 42px;
+  }
+
+  .search-buttons {
+    width: 100%;
+    margin: 20px 0;
+    padding: 10px;
+    text-align: center;
+    display: block;
+  }
+
+  .clear-search-btn {
+    padding: 7px 16px;   /* ไม่หนาเกินไป */
+    font-size: 12px !important;
+    min-width: 110px;   /* กว้างพอประมาณ */
+    min-height: 34px;   /* พอดีสำหรับนิ้วโป้ง */
+    border-radius: 7px;
+  }
+
+  .history-item {
+    padding: 15px;
+  }
+
+  .history-item h3 {
+    font-size: 18px;
+  }
+
+  .view-details-btn,
+  .delete-btn {
+    width: 100%;
+    margin-top: 15px;
+    padding: 16px;
     font-size: 16px;
     min-height: 56px;
-    background-position: right 16px center;
-    background-size: 22px;
   }
 
-  .search-field input[type="date"]::-webkit-calendar-picker-indicator {
-    right: 16px;
-    width: 22px;
-    height: 22px;
+  .pagination-container {
+    gap: 6px;
+    padding: 15px 10px;
+  }
+
+  .pagination-btn,
+  .pagination-nav {
+    padding: 12px 14px;
+    font-size: 14px;
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  .pagination-nav {
+    font-size: 13px;
+    padding: 12px 16px;
+  }
+
+  .back-button {
+    padding: 12px 18px;
+    font-size: 14px;
+    min-height: 48px;
   }
 }
 
-/* เพิ่มสไตล์สำหรับ date field container */
-.date-field {
-  position: relative;
+/* เพิ่ม media query สำหรับ iPhone SE และหน้าจอเล็กมากๆ */
+@media (max-width: 375px) {
+  .search-field input[type="date"] {
+    font-size: 16px;
+    padding: 20px 16px;
+    min-height: 58px;
+  }
+
+  .clear-search-btn {
+    width: 95%;
+    padding: 18px 20px;
+    min-height: 58px;
+    font-size: 16px;
+  }
+
+  .history-item {
+    padding: 12px;
+  }
+
+  .view-details-btn,
+  .delete-btn {
+    padding: 18px;
+    min-height: 58px;
+  }
 }
 
-/* ปรับปรุง placeholder behavior */
-.search-field input[type="date"]:invalid {
-  color: #999;
+/* ปรับปรุงการแสดงผลบน landscape mode ของมือถือ */
+@media (max-width: 768px) and (orientation: landscape) {
+  .date-range-container {
+    flex-direction: row;
+    gap: 15px;
+  }
+
+  .date-field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .search-field input[type="date"] {
+    font-size: 14px;
+    padding: 12px 16px;
+    min-height: 44px;
+  }
 }
 
-.search-field input[type="date"]:focus:invalid {
-  color: #333;
-}
-
-/* สำหรับ older browsers ที่ไม่รองรับ input type="date" */
-.search-field input[type="date"]:not(:focus):not(:valid) {
-  color: transparent;
-}
-
-.search-field input[type="date"]:not(:focus):not(:valid):before {
-  content: attr(placeholder);
-  color: #999;
-}
-
-/* เพิ่มการรองรับ touch events สำหรับ date inputs */
+/* เพิ่มการรองรับ touch events */
 @media (hover: none) and (pointer: coarse) {
-  .search-field input[type="date"]:active {
-    transform: scale(0.98);
+
+  .clear-search-btn:hover,
+  .view-details-btn:hover,
+  .delete-btn:hover,
+  .pagination-btn:hover,
+  .pagination-nav:hover,
+  .back-button:hover {
+    transform: none;
+  }
+
+  .clear-search-btn:active,
+  .view-details-btn:active,
+  .delete-btn:active,
+  .pagination-btn:active,
+  .pagination-nav:active,
+  .back-button:active {
+    transform: scale(0.95);
     transition: transform 0.1s ease;
   }
 }
