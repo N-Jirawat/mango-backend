@@ -20,6 +20,41 @@ function History() {
   const [searchDateFrom, setSearchDateFrom] = useState("");
   const [searchDateTo, setSearchDateTo] = useState("");
 
+  // ฟังก์ชันสำหรับจัดรูปแบบวันที่เป็น YYYY-MM-DD
+  const formatDateForInput = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // ฟังก์ชันสำหรับจัดการการเปลี่ยนแปลงวันที่
+  const handleDateFromChange = (e) => {
+    const value = e.target.value;
+    console.log("Date From changed:", value);
+    setSearchDateFrom(value);
+    
+    // ถ้าวันที่เริ่มต้นมากกว่าวันที่สิ้นสุด ให้ clear วันที่สิ้นสุด
+    if (value && searchDateTo && value > searchDateTo) {
+      setSearchDateTo("");
+    }
+  };
+
+  const handleDateToChange = (e) => {
+    const value = e.target.value;
+    console.log("Date To changed:", value);
+    
+    // ตรวจสอบว่าวันที่สิ้นสุดไม่น้อยกว่าวันที่เริ่มต้น
+    if (value && searchDateFrom && value < searchDateFrom) {
+      alert("วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น");
+      return;
+    }
+    
+    setSearchDateTo(value);
+  };
+
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -39,7 +74,6 @@ function History() {
     
     if (searchDisease.trim()) {
       filtered = filtered.filter(prediction => {
-        // ตรวจสอบชื่อโรคจากหลายฟิลด์ที่เป็นไปได้
         const diseaseNames = [
           prediction.DiseaseName,
           prediction.diseaseName, 
@@ -50,7 +84,6 @@ function History() {
           prediction.prediction
         ];
         
-        // หาชื่อโรคที่ไม่เป็น null/undefined/empty
         const validDiseaseName = diseaseNames.find(name => 
           name && typeof name === 'string' && name.trim().length > 0
         );
@@ -64,23 +97,23 @@ function History() {
       });
     }
     
-    // ค้นหาตามช่วงวันที่
+    // ค้นหาตามช่วงวันที่ - ปรับปรุงการเปรียบเทียบ
     if (searchDateFrom || searchDateTo) {
       filtered = filtered.filter(prediction => {
         if (!prediction.UpdateAt?.seconds) return false;
         
         const predictionDate = new Date(prediction.UpdateAt.seconds * 1000);
-        const predictionDateStr = predictionDate.toISOString().split('T')[0];
+        const predictionDateStr = formatDateForInput(predictionDate);
         
         // ถ้ามีทั้ง วันเริ่มต้น และ วันสิ้นสุด
         if (searchDateFrom && searchDateTo) {
           return predictionDateStr >= searchDateFrom && predictionDateStr <= searchDateTo;
         }
-        // ถ้ามีแค่วันเริ่มต้น (หาตั้งแต่วันนี้เป็นต้นไป)
+        // ถ้ามีแค่วันเริ่มต้น
         else if (searchDateFrom && !searchDateTo) {
           return predictionDateStr >= searchDateFrom;
         }
-        // ถ้ามีแค่วันสิ้นสุด (หาจนถึงวันนี้)
+        // ถ้ามีแค่วันสิ้นสุด
         else if (!searchDateFrom && searchDateTo) {
           return predictionDateStr <= searchDateTo;
         }
@@ -104,7 +137,6 @@ function History() {
       const historyData = [];
       querySnapshot.forEach((doc) => {
         const data = { id: doc.id, ...doc.data() };
-        // Debug: แสดงข้อมูลของแต่ละ document เพื่อตรวจสอบ field names
         console.log('Document data:', data);
         historyData.push(data);
       });
@@ -135,7 +167,6 @@ function History() {
     }
   };
 
-  // Helper function to get disease name from prediction object
   const getDiseaseName = (prediction) => {
     const diseaseNames = [
       prediction.DiseaseName,
@@ -167,6 +198,7 @@ function History() {
     setSearchDisease("");
     setSearchDateFrom("");
     setSearchDateTo("");
+    console.log("Search cleared");
   };
 
   if (loading) {
@@ -194,8 +226,9 @@ function History() {
         <h3>ค้นหาข้อมูล</h3>
 
         <div className="search-field">
-          <label>ค้นหาตามชื่อโรค:</label>
+          <label htmlFor="disease-search">ค้นหาตามชื่อโรค:</label>
           <input
+            id="disease-search"
             type="text"
             value={searchDisease}
             onChange={(e) => setSearchDisease(e.target.value)}
@@ -205,24 +238,35 @@ function History() {
 
         <div className="search-field">
           <label>ค้นหาตามช่วงวันที่:</label>
-          <div className="date-range-container" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-            <div>
-              <label style={{fontSize: '12px', color: '#666'}}>จาก:</label>
+          <div className="date-range-container">
+            <div className="date-field">
+              <label htmlFor="date-from" style={{fontSize: '12px', color: '#666'}}>จาก:</label>
               <input
+                id="date-from"
                 type="date"
                 value={searchDateFrom}
-                onChange={(e) => setSearchDateFrom(e.target.value)}
-                placeholder="วันเริ่มต้น"
+                onChange={handleDateFromChange}
+                max={searchDateTo || undefined}
+                style={{
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'textfield'
+                }}
               />
             </div>
-            <span>ถึง</span>
-            <div>
-              <label style={{fontSize: '12px', color: '#666'}}>ถึง:</label>
+            <span style={{alignSelf: 'center', margin: '20px 0 0 0'}}>ถึง</span>
+            <div className="date-field">
+              <label htmlFor="date-to" style={{fontSize: '12px', color: '#666'}}>ถึง:</label>
               <input
+                id="date-to"
                 type="date"
                 value={searchDateTo}
-                onChange={(e) => setSearchDateTo(e.target.value)}
-                placeholder="วันสิ้นสุด"
+                onChange={handleDateToChange}
+                min={searchDateFrom || undefined}
+                max={formatDateForInput(new Date())}
+                style={{
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'textfield'
+                }}
               />
             </div>
           </div>
@@ -234,6 +278,13 @@ function History() {
         <div className="search-buttons">
           <button onClick={clearSearch} className="clear-search-btn">🔄 ล้างการค้นหา</button>
         </div>
+
+        {/* Debug info - แสดงเฉพาะใน development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{fontSize: '12px', color: '#666', marginTop: '10px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '4px'}}>
+            Debug: searchDateFrom = "{searchDateFrom}", searchDateTo = "{searchDateTo}"
+          </div>
+        )}
       </div>
 
       <div className="search-results-info">
