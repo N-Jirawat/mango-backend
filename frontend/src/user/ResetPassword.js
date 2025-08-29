@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { auth } from "../firebaseConfig";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import "../css/resetpassword.css";
 
 function ResetPasswordPage() {
     const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
@@ -63,9 +62,8 @@ function ResetPasswordPage() {
 
         try {
             await confirmPasswordReset(auth, oobCode, newPassword);
-            setMessage("✅ เปลี่ยนรหัสผ่านสำเร็จ! กำลังพาไปหน้าเข้าสู่ระบบ...");
+            setMessage("✅ เปลี่ยนรหัสผ่านสำเร็จ! โปรดใช้รหัสผ่านใหม่นี้ในการเข้าสู่ระบบครั้งถัดไป");
             setCompleted(true);
-            setTimeout(() => navigate("/login"), 3000);
         } catch (err) {
             console.error(err);
             setError("เกิดข้อผิดพลาด โปรดลองใหม่");

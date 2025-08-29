@@ -1,6 +1,8 @@
-Flask==2.3.2
+Flask==2.3.3
+Flask-JWT-Extended==4.5.3
 Flask-CORS==4.0.0
 gunicorn==21.2.0
+python-dotenv==1.0.0
 
 Pillow==9.5.0
 tensorflow-cpu==2.13.0  # เปลี่ยนตรงนี้

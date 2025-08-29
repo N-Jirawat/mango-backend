@@ -41,7 +41,7 @@ function HistoryDetail() {
     if (!confirmDelete) return;
 
     try {
-      await deleteDoc(doc(db, "prediction_results", docId));
+      await deleteDoc(doc(db, "AnalysisHistory", docId));
       alert("ลบข้อมูลสำเร็จ");
       navigate("/history");
     } catch (error) {
