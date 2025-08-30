@@ -4,6 +4,9 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Firebase / Google service account credentials
+mango-e6bd0-firebase-adminsdk-*.json
+
 # Virtual environment (if you're using one)
 .venv/
 env/

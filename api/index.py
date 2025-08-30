@@ -19,12 +19,13 @@ from firebase_admin import credentials, auth, firestore
 from functools import wraps
 from datetime import datetime, timedelta
 from . import checkMango
+import json
 
 # -------------------------------
 # Flask & CORS
 # -------------------------------
 app = Flask(__name__)
-CORS(app, origins=os.environ.get("https://mangoleafanalyzer.onrender.com", "*"))
+CORS(app, origins=os.environ.get("CORS_ALLOWED_ORIGINS", "*"))
 
 # -------------------------------
 # Logging
@@ -32,23 +33,22 @@ CORS(app, origins=os.environ.get("https://mangoleafanalyzer.onrender.com", "*"))
 logging.basicConfig(level=logging.INFO)
 
 # -------------------------------
-# Firebase Setup
+# Firebase Setup (from Environment Variable)
 # -------------------------------
-# Initialize Firebase Admin SDK
-if not firebase_admin._apps:
-    # ใช้ service account key หรือ default credentials
-    cred = credentials.ApplicationDefault()  # หรือ credentials.Certificate("path/to/serviceAccountKey.json")
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
+firebase_json = os.getenv("FIREBASE_CREDENTIALS")
+if not firebase_json:
+    raise ValueError("FIREBASE_CREDENTIALS environment variable is not set")
+cred_dict = json.loads(firebase_json)
+cred = credentials.Certificate(cred_dict)
+firebase_admin.initialize_app(cred)
+db = firestore.client()  # Firestore client
 
 # -------------------------------
 # User Activity Tracking with Firestore
 # -------------------------------
-INACTIVITY_TIMEOUT = 15 * 60  # 15 นาที
+INACTIVITY_TIMEOUT = int(os.environ.get("INACTIVITY_TIMEOUT_MINUTES", 15)) * 60  # in seconds
 
 def update_user_activity_firebase(uid):
-    """อัปเดตเวลาการใช้งานล่าสุดของผู้ใช้ใน Firestore"""
     try:
         user_ref = db.collection('user_activities').document(uid)
         user_ref.set({
@@ -59,46 +59,31 @@ def update_user_activity_firebase(uid):
         logging.error(f"Error updating user activity: {e}")
 
 def is_user_active_firebase(uid):
-    """ตรวจสอบว่าผู้ใช้ยังอยู่ในช่วงเวลาที่กำหนดหรือไม่"""
     try:
         user_ref = db.collection('user_activities').document(uid)
         doc = user_ref.get()
-        
         if not doc.exists:
             return False
-        
         data = doc.to_dict()
         last_activity = data.get('last_activity')
-        
         if not last_activity:
             return False
-        
-        # แปลง Firestore timestamp เป็น datetime
-        current_time = datetime.now()
+        current_time = datetime.utcnow()
         time_diff = (current_time - last_activity.replace(tzinfo=None)).total_seconds()
-        
         return time_diff < INACTIVITY_TIMEOUT
     except Exception as e:
         logging.error(f"Error checking user activity: {e}")
         return False
 
 def cleanup_inactive_users_firebase():
-    """ลบข้อมูล activity ของ user ที่ไม่ active แล้ว"""
     try:
-        cutoff_time = datetime.now() - timedelta(seconds=INACTIVITY_TIMEOUT)
-        
-        # Query inactive users
-        inactive_query = db.collection('user_activities').where(
-            'last_activity', '<', cutoff_time
-        )
-        
+        cutoff_time = datetime.utcnow() - timedelta(seconds=INACTIVITY_TIMEOUT)
+        inactive_query = db.collection('user_activities').where('last_activity', '<', cutoff_time)
         inactive_docs = inactive_query.stream()
         batch = db.batch()
-        
         for doc in inactive_docs:
             batch.delete(doc.reference)
             logging.info(f"User {doc.id} auto-logged out due to inactivity")
-        
         batch.commit()
     except Exception as e:
         logging.error(f"Error cleaning up inactive users: {e}")
@@ -111,43 +96,29 @@ def firebase_auth_required(admin_only=False):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             try:
-                # ดึง token จาก header
                 auth_header = request.headers.get('Authorization')
                 if not auth_header or not auth_header.startswith('Bearer '):
                     return jsonify({"error": "Missing or invalid authorization header"}), 401
-                
                 token = auth_header.split('Bearer ')[1]
-                
-                # Verify Firebase token
                 decoded_token = auth.verify_id_token(token)
                 uid = decoded_token['uid']
-                
-                # ตรวจสอบ user activity
                 if not is_user_active_firebase(uid):
                     return jsonify({
                         "error": "Session expired due to inactivity",
                         "code": "INACTIVE_SESSION",
                         "message": "กรุณาเข้าสู่ระบบใหม่"
                     }), 401
-                
-                # อัปเดต activity
                 update_user_activity_firebase(uid)
-                
-                # ตรวจสอบ admin role (ถ้าต้องการ)
                 if admin_only:
                     user_claims = decoded_token.get('custom_claims', {})
                     if user_claims.get('role') != 'admin':
                         return jsonify({"error": "Admin access required"}), 403
-                
-                # เพิ่ม user info ใน request context
                 request.current_user = {
                     'uid': uid,
                     'email': decoded_token.get('email'),
                     'claims': decoded_token.get('custom_claims', {})
                 }
-                
                 return f(*args, **kwargs)
-                
             except auth.ExpiredIdTokenError:
                 return jsonify({"error": "Token expired", "code": "TOKEN_EXPIRED"}), 401
             except auth.InvalidIdTokenError:
@@ -155,7 +126,6 @@ def firebase_auth_required(admin_only=False):
             except Exception as e:
                 logging.error(f"Auth error: {e}")
                 return jsonify({"error": "Authentication failed"}), 401
-        
         return decorated_function
     return decorator
 
@@ -163,8 +133,6 @@ def firebase_auth_required(admin_only=False):
 def log_request_info():
     user = getattr(request, 'current_user', {}).get('email', 'anonymous')
     logging.info(f"{user} called {request.path}")
-    
-    # ทำความสะอาด inactive users ทุกๆ request
     cleanup_inactive_users_firebase()
 
 # -------------------------------
@@ -173,7 +141,7 @@ def log_request_info():
 limiter = Limiter(app, key_func=get_remote_address)
 
 # -------------------------------
-# Models & Embeddings (เหมือนเดิม)
+# Models & Embeddings
 # -------------------------------
 IMG_SIZE = (224, 224)
 USE_FILTER = True
@@ -201,7 +169,6 @@ def download_from_gcs(bucket_name, source_blob_name, destination_file_name):
     blob = bucket.blob(source_blob_name)
     blob.download_to_filename(destination_file_name)
 
-# โหลด model
 download_from_gcs(GCS_BUCKET_NAME, MODEL_GCS_PATH, LOCAL_MODEL_PATH)
 model = load_model(LOCAL_MODEL_PATH)
 
@@ -517,4 +484,4 @@ if __name__ == '__main__':
     print("\n--- Starting Flask App with Firebase ---")
     print(f"Auto logout after {INACTIVITY_TIMEOUT//60} minutes of inactivity")
     print("Using Firebase Auth & Firestore for session management")
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
