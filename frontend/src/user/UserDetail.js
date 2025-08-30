@@ -172,8 +172,8 @@ function UserDetails() {
 
   const validatePassword = (password) => {
     // ตรวจสอบความยาวอย่างน้อย 6 หลัก
-    if (password.length < 6) {
-      return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัว!" };
+    if (password.length < 8) {
+      return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัว!" };
     }
 
     // ตรวจสอบว่ามีตัวอักษรอย่างน้อย 1 ตัว
@@ -815,7 +815,7 @@ function UserDetails() {
                 </div>
 
                 <p style={{ display: 'flex', fontSize: "12px", color: "#666", margin: "5px 0" }}>
-                  *รหัสผ่านอย่างน้อย 6 ตัว ต้องมีตัวอักษรและตัวเลขอย่างน้อยตัวละ 1 ตัว
+                  *รหัสผ่านอย่างน้อย 8 ตัว ต้องมีตัวอักษรและตัวเลขอย่างน้อยตัวละ 1 ตัว
                 </p>
 
                 {/* แสดงสถานะการตรวจสอบรหัสผ่าน */}
@@ -830,7 +830,7 @@ function UserDetails() {
                       <span style={{ marginRight: "5px" }}>
                         {passwordValidation.hasMinLength ? "✅" : "❌"}
                       </span>
-                      อย่างน้อย 6 ตัวอักษร
+                      อย่างน้อย 8 ตัวอักษร
                     </div>
                     <div style={{
                       display: 'flex',

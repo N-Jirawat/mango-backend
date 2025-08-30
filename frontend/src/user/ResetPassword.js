@@ -44,14 +44,14 @@ function ResetPasswordPage() {
     }, [newPassword]);
 
     const validatePassword = (pwd) =>
-        pwd.length >= 6 && /[a-zA-Z]/.test(pwd) && /[0-9]/.test(pwd);
+        pwd.length >= 8 && /[a-zA-Z]/.test(pwd) && /[0-9]/.test(pwd);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
 
         if (!validatePassword(newPassword)) {
-            setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัว และประกอบด้วยตัวอักษร + ตัวเลข");
+            setError("รหัสผ่านต้องมีอย่างน้อย 8 ตัว และประกอบด้วยตัวอักษร + ตัวเลข");
             return;
         }
 
@@ -133,7 +133,7 @@ function ResetPasswordPage() {
 
                         <div className="password-validation">
                             <div className={`validation-item ${passwordValidation.hasMinLength ? "valid" : "invalid"}`}>
-                                {passwordValidation.hasMinLength ? "✅" : "❌"} อย่างน้อย 6 ตัวอักษร
+                                {passwordValidation.hasMinLength ? "✅" : "❌"} อย่างน้อย 8 ตัวอักษร
                             </div>
                             <div className={`validation-item ${passwordValidation.hasLetter ? "valid" : "invalid"}`}>
                                 {passwordValidation.hasLetter ? "✅" : "❌"} มีตัวอักษรอย่างน้อย 1 ตัว
