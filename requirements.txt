@@ -1,6 +1,7 @@
 Flask==2.3.3
 Flask-CORS==4.0.0
 gunicorn==21.2.0
+firebase-admin==6.2.0
 
 Pillow==9.5.0
 tensorflow-cpu==2.13.0  # เปลี่ยนตรงนี้
