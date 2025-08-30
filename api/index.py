@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from PIL import Image
 import numpy as np
 import tensorflow as tf
@@ -11,142 +9,34 @@ from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 import cloudinary
 import cloudinary.uploader
 import os
-import secrets
-from google.cloud import storage
-import logging
-import firebase_admin
-from firebase_admin import credentials, auth, firestore
-from functools import wraps
-from datetime import datetime, timedelta
 from . import checkMango
-import json
+from google.cloud import storage # เพิ่มการ import สำหรับ Google Cloud Storage
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 # -------------------------------
-# Flask & CORS
+# สร้าง Flask App
 # -------------------------------
 app = Flask(__name__)
-CORS(app, origins=os.environ.get("CORS_ALLOWED_ORIGINS", "*"))
 
 # -------------------------------
-# Logging
+# CORS config
 # -------------------------------
-logging.basicConfig(level=logging.INFO)
+CORS(app, origins="https://mangoleafanalyzer.onrender.com")
+
+# หรือสำหรับการทดสอบทุกโดเมน (ไม่แนะนำสำหรับ Production):
+# CORS(app, origins="*")
 
 # -------------------------------
-# Firebase Setup (from Environment Variable)
-# -------------------------------
-firebase_json = os.getenv("FIREBASE_CREDENTIALS")
-if not firebase_json:
-    raise ValueError("FIREBASE_CREDENTIALS environment variable is not set")
-cred_dict = json.loads(firebase_json)
-cred = credentials.Certificate(cred_dict)
-firebase_admin.initialize_app(cred)
-db = firestore.client()  # Firestore client
-
-# -------------------------------
-# User Activity Tracking with Firestore
-# -------------------------------
-INACTIVITY_TIMEOUT = int(os.environ.get("INACTIVITY_TIMEOUT_MINUTES", 15)) * 60  # in seconds
-
-def update_user_activity_firebase(uid):
-    try:
-        user_ref = db.collection('user_activities').document(uid)
-        user_ref.set({
-            'last_activity': firestore.SERVER_TIMESTAMP,
-            'uid': uid
-        }, merge=True)
-    except Exception as e:
-        logging.error(f"Error updating user activity: {e}")
-
-def is_user_active_firebase(uid):
-    try:
-        user_ref = db.collection('user_activities').document(uid)
-        doc = user_ref.get()
-        if not doc.exists:
-            return False
-        data = doc.to_dict()
-        last_activity = data.get('last_activity')
-        if not last_activity:
-            return False
-        current_time = datetime.utcnow()
-        time_diff = (current_time - last_activity.replace(tzinfo=None)).total_seconds()
-        return time_diff < INACTIVITY_TIMEOUT
-    except Exception as e:
-        logging.error(f"Error checking user activity: {e}")
-        return False
-
-def cleanup_inactive_users_firebase():
-    try:
-        cutoff_time = datetime.utcnow() - timedelta(seconds=INACTIVITY_TIMEOUT)
-        inactive_query = db.collection('user_activities').where('last_activity', '<', cutoff_time)
-        inactive_docs = inactive_query.stream()
-        batch = db.batch()
-        for doc in inactive_docs:
-            batch.delete(doc.reference)
-            logging.info(f"User {doc.id} auto-logged out due to inactivity")
-        batch.commit()
-    except Exception as e:
-        logging.error(f"Error cleaning up inactive users: {e}")
-
-# -------------------------------
-# Firebase Auth Decorator
-# -------------------------------
-def firebase_auth_required(admin_only=False):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            try:
-                auth_header = request.headers.get('Authorization')
-                if not auth_header or not auth_header.startswith('Bearer '):
-                    return jsonify({"error": "Missing or invalid authorization header"}), 401
-                token = auth_header.split('Bearer ')[1]
-                decoded_token = auth.verify_id_token(token)
-                uid = decoded_token['uid']
-                if not is_user_active_firebase(uid):
-                    return jsonify({
-                        "error": "Session expired due to inactivity",
-                        "code": "INACTIVE_SESSION",
-                        "message": "กรุณาเข้าสู่ระบบใหม่"
-                    }), 401
-                update_user_activity_firebase(uid)
-                if admin_only:
-                    user_claims = decoded_token.get('custom_claims', {})
-                    if user_claims.get('role') != 'admin':
-                        return jsonify({"error": "Admin access required"}), 403
-                request.current_user = {
-                    'uid': uid,
-                    'email': decoded_token.get('email'),
-                    'claims': decoded_token.get('custom_claims', {})
-                }
-                return f(*args, **kwargs)
-            except auth.ExpiredIdTokenError:
-                return jsonify({"error": "Token expired", "code": "TOKEN_EXPIRED"}), 401
-            except auth.InvalidIdTokenError:
-                return jsonify({"error": "Invalid token", "code": "INVALID_TOKEN"}), 401
-            except Exception as e:
-                logging.error(f"Auth error: {e}")
-                return jsonify({"error": "Authentication failed"}), 401
-        return decorated_function
-    return decorator
-
-@app.before_request
-def log_request_info():
-    user = getattr(request, 'current_user', {}).get('email', 'anonymous')
-    logging.info(f"{user} called {request.path}")
-    cleanup_inactive_users_firebase()
-
-# -------------------------------
-# Rate Limiter
-# -------------------------------
-limiter = Limiter(app, key_func=get_remote_address)
-
-# -------------------------------
-# Models & Embeddings
+# CONFIG
 # -------------------------------
 IMG_SIZE = (224, 224)
-USE_FILTER = True
-MANGO_LEAF_THRESHOLD = 0.7
-DISEASE_CONFIDENCE_THRESHOLD = 0.8
+USE_FILTER = True  # True = เช็คว่าเป็นใบมะม่วงก่อนทำนาย, False = ทำนายเลยไม่กรอง
+
+# ค่า confidence สำหรับเช็คใบมะม่วงและโรค
+MANGO_LEAF_THRESHOLD = 0.70
+DISEASE_CONFIDENCE_THRESHOLD = 0.80
+
 model_classes = ['Anthracnose', 'Healthy', 'Sooty-mold', 'raised-spot']
 class_map = {
     'Anthracnose': 'โรคแอนแทรคโนส',
@@ -155,144 +45,167 @@ class_map = {
     'raised-spot': 'โรคใบจุดนูน',
 }
 
-GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', 'mango-app-models-bucket')
+# -------------------------------
+# Cloudinary config
+# -------------------------------
+# แนะนำให้เก็บ API keys ใน Environment Variables
+# สำหรับ Local Development คุณสามารถตั้งค่า Environment Variables ใน Terminal
+# หรือใช้ไฟล์ .env และไลบรารี python-dotenv เพื่อความสะดวก
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', 'dsf25dlca'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY', '978124749794588'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET', 's_KmqxdLxYeW8H-dCbLkWFx_ZTQ'),
+)
+
+# -------------------------------
+# กำหนดค่าสำหรับ Google Cloud Storage (GCS)
+# -------------------------------
+# เปลี่ยน 'your-mango-app-models-bucket' เป็นชื่อ Bucket GCS ของคุณที่สร้างไว้
+GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', 'mango-app-models-bucket') # ควรตั้งเป็น Environment Variable ด้วย
 EMBEDDINGS_GCS_PATH = "mango_reference_embeddings.npy"
 MODEL_GCS_PATH = "model_efficientnetv2s_224_R2.keras"
+
+# กำหนด Path ที่จะเก็บไฟล์ชั่วคราวใน App Engine (หรือในเครื่อง)
+# /tmp/ เป็นโฟลเดอร์ที่เขียนได้ใน App Engine Standard Environment
 LOCAL_MODEL_DIR = "/tmp/models"
 LOCAL_MODEL_PATH = os.path.join(LOCAL_MODEL_DIR, "model_efficientnetv2s_224_R2.keras")
 LOCAL_EMBEDDING_PATH = os.path.join(LOCAL_MODEL_DIR, "mango_reference_embeddings.npy")
-os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
 
 def download_from_gcs(bucket_name, source_blob_name, destination_file_name):
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(source_blob_name)
-    blob.download_to_filename(destination_file_name)
+    """ดาวน์โหลด Blob จาก GCS Bucket ไปยังไฟล์ในเครื่อง"""
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(source_blob_name)
+        blob.download_to_filename(destination_file_name)
+        print(f"✅ ดาวน์โหลด '{source_blob_name}' ไปยัง '{destination_file_name}' สำเร็จ")
+    except Exception as e:
+        print(f"❌ เกิดข้อผิดพลาดในการดาวน์โหลด '{source_blob_name}' จาก GCS: {e}")
+        raise
 
-download_from_gcs(GCS_BUCKET_NAME, MODEL_GCS_PATH, LOCAL_MODEL_PATH)
-model = load_model(LOCAL_MODEL_PATH)
-
-if USE_FILTER:
-    checkMango.embedding_model = EfficientNetV2S(include_top=False, weights="imagenet", pooling="avg")
-    download_from_gcs(GCS_BUCKET_NAME, EMBEDDINGS_GCS_PATH, LOCAL_EMBEDDING_PATH)
-    checkMango.mango_embeddings = np.load(LOCAL_EMBEDDING_PATH)
-else:
-    checkMango.mango_embeddings = np.array([])
+def verify_file_exists_and_not_empty(file_path):
+    """ตรวจสอบว่าไฟล์มีอยู่และไม่ว่างเปล่า"""
+    if not os.path.exists(file_path):
+        return False, f"ไฟล์ไม่มีอยู่: {file_path}"
+    if os.path.getsize(file_path) == 0:
+        return False, f"ไฟล์ว่างเปล่า: {file_path}"
+    return True, "ไฟล์ดูเหมือนถูกต้อง"
 
 # -------------------------------
-# Helper functions
+# โหลดโมเดลหลักและ Embedding (จะถูกโหลดเพียงครั้งเดียวตอน Cold Start)
+# -------------------------------
+# สร้างโฟลเดอร์สำหรับเก็บโมเดลชั่วคราวถ้ายังไม่มี
+os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
+
+# ดาวน์โหลดโมเดลหลักจาก GCS และโหลด
+print(f"กำลังดาวน์โหลดโมเดลหลักจาก GCS: {MODEL_GCS_PATH}")
+try:
+    download_from_gcs(GCS_BUCKET_NAME, MODEL_GCS_PATH, LOCAL_MODEL_PATH)
+    is_valid_model, model_message = verify_file_exists_and_not_empty(LOCAL_MODEL_PATH)
+    if not is_valid_model:
+        raise RuntimeError(f"ไฟล์โมเดลหลักไม่ถูกต้องหลังดาวน์โหลด: {model_message}")
+    
+    print("กำลังโหลดโมเดลหลัก...")
+    model = load_model(LOCAL_MODEL_PATH)
+    print(f"✅ โหลดโมเดลหลักสำเร็จจาก {LOCAL_MODEL_PATH}")
+    print(f"   รูปร่างอินพุตของโมเดล: {model.input_shape}")
+    print(f"   รูปร่างเอาต์พุตของโมเดล: {model.output_shape}")
+except Exception as e:
+    print(f"❌ เกิดข้อผิดพลาดในการโหลดโมเดลหลัก: {e}")
+    raise RuntimeError(f"ไม่สามารถโหลดโมเดลหลักจาก GCS ได้: {e}")
+
+# โหลด embedding model และ reference embeddings
+if USE_FILTER:
+    try:
+        checkMango.embedding_model = EfficientNetV2S(include_top=False, weights="imagenet", pooling="avg")
+        print("✅ โหลด EfficientNetV2S embedding model สำเร็จ")
+    except Exception as e:
+        print(f"❌ ไม่สามารถโหลด embedding model ได้: {e}")
+        raise RuntimeError(f"ไม่สามารถโหลด embedding model ได้: {e}")
+
+    # ดาวน์โหลด reference embeddings จาก GCS และโหลด
+    print(f"กำลังดาวน์โหลดไฟล์ Embedding จาก GCS: {EMBEDDINGS_GCS_PATH}")
+    try:
+        download_from_gcs(GCS_BUCKET_NAME, EMBEDDINGS_GCS_PATH, LOCAL_EMBEDDING_PATH)
+        is_valid_embedding, embedding_message = verify_file_exists_and_not_empty(LOCAL_EMBEDDING_PATH)
+        if not is_valid_embedding:
+            raise RuntimeError(f"ไฟล์ Embedding ไม่ถูกต้องหลังดาวน์โหลด: {embedding_message}")
+        
+        checkMango.mango_embeddings = np.load(LOCAL_EMBEDDING_PATH)
+        print(f"✅ โหลด {LOCAL_EMBEDDING_PATH} สำเร็จด้วยรูปร่าง {checkMango.mango_embeddings.shape}")
+    except Exception as e:
+        print(f"❌ เกิดข้อผิดพลาดในการโหลดไฟล์ Embedding: {e}")
+        raise RuntimeError(f"ไม่สามารถโหลด mango embeddings จาก {EMBEDDINGS_GCS_PATH} ได้: {e}")
+else:
+    print("🔄 การกรองใบมะม่วงถูกปิดใช้งาน (USE_FILTER = False)")
+    checkMango.mango_embeddings = np.array([]) # ตรวจสอบให้แน่ใจว่าเป็น array เสมอแม้จะว่างเปล่า
+
+# -------------------------------
+# ฟังก์ชันช่วยเตรียมภาพ
 # -------------------------------
 def load_and_prep_image(image_file):
-    image_file.seek(0)
-    img = Image.open(image_file).convert("RGB").resize(IMG_SIZE)
-    arr = np.array(img)
-    arr = preprocess_input(arr)
-    return np.expand_dims(arr, axis=0)
+    try:
+        image_file.seek(0)
+        img = Image.open(image_file).convert("RGB").resize(IMG_SIZE)
+        arr = np.array(img)
+        arr = preprocess_input(arr)
+        return np.expand_dims(arr, axis=0)
+    except Exception as e:
+        raise Exception(f"เกิดข้อผิดพลาดในการประมวลผลภาพ: {e}")
 
 def validate_image_file(image_file):
     if not image_file:
         raise ValueError("ไม่ได้ระบุไฟล์ภาพ")
+
     allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
     filename = image_file.filename.lower() if image_file.filename else ""
     if not any(filename.endswith(ext) for ext in allowed_extensions):
-        raise ValueError("รูปแบบภาพไม่ถูกต้อง")
-    image_file.seek(0, 2)
-    if image_file.tell() > 10 * 1024 * 1024:
-        raise ValueError("ขนาดไฟล์ใหญ่เกิน 10MB")
-    image_file.seek(0)
+        raise ValueError("รูปแบบภาพไม่ถูกต้อง รูปแบบที่รองรับ: PNG, JPG, JPEG, GIF, BMP, WEBP")
+
+    image_file.seek(0, 2) # Move to end to get size
+    file_size = image_file.tell()
+    image_file.seek(0) # Reset to beginning for reading
+
+    if file_size > 10 * 1024 * 1024: # 10 MB limit
+        raise ValueError("ขนาดไฟล์ใหญ่เกินไป ขนาดสูงสุดคือ 10MB")
 
 # -------------------------------
-# Auth Routes
-# -------------------------------
-@app.route("/logout", methods=["POST"])
-@firebase_auth_required()
-def logout():
-    """Manual logout - ลบ activity record"""
-    uid = request.current_user['uid']
-    try:
-        # ลบ activity record จาก Firestore
-        db.collection('user_activities').document(uid).delete()
-        return jsonify({"message": "ออกจากระบบสำเร็จ"}), 200
-    except Exception as e:
-        logging.error(f"Logout error: {e}")
-        return jsonify({"error": "เกิดข้อผิดพลาดในการออกจากระบบ"}), 500
-
-@app.route("/check-activity", methods=["GET"])
-@firebase_auth_required()
-def check_activity():
-    """ตรวจสอบสถานะ session และเวลาที่เหลือ"""
-    uid = request.current_user['uid']
-    
-    try:
-        user_ref = db.collection('user_activities').document(uid)
-        doc = user_ref.get()
-        
-        if not doc.exists:
-            return jsonify({
-                "active": False,
-                "message": "Session ไม่พบ กรุณาเข้าสู่ระบบใหม่"
-            }), 401
-        
-        data = doc.to_dict()
-        last_activity = data.get('last_activity')
-        
-        if not last_activity:
-            return jsonify({
-                "active": False,
-                "message": "Session ข้อมูลไม่ถูกต้อง"
-            }), 401
-        
-        current_time = datetime.now()
-        time_diff = (current_time - last_activity.replace(tzinfo=None)).total_seconds()
-        time_remaining = INACTIVITY_TIMEOUT - time_diff
-        
-        if time_remaining <= 0:
-            return jsonify({
-                "active": False,
-                "message": "Session หมดอายุ กรุณาเข้าสู่ระบบใหม่"
-            }), 401
-        
-        return jsonify({
-            "active": True,
-            "time_remaining": int(time_remaining),
-            "time_remaining_minutes": int(time_remaining // 60),
-            "last_activity": last_activity.isoformat(),
-            "timeout_minutes": INACTIVITY_TIMEOUT // 60
-        })
-        
-    except Exception as e:
-        logging.error(f"Check activity error: {e}")
-        return jsonify({"error": "ไม่สามารถตรวจสอบ session ได้"}), 500
-
-# -------------------------------
-# Predict (User / Admin)
+# API Routes
 # -------------------------------
 @app.route('/predict', methods=['POST'])
-@firebase_auth_required()
-@limiter.limit("10/minute")
 def predict_image():
     try:
         if 'image' not in request.files:
             return jsonify({"error": "ไม่ได้ระบุไฟล์ภาพ"}), 400
+        
         image = request.files['image']
         validate_image_file(image)
 
-        # ใช้ filter ตรวจใบมะม่วง
+        # ตรวจสอบว่าเป็นใบมะม่วงหรือไม่ (ถ้า USE_FILTER = True)
         similarity = 0.0
-        if USE_FILTER and len(checkMango.mango_embeddings) > 0:
-            is_leaf, similarity = checkMango.is_mango_leaf_from_embedding(image, checkMango.mango_embeddings)
-            if similarity < MANGO_LEAF_THRESHOLD:
-                return jsonify({
-                    "prediction": "ไม่พบโรคที่ตรงกับข้อมูลในระบบ",
-                    "confidence": float(similarity),
-                    "raw_class": None,
-                    "accuracy": 0,
-                    "mango_leaf_confidence": float(similarity),
-                    "mango_leaf_threshold": MANGO_LEAF_THRESHOLD,
-                    "status": "rejected_not_mango_leaf"
-                })
+        if USE_FILTER and hasattr(checkMango, 'mango_embeddings') and len(checkMango.mango_embeddings) > 0:
+            try:
+                image.seek(0) # Reset file pointer before passing to checkMango
+                is_leaf, similarity = checkMango.is_mango_leaf_from_embedding(image, checkMango.mango_embeddings)
+                if similarity < MANGO_LEAF_THRESHOLD:
+                    return jsonify({
+                        "prediction": "ไม่พบโรคที่ตรงกับข้อมูลในระบบ",
+                        "confidence": float(similarity), # Use similarity as confidence for rejection
+                        "raw_class": None,
+                        "accuracy": 0,
+                        "mango_leaf_confidence": float(similarity),
+                        "mango_leaf_threshold": MANGO_LEAF_THRESHOLD,
+                        "status": "rejected_not_mango_leaf"
+                    })
+            except Exception as e:
+                print(f"เกิดข้อผิดพลาดในการตรวจจับใบมะม่วง: {e}")
+                # ควรพิจารณาว่าจะ return error หรือทำนายต่อไปโดยไม่กรอง
+                # ในที่นี้เลือกที่จะยังคงค่า similarity เป็น 0.0 และทำนายต่อไป
+                # หรือจะ raise e อีกครั้งเพื่อหยุดการทำงานหากการกรองสำคัญมาก
+                similarity = 0.0 
 
-        image.seek(0)
+        # ทำนายโรค
+        image.seek(0) # Reset file pointer again before loading for prediction
         img_array = load_and_prep_image(image)
         prediction = model.predict(img_array, verbose=0)
         class_id = int(np.argmax(prediction))
@@ -300,25 +213,29 @@ def predict_image():
         class_th = class_map[class_eng]
         confidence = float(prediction[0][class_id])
 
+        # ตรวจสอบ confidence ของการทำนายโรค
         if confidence < DISEASE_CONFIDENCE_THRESHOLD:
             return jsonify({
                 "prediction": "ไม่พบโรคที่ตรงกับข้อมูลในระบบ",
                 "confidence": confidence,
                 "raw_class": class_eng,
                 "accuracy": 0,
-                "disease_at_threshold": DISEASE_CONFIDENCE_THRESHOLD,
+                "disease_at_threshold": DISEASE_CONFIDENCE_THRESHOLD, # Changed from disease_threshold to disease_at_threshold
                 "status": "low_confidence"
             })
 
+        # ส่งผลลัพธ์
         response_data = {
             "prediction": class_th,
             "confidence": confidence,
             "raw_class": class_eng,
             "accuracy": 1,
-            "disease_at_threshold": DISEASE_CONFIDENCE_THRESHOLD,
+            "disease_at_threshold": DISEASE_CONFIDENCE_THRESHOLD, # Changed from disease_threshold to disease_at_threshold
             "status": "success"
         }
-        if USE_FILTER and len(checkMango.mango_embeddings) > 0:
+
+        # เพิ่มข้อมูล mango leaf confidence ถ้ามีการใช้ filter
+        if USE_FILTER and hasattr(checkMango, 'mango_embeddings') and len(checkMango.mango_embeddings) > 0:
             response_data["mango_leaf_confidence"] = float(similarity)
             response_data["mango_leaf_threshold"] = MANGO_LEAF_THRESHOLD
 
@@ -328,20 +245,18 @@ def predict_image():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         import traceback
-        traceback.print_exc()
+        traceback.print_exc() # Print full traceback for debugging
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
-# -------------------------------
-# Upload Image (Admin)
-# -------------------------------
 @app.route("/upload", methods=["POST"])
-@firebase_auth_required(admin_only=True)
 def upload_image():
     try:
         if 'image' not in request.files:
             return jsonify({"error": "ไม่ได้ระบุไฟล์ภาพ"}), 400
+
         image = request.files['image']
         validate_image_file(image)
+
         upload_result = cloudinary.uploader.upload(image, folder="mango_diseases")
         return jsonify({
             "imageUrl": upload_result['secure_url'],
@@ -352,26 +267,19 @@ def upload_image():
     except Exception as e:
         return jsonify({"error": f"การอัปโหลดล้มเหลว: {str(e)}"}), 500
 
-# -------------------------------
-# Delete Image (Admin)
-# -------------------------------
 @app.route("/delete", methods=["POST"])
-@firebase_auth_required(admin_only=True)
 def delete_image():
     try:
         public_id = request.form.get('public_id') or request.json.get('public_id')
         if not public_id:
             return jsonify({"error": "ไม่ได้ระบุ public_id"}), 400
+
         cloudinary.uploader.destroy(public_id)
         return jsonify({"result": "ลบภาพสำเร็จ"}), 200
     except Exception as e:
         return jsonify({"error": f"การลบล้มเหลว: {str(e)}"}), 500
 
-# -------------------------------
-# Config (Admin)
-# -------------------------------
 @app.route('/config', methods=['GET'])
-@firebase_auth_required(admin_only=True)
 def get_config():
     return jsonify({
         "mango_leaf_threshold": MANGO_LEAF_THRESHOLD,
@@ -379,109 +287,60 @@ def get_config():
         "use_filter": USE_FILTER,
         "img_size": IMG_SIZE,
         "model_classes": model_classes,
-        "has_mango_embeddings": len(checkMango.mango_embeddings) > 0,
-        "model_path": LOCAL_MODEL_PATH,
-        "embedding_path": LOCAL_EMBEDDING_PATH if USE_FILTER else None,
-        "inactivity_timeout_minutes": INACTIVITY_TIMEOUT // 60
+        "has_mango_embeddings": len(checkMango.mango_embeddings) > 0 if hasattr(checkMango, 'mango_embeddings') else False,
+        "model_path": LOCAL_MODEL_PATH, # เปลี่ยนเป็น Local Path ที่ดาวน์โหลดมา
+        "embedding_path": LOCAL_EMBEDDING_PATH if USE_FILTER else None # เปลี่ยนเป็น Local Path ที่ดาวน์โหลดมา
     })
 
 @app.route('/config', methods=['POST'])
-@firebase_auth_required(admin_only=True)
 def update_config():
-    global MANGO_LEAF_THRESHOLD, DISEASE_CONFIDENCE_THRESHOLD, USE_FILTER, INACTIVITY_TIMEOUT
+    global MANGO_LEAF_THRESHOLD, DISEASE_CONFIDENCE_THRESHOLD, USE_FILTER
     try:
         data = request.get_json()
         if not data:
             return jsonify({"error": "ไม่ได้ระบุข้อมูลการตั้งค่า"}), 400
+
         if 'mango_leaf_threshold' in data:
             MANGO_LEAF_THRESHOLD = float(data['mango_leaf_threshold'])
         if 'disease_confidence_threshold' in data:
             DISEASE_CONFIDENCE_THRESHOLD = float(data['disease_confidence_threshold'])
         if 'use_filter' in data:
             USE_FILTER = bool(data['use_filter'])
-        if 'inactivity_timeout_minutes' in data:
-            INACTIVITY_TIMEOUT = int(data['inactivity_timeout_minutes']) * 60
+
         return jsonify({"message": "อัปเดตการตั้งค่าสำเร็จ"}), 200
     except Exception as e:
         return jsonify({"error": f"ไม่สามารถอัปเดตการตั้งค่าได้: {str(e)}"}), 500
 
-# -------------------------------
-# Admin: View Active Users
-# -------------------------------
-@app.route('/admin/active-users', methods=['GET'])
-@firebase_auth_required(admin_only=True)
-def get_active_users():
-    try:
-        cutoff_time = datetime.now() - timedelta(seconds=INACTIVITY_TIMEOUT)
-        
-        # Query active users
-        active_query = db.collection('user_activities').where(
-            'last_activity', '>=', cutoff_time
-        )
-        
-        active_docs = active_query.stream()
-        active_users_info = []
-        
-        for doc in active_docs:
-            data = doc.to_dict()
-            last_activity = data.get('last_activity')
-            
-            if last_activity:
-                current_time = datetime.now()
-                time_since_activity = (current_time - last_activity.replace(tzinfo=None)).total_seconds()
-                time_remaining = INACTIVITY_TIMEOUT - time_since_activity
-                
-                if time_remaining > 0:
-                    active_users_info.append({
-                        "uid": doc.id,
-                        "last_activity": last_activity.isoformat(),
-                        "time_remaining_seconds": int(time_remaining),
-                        "time_remaining_minutes": int(time_remaining // 60)
-                    })
-        
-        return jsonify({
-            "active_users": active_users_info,
-            "total_active": len(active_users_info),
-            "timeout_setting_minutes": INACTIVITY_TIMEOUT // 60
-        })
-        
-    except Exception as e:
-        logging.error(f"Error getting active users: {e}")
-        return jsonify({"error": "ไม่สามารถดึงข้อมูล active users ได้"}), 500
-
-# -------------------------------
-# Health Check
-# -------------------------------
 @app.route('/health', methods=['GET'])
 def health_check():
-    try:
-        # ตรวจสอบ Firebase connection
-        firebase_status = "connected"
-        try:
-            db.collection('health_check').limit(1).get()
-        except:
-            firebase_status = "disconnected"
-        
-        return jsonify({
-            "status": "healthy",
-            "model_loaded": 'model' in globals() and model is not None,
-            "embedding_model_loaded": hasattr(checkMango, 'embedding_model') and checkMango.embedding_model is not None,
-            "mango_embeddings_loaded": len(checkMango.mango_embeddings) > 0,
-            "use_filter": USE_FILTER,
-            "inactivity_timeout_minutes": INACTIVITY_TIMEOUT // 60,
-            "firebase_status": firebase_status
-        })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "error": str(e)
-        }), 500
+    """ตรวจสอบสถานะของระบบ"""
+    return jsonify({
+        "status": "healthy",
+        "model_loaded": 'model' in globals() and model is not None,
+        "embedding_model_loaded": hasattr(checkMango, 'embedding_model') and checkMango.embedding_model is not None,
+        "mango_embeddings_loaded": len(checkMango.mango_embeddings) > 0 if hasattr(checkMango, 'mango_embeddings') else False,
+        "use_filter": USE_FILTER
+    })
 
 # -------------------------------
-# Run Local
+# สำหรับการรันใน Local Development
 # -------------------------------
 if __name__ == '__main__':
-    print("\n--- Starting Flask App with Firebase ---")
-    print(f"Auto logout after {INACTIVITY_TIMEOUT//60} minutes of inactivity")
-    print("Using Firebase Auth & Firestore for session management")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    # สำหรับการรันใน Local Development:
+    # 1. ตรวจสอบให้แน่ใจว่าได้ติดตั้ง google-cloud-storage แล้ว (pip install google-cloud-storage)
+    # 2. ตั้งค่า Environment Variable 'GCS_BUCKET_NAME' ในเครื่องของคุณ
+    #    (เช่น ใน PowerShell: $env:GCS_BUCKET_NAME="your-mango-app-models-bucket")
+    # 3. ตรวจสอบว่าคุณได้ตั้งค่า Google Cloud Authentication สำหรับ Local Development แล้ว
+    #    (เช่น gcloud auth application-default login)
+    # 4. ไฟล์โมเดลจะถูกดาวน์โหลดจาก GCS ไปยัง /tmp/models/ ในเครื่องของคุณ
+    #    (หรือ C:\Users\Asus\AppData\Local\Temp\models บน Windows)
+    # 5. ถ้าคุณต้องการรันโดยไม่ดาวน์โหลดจาก GCS ใน Local
+    #    คุณสามารถคอมเมนต์ส่วนดาวน์โหลด GCS ออกชั่วคราว
+    #    และตรวจสอบให้แน่ใจว่าไฟล์โมเดลอยู่ใน api/models/ ในเครื่องของคุณ
+    #    และเปลี่ยน LOCAL_MODEL_PATH/LOCAL_EMBEDDING_PATH กลับไปชี้ที่ api/models/
+    #    (แต่แนะนำให้ทดสอบการดาวน์โหลดจาก GCS ใน Local ด้วย)
+
+    print("\n--- กำลังเริ่ม Flask App ในโหมด Local Development ---")
+    print("เข้าถึง API ได้ที่ http://127.0.0.1:5000/")
+    print("กด Ctrl+C เพื่อออก.")
+    app.run(debug=True)
