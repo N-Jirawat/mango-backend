@@ -162,8 +162,8 @@ function AccountManagement() {
     if (!confirmDelete) return;
 
     try {
-      await fetch("http://127.0.0.1:5000/delete_user", {
-      //await fetch("https://mangoleafanalyzer.onrender.com/delete_user", {
+      //await fetch("http://127.0.0.1:5000/delete_user", {
+      await fetch("https://mangoleafanalyzer.onrender.com/delete_user", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid }),
