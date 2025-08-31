@@ -10,14 +10,9 @@ from tensorflow.keras.applications import EfficientNetV2S
 from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 import cloudinary
 import cloudinary.uploader
-import os ,json
-
-try:
-    import checkMango  # ✅ รันตรง ๆ ในเครื่อง
-except ImportError:
-    from . import checkMango  # ✅ รันเป็น package (เช่นบน Render)
-
-from google.cloud import storage # เพิ่มการ import สำหรับ Google Cloud Storage
+import os, json
+import checkMango
+from google.cloud import storage  # ใช้สำหรับดาวน์โหลดโมเดล
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -34,19 +29,6 @@ CORS(app, resources={r"/*": {"origins": "https://mangoleafanalyzer.onrender.com"
 
 # หรือสำหรับการทดสอบทุกโดเมน (ไม่แนะนำสำหรับ Production):
 # CORS(app, origins="*")
-
-if not firebase_admin._apps:
-    if os.environ.get("FIREBASE_CREDENTIALS"):  
-        # 👉 ใช้ environment variable (Render)
-        cred_dict = json.loads(os.environ["FIREBASE_CREDENTIALS"])
-        cred = credentials.Certificate(cred_dict)
-    else:
-        # 👉 ใช้ไฟล์ (Local)
-        cred = credentials.Certificate("serviceAccountKey.json")
-
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 # -------------------------------
 # CONFIG
@@ -298,28 +280,7 @@ def delete_image():
         cloudinary.uploader.destroy(public_id)
         return jsonify({"result": "ลบภาพสำเร็จ"}), 200
     except Exception as e:
-        return jsonify({"error": f"การลบล้มเหลว: {str(e)}"}), 500
-    
-@app.route('/delete_user', methods=['DELETE'])
-def delete_user():
-    try:
-        data = request.json
-        uid = data.get("uid")
-
-        if not uid:
-            return jsonify({"error": "Missing uid"}), 400
-
-        # 1. ลบ Firestore document
-        db.collection("users").document(uid).delete()
-
-        # 2. ลบจาก Firebase Auth
-        auth.delete_user(uid)
-
-        return jsonify({"message": f"User {uid} deleted successfully"}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
+        return jsonify({"error": f"การลบล้มเหลว: {str(e)}"}), 500    
 
 @app.route('/config', methods=['GET'])
 def get_config():

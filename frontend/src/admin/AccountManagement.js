@@ -26,6 +26,8 @@ function AccountManagement() {
 
   const [dropdownDirection, setDropdownDirection] = useState('drop-down');
 
+  const USER_BACKEND_URL = "https://render-backend-ftkg.onrender.com";
+
   // แก้ไข useEffect สำหรับ dropdown แบบ fixed position
   useEffect(() => {
     if (dropdownOpenId) {
@@ -162,19 +164,31 @@ function AccountManagement() {
     if (!confirmDelete) return;
 
     try {
-      //await fetch("http://127.0.0.1:5000/delete_user", {
-      await fetch("https://mangoleafanalyzer.onrender.com/delete_user", {
+      console.log('กำลังเรียก User Management Backend:', `${USER_BACKEND_URL}/delete_user`);
+
+      const response = await fetch(`${USER_BACKEND_URL}/delete_user`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ uid }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Error ${response.status}: ${errorData.error || response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('ลบผู้ใช้สำเร็จ:', result);
 
       setUsersList((prev) => prev.filter((user) => user.id !== uid));
       setDropdownOpenId(null);
       alert("ลบผู้ใช้เรียบร้อยแล้ว");
+
     } catch (error) {
-      console.error(error);
-      alert("ลบผู้ใช้ไม่สำเร็จ");
+      console.error('Error:', error);
+      alert(`ลบผู้ใช้ไม่สำเร็จ: ${error.message}`);
     }
   };
 
