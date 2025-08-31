@@ -205,7 +205,7 @@ function SignupForm() {
       // ตรวจสอบรหัสผ่าน real-time
       if (name === "password") {
         setPasswordValidation({
-          hasMinLength: value.length >= 6,
+          hasMinLength: value.length >= 8,
           hasLetter: /[a-zA-Z]/.test(value),
           hasNumber: /[0-9]/.test(value)
         });
@@ -235,7 +235,7 @@ function SignupForm() {
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const validatePassword = (password) => {
-    // ตรวจสอบความยาวอย่างน้อย 6 หลัก
+    // ตรวจสอบความยาวอย่างน้อย 8 หลัก
     if (password.length < 8) {
       return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัว!" };
     }

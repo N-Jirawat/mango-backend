@@ -37,7 +37,7 @@ function ResetPasswordPage() {
     // ตรวจสอบรหัสผ่าน realtime
     useEffect(() => {
         setPasswordValidation({
-            hasMinLength: newPassword.length >= 6,
+            hasMinLength: newPassword.length >= 8,
             hasLetter: /[a-zA-Z]/.test(newPassword),
             hasNumber: /[0-9]/.test(newPassword)
         });
