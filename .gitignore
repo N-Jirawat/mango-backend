@@ -16,7 +16,7 @@ venv/
 .DS_Store # macOS
 Thumbs.db # Windows
 
-# Local environment variables
+serviceAccountKey.json
 .env
 
 # Large files / ML models that should NOT be part of the git repo and deployment package

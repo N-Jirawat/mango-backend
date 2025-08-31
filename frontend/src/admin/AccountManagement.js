@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { db } from "../firebaseConfig";
-import { collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { db, auth } from "../firebaseConfig";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 import provinces from "../่json/thai_provinces.json";
 import districts from "../่json/thai_amphures.json";
@@ -10,8 +10,6 @@ import subdistricts from "../่json/thai_tambons.json";
 
 function AccountManagement() {
   const navigate = useNavigate();
-  const auth = getAuth();
-
   const [loading, setLoading] = useState(true);
   const [usersList, setUsersList] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -115,15 +113,16 @@ function AccountManagement() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        await fetchUsersList();
-      } else {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
         navigate("/login");
+      } else {
+        fetchUsersList(); // ✅ โหลดข้อมูลผู้ใช้
       }
     });
+
     return () => unsubscribe();
-  }, [auth, navigate]);
+  }, [navigate]);
 
   // ฟิลเตอร์ผู้ใช้ตามคำค้นหา
   useEffect(() => {
@@ -158,18 +157,24 @@ function AccountManagement() {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = async (uid) => {
     const confirmDelete = window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?");
     if (!confirmDelete) return;
 
     try {
-      await deleteDoc(doc(db, "users", userId));
-      setUsersList((prev) => prev.filter((user) => user.id !== userId));
-      // ✅ เพิ่มบรรทัดนี้ - ปิด dropdown หลังจากลบเสร็จ
+      await fetch("http://127.0.0.1:5000/delete_user", {
+      //await fetch("https://mangoleafanalyzer.onrender.com/delete_user", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid }),
+      });
+
+      setUsersList((prev) => prev.filter((user) => user.id !== uid));
       setDropdownOpenId(null);
+      alert("ลบผู้ใช้เรียบร้อยแล้ว");
     } catch (error) {
-      console.error("เกิดข้อผิดพลาดในการลบผู้ใช้:", error);
-      alert("ไม่สามารถลบผู้ใช้ได้");
+      console.error(error);
+      alert("ลบผู้ใช้ไม่สำเร็จ");
     }
   };
 

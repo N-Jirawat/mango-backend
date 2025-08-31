@@ -245,8 +245,6 @@ function StatisticsAdmin() {
             usersMapTemp[uid] = userData;
           }
         });
-
-        console.log("Users map created:", usersMapTemp);
         setUsersMap(usersMapTemp);
 
         // ดึงข้อมูล predictions

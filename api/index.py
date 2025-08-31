@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+import firebase_admin
+from firebase_admin import credentials, auth, firestore
 from flask_cors import CORS
 from PIL import Image
 import numpy as np
@@ -8,8 +10,13 @@ from tensorflow.keras.applications import EfficientNetV2S
 from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 import cloudinary
 import cloudinary.uploader
-import os
-from . import checkMango
+import os ,json
+
+try:
+    import checkMango  # ✅ รันตรง ๆ ในเครื่อง
+except ImportError:
+    from . import checkMango  # ✅ รันเป็น package (เช่นบน Render)
+
 from google.cloud import storage # เพิ่มการ import สำหรับ Google Cloud Storage
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -22,10 +29,24 @@ app = Flask(__name__)
 # -------------------------------
 # CORS config
 # -------------------------------
-CORS(app, origins="https://mangoleafanalyzer.onrender.com")
+#CORS(app)
+CORS(app, resources={r"/*": {"origins": "https://mangoleafanalyzer.onrender.com"}})
 
 # หรือสำหรับการทดสอบทุกโดเมน (ไม่แนะนำสำหรับ Production):
 # CORS(app, origins="*")
+
+if not firebase_admin._apps:
+    if os.environ.get("FIREBASE_CREDENTIALS"):  
+        # 👉 ใช้ environment variable (Render)
+        cred_dict = json.loads(os.environ["FIREBASE_CREDENTIALS"])
+        cred = credentials.Certificate(cred_dict)
+    else:
+        # 👉 ใช้ไฟล์ (Local)
+        cred = credentials.Certificate("serviceAccountKey.json")
+
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
 
 # -------------------------------
 # CONFIG
@@ -52,9 +73,9 @@ class_map = {
 # สำหรับ Local Development คุณสามารถตั้งค่า Environment Variables ใน Terminal
 # หรือใช้ไฟล์ .env และไลบรารี python-dotenv เพื่อความสะดวก
 cloudinary.config(
-    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', 'dsf25dlca'),
-    api_key=os.environ.get('CLOUDINARY_API_KEY', '978124749794588'),
-    api_secret=os.environ.get('CLOUDINARY_API_SECRET', 's_KmqxdLxYeW8H-dCbLkWFx_ZTQ'),
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
 )
 
 # -------------------------------
@@ -278,6 +299,27 @@ def delete_image():
         return jsonify({"result": "ลบภาพสำเร็จ"}), 200
     except Exception as e:
         return jsonify({"error": f"การลบล้มเหลว: {str(e)}"}), 500
+    
+@app.route('/delete_user', methods=['DELETE'])
+def delete_user():
+    try:
+        data = request.json
+        uid = data.get("uid")
+
+        if not uid:
+            return jsonify({"error": "Missing uid"}), 400
+
+        # 1. ลบ Firestore document
+        db.collection("users").document(uid).delete()
+
+        # 2. ลบจาก Firebase Auth
+        auth.delete_user(uid)
+
+        return jsonify({"message": f"User {uid} deleted successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 
 @app.route('/config', methods=['GET'])
 def get_config():
