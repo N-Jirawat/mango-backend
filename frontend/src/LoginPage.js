@@ -1,22 +1,18 @@
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
 function LoginPage() {
-  const [loginInput, setLoginInput] = useState(""); // เปลี่ยนจาก email เป็น loginInput
+  const [loginInput, setLoginInput] = useState(""); // username หรือ email
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  // ฟังก์ชันเช็คว่าเป็นอีเมลหรือไม่
-  const isEmail = (input) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(input);
-  };
+  const isEmail = (input) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
 
-  // ฟังก์ชันค้นหาอีเมลจากชื่อผู้ใช้
+  // lookup email จาก username โดย query collection /users
   const findEmailByUsername = async (username) => {
     try {
       const usersRef = collection(db, "users");
@@ -34,12 +30,35 @@ function LoginPage() {
     }
   };
 
+  // สร้าง /users/{uid} ถ้ายังไม่มี
+  const ensureUserDocExists = async (user, username = "") => {
+    const docRef = doc(db, "users", user.uid);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      await setDoc(docRef, {
+        uid: user.uid,
+        email: user.email,
+        username: username,
+        role: "user",
+        tel: "",
+        address: "",
+        district: "",
+        province: "",
+        subdistrict: "",
+        village: "",
+        fullName: "",
+        createdAt: new Date()
+      });
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       let emailToUse = loginInput;
+      let usernameFromLookup = "";
 
-      // ถ้าไม่ได้ใส่อีเมล ให้ค้นหาอีเมลจากชื่อผู้ใช้
       if (!isEmail(loginInput)) {
         const foundEmail = await findEmailByUsername(loginInput);
         if (!foundEmail) {
@@ -47,41 +66,33 @@ function LoginPage() {
           return;
         }
         emailToUse = foundEmail;
+        usernameFromLookup = loginInput;
       }
 
-      // 1. ล็อกอินผ่าน Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, emailToUse, password);
       const loggedInUser = userCredential.user;
 
-      // 2. ดึงข้อมูลผู้ใช้จาก Firestore
-      const docRef = doc(db, "users", loggedInUser.uid);
-      const docSnap = await getDoc(docRef);
+      await ensureUserDocExists(loggedInUser, usernameFromLookup);
 
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
+      const userDocRef = doc(db, "users", loggedInUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-        // 3. เช็กว่า role เป็น admin หรือไม่
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
         if (userData.role === "admin") {
           navigate("/admin-dashboard");
         } else {
           navigate("/");
         }
       } else {
-        alert("ไม่พบข้อมูลผู้ใช้ในฐานข้อมูล");
+        alert("เกิดข้อผิดพลาด ไม่พบข้อมูลผู้ใช้หลัง login");
       }
-
     } catch (error) {
       console.error("Login error:", error.message);
-      // ปรับข้อความ error ให้เหมาะสม
-      if (error.code === "auth/user-not-found") {
-        alert("ไม่พบผู้ใช้นี้ในระบบ");
-      } else if (error.code === "auth/wrong-password") {
-        alert("รหัสผ่านไม่ถูกต้อง");
-      } else if (error.code === "auth/invalid-email") {
-        alert("รูปแบบอีเมลไม่ถูกต้อง");
-      } else {
-        alert("ชื่อผู้ใช้/อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-      }
+      if (error.code === "auth/user-not-found") alert("ไม่พบผู้ใช้นี้ในระบบ");
+      else if (error.code === "auth/wrong-password") alert("รหัสผ่านไม่ถูกต้อง");
+      else if (error.code === "auth/invalid-email") alert("รูปแบบอีเมลไม่ถูกต้อง");
+      else alert("ชื่อผู้ใช้/อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     }
   };
 
@@ -105,7 +116,6 @@ function LoginPage() {
         />
         <button type="submit">เข้าสู่ระบบ</button>
 
-        {/* ใส่ div ห่อไว้เพื่อจัด flex */}
         <div className="login-footer-links">
           <Link to="/signup" className="footer-link">สมัครสมาชิก</Link>
           <Link to="/forgot-password" className="footer-link">ลืมรหัสผ่าน?</Link>
