@@ -20,7 +20,7 @@ import districtsData from "../่json/thai_amphures.json";
 import subdistrictsData from "../่json/thai_tambons.json";
 
 // กำหนด URL ของ backend API
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+const BACKEND_URL = "https://render-backend-ftkg.onrender.com";
 
 function UserDetails() {
   const { id } = useParams();
