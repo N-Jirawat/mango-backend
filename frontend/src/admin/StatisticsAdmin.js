@@ -89,6 +89,7 @@ function StatisticsAdmin() {
   }, [usersMap, filters.selectedProvince]);
 
   // ฟังก์ชันประมวลผลสถิติ
+  // แก้ไขในฟังก์ชัน processStatistics
   const processStatistics = useCallback((predictions, usersMapTemp) => {
     const diseaseMap = {};
     const districtMap = {};
@@ -96,6 +97,29 @@ function StatisticsAdmin() {
 
     predictions.forEach((prediction) => {
       const { disease, userId, timestamp } = prediction;
+
+      // กรองข้อมูลที่ไม่ระบุโรคออก
+      const invalidDiseases = [
+        'ไม่ระบุโรค',
+        'ไม่ทราบโรค',
+        'unknown',
+        'undefined',
+        'null',
+        'ไม่มีข้อมูล',
+        'no disease',
+        'ไม่พบโรค',
+        'not found'
+      ];
+
+      if (!disease ||
+        disease.trim() === '' ||
+        invalidDiseases.some(invalid =>
+          disease.toLowerCase().includes(invalid.toLowerCase())
+        )) {
+        console.log(`ข้ามข้อมูลโรค: "${disease}"`); // สำหรับ debug
+        return; // ข้ามการประมวลผลข้อมูลนี้
+      }
+
       const userInfo = usersMapTemp[userId];
 
       // ใช้ข้อมูลผู้ใช้หรือค่าเริ่มต้น
@@ -1218,37 +1242,81 @@ function StatisticsAdmin() {
     }
   };
 
-  const chartData = useMemo(() => {
-    return Object.entries(districtDiseaseMap).map(([areaKey, diseases]) => {
-      return {
-        district: areaKey.split(', ')[0] || "ไม่ระบุอำเภอ",
-        locationLabel: areaKey,
-        ...diseases,
-      };
-    });
-  }, [districtDiseaseMap]);
+  // เพิ่มฟังก์ชันตรวจสอบโรคที่ถูกต้อง
+  const isValidDisease = (disease) => {
+    const invalidDiseases = [
+      'ไม่ระบุโรค',
+      'ไม่ทราบโรค',
+      'unknown',
+      'undefined',
+      'null',
+      'ไม่มีข้อมูล',
+      'no disease',
+      'ไม่พบโรค',
+      'not found'
+    ];
 
+    return disease &&
+      disease.trim() !== '' &&
+      !invalidDiseases.some(invalid =>
+        disease.toLowerCase().includes(invalid.toLowerCase())
+      );
+  };
+
+  // ใช้ในการกรอง pieData
   const pieData = useMemo(() => {
     const totalCount = Object.values(diseaseStats).reduce((sum, val) => sum + val, 0);
-    return Object.entries(diseaseStats).map(([disease, count]) => ({
-      name: disease,
-      value: count,
-      percentage: totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0
-    }));
+    return Object.entries(diseaseStats)
+      .filter(([disease]) => isValidDisease(disease)) // เพิ่มการกรอง
+      .map(([disease, count]) => ({
+        name: disease,
+        value: count,
+        percentage: totalCount > 0 ? ((count / totalCount) * 100).toFixed(1) : 0
+      }));
   }, [diseaseStats]);
 
-  // เพิ่ม cleanedTimelineData ไว้ที่นี่
+  // ใช้ในการกรอง chartData
+  const chartData = useMemo(() => {
+    return Object.entries(districtDiseaseMap)
+      .map(([areaKey, diseases]) => {
+        // กรองเฉพาะโรคที่ถูกต้อง
+        const filteredDiseases = {};
+        Object.entries(diseases).forEach(([disease, count]) => {
+          if (isValidDisease(disease)) {
+            filteredDiseases[disease] = count;
+          }
+        });
+
+        // ถ้าไม่มีโรคที่ถูกต้องในพื้นที่นี้ ให้ return null
+        if (Object.keys(filteredDiseases).length === 0) {
+          return null;
+        }
+
+        return {
+          district: areaKey.split(', ')[0] || "ไม่ระบุอำเภอ",
+          locationLabel: areaKey,
+          ...filteredDiseases,
+        };
+      })
+      .filter(Boolean); // ลบ null values ออก
+  }, [districtDiseaseMap]);
+
+  // ใช้ในการกรอง cleanedTimelineData
   const cleanedTimelineData = useMemo(() => {
+    const validDiseases = Object.keys(diseaseStats).filter(isValidDisease);
+
     return timelineData.map(item => {
-      const cleanedItem = { ...item };
-      Object.keys(diseaseStats).forEach(disease => {
-        // แทนที่จะใส่ undefined ให้ใส่ 0 แทน เพื่อให้กราฟแสดงเส้นที่ระดับ 0
+      const cleanedItem = { month: item.month, count: 0 };
+
+      validDiseases.forEach(disease => {
         if (item[disease] === undefined || item[disease] === null) {
-          cleanedItem[disease] = 0; // เปลี่ยนจาก undefined เป็น 0
+          cleanedItem[disease] = 0;
         } else {
           cleanedItem[disease] = item[disease];
+          cleanedItem.count += item[disease]; // อัปเดต count รวม
         }
       });
+
       return cleanedItem;
     });
   }, [timelineData, diseaseStats]);
