@@ -14,19 +14,14 @@ function LoginPage() {
 
   // lookup email ผ่าน Flask backend
   const findEmailByUsername = async (username) => {
-    try {
-      const res = await fetch("https://render-backend-ftkg.onrender.com/find_email_by_username", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Unknown error");
-      return data.email;
-    } catch (error) {
-      console.error("Error finding user by username:", error);
-      return null;
-    }
+    const res = await fetch("https://render-backend-ftkg.onrender.com/find_email_by_username", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Unknown error");
+    return data.email;
   };
 
   // สร้าง /users/{uid} ถ้ายังไม่มี
