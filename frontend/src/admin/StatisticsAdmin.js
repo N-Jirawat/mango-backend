@@ -215,24 +215,23 @@ function StatisticsAdmin() {
 
   // useEffect สำหรับดึงข้อมูลครั้งแรก
   useEffect(() => {
-    // แทนที่ส่วน fetchStatistics ใน useEffect (บรรทัดประมาณ 140-410)
+    // ปรับปรุงส่วน fetchStatistics ใน useEffect
     const fetchStatistics = async () => {
       const db = getFirestore();
       setLoading(true);
 
-      // ประกาศ usersMapTemp ไว้ก่อนเพื่อให้สามารถใช้ในทุก scope
       let usersMapTemp = {};
 
       try {
-        // ดึงข้อมูล users และปรับให้รองรับทั้ง uid และ document id
+        // ดึงข้อมูล users ก่อน
+        console.log("กำลังดึงข้อมูล users...");
         const usersSnapshot = await getDocs(collection(db, "users"));
 
         usersSnapshot.forEach(doc => {
           const user = doc.data();
-          const docId = doc.id; // document ID
-          const uid = user.uid; // uid field ในเอกสาร
+          const docId = doc.id;
+          const uid = user.uid;
 
-          // สร้าง mapping สำหรับทั้ง document ID และ uid (ถ้ามี)
           const userData = {
             district: user.district || "ไม่ระบุอำเภอ",
             province: user.province || "ไม่ระบุจังหวัด",
@@ -240,132 +239,149 @@ function StatisticsAdmin() {
             name: user.fullName || user.displayName || user.username || user.name || "ไม่ระบุชื่อ"
           };
 
-          // เก็บข้อมูลโดยใช้ document ID เป็น key
           usersMapTemp[docId] = userData;
-
-          // ถ้ามี uid field ให้เก็บด้วย uid เป็น key ด้วย
           if (uid && uid !== docId) {
             usersMapTemp[uid] = userData;
           }
         });
         setUsersMap(usersMapTemp);
-
-        // ดึงข้อมูลจากหลาย collections
-        const [analysisSnapshot, reportAdminSnapshot] = await Promise.all([
-          getDocs(collection(db, "AnalysisHistory")),
-          getDocs(collection(db, "ReportDataAdmin"))
-        ]);
+        console.log(`ดึงข้อมูล users สำเร็จ: ${Object.keys(usersMapTemp).length} รายการ`);
 
         const predictionsData = [];
+        let analysisCount = 0;
+        let reportAdminCount = 0;
 
-        // ประมวลผลข้อมูลจาก AnalysisHistory
-        analysisSnapshot.forEach(doc => {
-          const data = doc.data();
+        // ลองดึง AnalysisHistory ก่อน
+        try {
+          console.log("กำลังดึงข้อมูลจาก AnalysisHistory...");
+          const analysisSnapshot = await getDocs(collection(db, "AnalysisHistory"));
+          analysisCount = analysisSnapshot.size;
 
-          // ปรับการแปลง timestamp
-          let createdAt = null;
+          analysisSnapshot.forEach(doc => {
+            const data = doc.data();
+            let createdAt = null;
 
-          // ลำดับการตรวจสอบ timestamp
-          if (data.UpdateAt?.seconds) {
-            createdAt = new Date(data.UpdateAt.seconds * 1000);
-          } else if (data.UpdateAt?.toDate) {
-            createdAt = data.UpdateAt.toDate();
-          } else if (data.timestamp?.seconds) {
-            createdAt = new Date(data.timestamp.seconds * 1000);
-          } else if (data.timestamp?.toDate) {
-            createdAt = data.timestamp.toDate();
-          } else if (data.createdAt?.seconds) {
-            createdAt = new Date(data.createdAt.seconds * 1000);
-          } else if (data.createdAt?.toDate) {
-            createdAt = data.createdAt.toDate();
-          } else if (data.UpdateAt instanceof Date) {
-            createdAt = data.UpdateAt;
-          } else if (data.timestamp instanceof Date) {
-            createdAt = data.timestamp;
-          } else if (data.createdAt instanceof Date) {
-            createdAt = data.createdAt;
-          } else if (typeof data.UpdateAt === 'string') {
-            createdAt = new Date(data.UpdateAt);
-          } else if (typeof data.timestamp === 'string') {
-            createdAt = new Date(data.timestamp);
-          } else if (typeof data.createdAt === 'string') {
-            createdAt = new Date(data.createdAt);
+            // ประมวลผล timestamp
+            if (data.UpdateAt?.seconds) {
+              createdAt = new Date(data.UpdateAt.seconds * 1000);
+            } else if (data.UpdateAt?.toDate) {
+              createdAt = data.UpdateAt.toDate();
+            } else if (data.timestamp?.seconds) {
+              createdAt = new Date(data.timestamp.seconds * 1000);
+            } else if (data.timestamp?.toDate) {
+              createdAt = data.timestamp.toDate();
+            } else if (data.createdAt?.seconds) {
+              createdAt = new Date(data.createdAt.seconds * 1000);
+            } else if (data.createdAt?.toDate) {
+              createdAt = data.createdAt.toDate();
+            } else if (data.UpdateAt instanceof Date) {
+              createdAt = data.UpdateAt;
+            } else if (data.timestamp instanceof Date) {
+              createdAt = data.timestamp;
+            } else if (data.createdAt instanceof Date) {
+              createdAt = data.createdAt;
+            } else if (typeof data.UpdateAt === 'string') {
+              createdAt = new Date(data.UpdateAt);
+            } else if (typeof data.timestamp === 'string') {
+              createdAt = new Date(data.timestamp);
+            } else if (typeof data.createdAt === 'string') {
+              createdAt = new Date(data.createdAt);
+            }
+
+            if (!createdAt || isNaN(createdAt.getTime())) {
+              createdAt = new Date();
+            }
+
+            const predictionItem = {
+              id: doc.id,
+              disease: data.diseaseName || data.predictedClass || "ไม่ระบุโรค",
+              userId: data.userId || "ไม่ทราบผู้ใช้",
+              timestamp: createdAt,
+              confidence: data.confidence || 0,
+              rawData: data,
+              source: "AnalysisHistory"
+            };
+
+            predictionsData.push(predictionItem);
+          });
+
+          console.log(`ดึงข้อมูลจาก AnalysisHistory สำเร็จ: ${analysisCount} รายการ`);
+        } catch (analysisError) {
+          console.error("เกิดข้อผิดพลาดในการดึง AnalysisHistory:", analysisError);
+        }
+
+        // พยายามดึง ReportDataAdmin แยกต่างหาก
+        try {
+          console.log("กำลังดึงข้อมูลจาก ReportDataAdmin...");
+          const reportAdminSnapshot = await getDocs(collection(db, "ReportDataAdmin"));
+          reportAdminCount = reportAdminSnapshot.size;
+
+          reportAdminSnapshot.forEach(doc => {
+            const data = doc.data();
+            let createdAt = null;
+
+            if (data.reportDate?.seconds) {
+              createdAt = new Date(data.reportDate.seconds * 1000);
+            } else if (data.reportDate?.toDate) {
+              createdAt = data.reportDate.toDate();
+            } else if (data.createdAt?.seconds) {
+              createdAt = new Date(data.createdAt.seconds * 1000);
+            } else if (data.createdAt?.toDate) {
+              createdAt = data.createdAt.toDate();
+            } else if (data.timestamp?.seconds) {
+              createdAt = new Date(data.timestamp.seconds * 1000);
+            } else if (data.timestamp?.toDate) {
+              createdAt = data.timestamp.toDate();
+            } else if (data.reportDate instanceof Date) {
+              createdAt = data.reportDate;
+            } else if (data.createdAt instanceof Date) {
+              createdAt = data.createdAt;
+            } else if (data.timestamp instanceof Date) {
+              createdAt = data.timestamp;
+            } else if (typeof data.reportDate === 'string') {
+              createdAt = new Date(data.reportDate);
+            } else if (typeof data.createdAt === 'string') {
+              createdAt = new Date(data.createdAt);
+            } else if (typeof data.timestamp === 'string') {
+              createdAt = new Date(data.timestamp);
+            }
+
+            if (!createdAt || isNaN(createdAt.getTime())) {
+              createdAt = new Date();
+            }
+
+            const predictionItem = {
+              id: `admin_${doc.id}`,
+              disease: data.diseaseName || data.diseaseType || data.predictedClass || "ไม่ระบุโรค",
+              userId: data.userId || data.adminId || "ไม่ทราบผู้ใช้",
+              timestamp: createdAt,
+              confidence: data.confidence || 0,
+              rawData: data,
+              source: "ReportDataAdmin"
+            };
+
+            predictionsData.push(predictionItem);
+          });
+
+          console.log(`ดึงข้อมูลจาก ReportDataAdmin สำเร็จ: ${reportAdminCount} รายการ`);
+        } catch (reportError) {
+          console.error("ไม่สามารถเข้าถึง ReportDataAdmin:", reportError.message);
+          console.log("อาจเป็นเพราะไม่มีสิทธิ์ในการเข้าถึง collection นี้");
+
+          // แสดงแจ้งเตือนให้ผู้ใช้ทราบ
+          if (reportError.message.includes('Missing or insufficient permissions')) {
+            console.warn("⚠️ ไม่มีสิทธิ์เข้าถึง ReportDataAdmin - แสดงข้อมูลเฉพาะจาก AnalysisHistory");
           }
+        }
 
-          // ถ้าไม่มี timestamp ที่ถูกต้อง ให้ใช้วันที่ปัจจุบัน
-          if (!createdAt || isNaN(createdAt.getTime())) {
-            createdAt = new Date();
-            console.log("ใช้วันที่ปัจจุบันสำหรับเอกสาร:", doc.id);
-          }
-
-          const predictionItem = {
-            id: doc.id,
-            disease: data.diseaseName || data.predictedClass || "ไม่ระบุโรค",
-            userId: data.userId || "ไม่ทราบผู้ใช้",
-            timestamp: createdAt,
-            confidence: data.confidence || 0,
-            rawData: data,
-            source: "AnalysisHistory"
-          };
-
-          predictionsData.push(predictionItem);
-        });
-
-        // ประมวลผลข้อมูลจาก ReportDataAdmin
-        reportAdminSnapshot.forEach(doc => {
-          const data = doc.data();
-
-          // ปรับการแปลง timestamp สำหรับ ReportDataAdmin
-          let createdAt = null;
-
-          if (data.reportDate?.seconds) {
-            createdAt = new Date(data.reportDate.seconds * 1000);
-          } else if (data.reportDate?.toDate) {
-            createdAt = data.reportDate.toDate();
-          } else if (data.createdAt?.seconds) {
-            createdAt = new Date(data.createdAt.seconds * 1000);
-          } else if (data.createdAt?.toDate) {
-            createdAt = data.createdAt.toDate();
-          } else if (data.timestamp?.seconds) {
-            createdAt = new Date(data.timestamp.seconds * 1000);
-          } else if (data.timestamp?.toDate) {
-            createdAt = data.timestamp.toDate();
-          } else if (data.reportDate instanceof Date) {
-            createdAt = data.reportDate;
-          } else if (data.createdAt instanceof Date) {
-            createdAt = data.createdAt;
-          } else if (data.timestamp instanceof Date) {
-            createdAt = data.timestamp;
-          } else if (typeof data.reportDate === 'string') {
-            createdAt = new Date(data.reportDate);
-          } else if (typeof data.createdAt === 'string') {
-            createdAt = new Date(data.createdAt);
-          } else if (typeof data.timestamp === 'string') {
-            createdAt = new Date(data.timestamp);
-          }
-
-          if (!createdAt || isNaN(createdAt.getTime())) {
-            createdAt = new Date();
-            console.log("ใช้วันที่ปัจจุบันสำหรับ ReportDataAdmin:", doc.id);
-          }
-
-          const predictionItem = {
-            id: `admin_${doc.id}`, // เพิ่ม prefix เพื่อไม่ให้ซ้ำ
-            disease: data.diseaseName || data.diseaseType || data.predictedClass || "ไม่ระบุโรค",
-            userId: data.userId || data.adminId || "ไม่ทราบผู้ใช้",
-            timestamp: createdAt,
-            confidence: data.confidence || 0,
-            rawData: data,
-            source: "ReportDataAdmin"
-          };
-
-          predictionsData.push(predictionItem);
-        });
-
-        console.log(`ดึงข้อมูลสำเร็จ: ${analysisSnapshot.size} จาก AnalysisHistory, ${reportAdminSnapshot.size} จาก ReportDataAdmin`);
+        // แสดงสรุปผลการดึงข้อมูล
+        console.log(`📊 สรุปการดึงข้อมูล:
+      - AnalysisHistory: ${analysisCount} รายการ
+      - ReportDataAdmin: ${reportAdminCount} รายการ
+      - รวมทั้งหมด: ${predictionsData.length} รายการ`);
 
         if (predictionsData.length === 0) {
-          console.log("ไม่พบข้อมูลใน collections ที่ตรวจสอบ");
+          console.log("⚠️ ไม่พบข้อมูลใน collections ทั้งหมด");
           setAllPredictions([]);
           setLoading(false);
           return;
@@ -374,47 +390,15 @@ function StatisticsAdmin() {
         setAllPredictions(predictionsData);
         processStatistics(predictionsData, usersMapTemp);
 
+        // แสดงข้อความแจ้งเตือนถ้าดึงไม่ครบ
+        if (reportAdminCount === 0 && analysisCount > 0) {
+          // สร้าง notification หรือ state เพื่อแสดงข้อความเตือน
+          console.warn("🔒 หมายเหตุ: แสดงข้อมูลเฉพาะจากประวัติการวิเคราะห์ เนื่องจากไม่มีสิทธิ์เข้าถึงข้อมูล Admin");
+        }
+
       } catch (error) {
         console.error("เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ:", error);
-
-        // ถ้าเกิดข้อผิดพลาด permissions ให้ลองดึงเฉพาะ AnalysisHistory
-        if (error.message.includes('permissions') || error.message.includes('Missing or insufficient')) {
-          console.log("พยายามดึงเฉพาะ AnalysisHistory เนื่องจากปัญหา permissions");
-          try {
-            const analysisSnapshot = await getDocs(collection(db, "AnalysisHistory"));
-            const predictionsData = [];
-
-            analysisSnapshot.forEach(doc => {
-              const data = doc.data();
-              let createdAt = new Date();
-
-              // ประมวลผล timestamp แบบเดิม
-              if (data.UpdateAt?.seconds) {
-                createdAt = new Date(data.UpdateAt.seconds * 1000);
-              } else if (data.timestamp?.seconds) {
-                createdAt = new Date(data.timestamp.seconds * 1000);
-              }
-
-              predictionsData.push({
-                id: doc.id,
-                disease: data.diseaseName || data.predictedClass || "ไม่ระบุโรค",
-                userId: data.userId || "ไม่ทราบผู้ใช้",
-                timestamp: createdAt,
-                confidence: data.confidence || 0,
-                rawData: data,
-                source: "AnalysisHistory"
-              });
-            });
-
-            setAllPredictions(predictionsData);
-            processStatistics(predictionsData, usersMapTemp); // ตอนนี้ usersMapTemp สามารถเข้าถึงได้แล้ว
-            console.log(`ดึงข้อมูลสำเร็จจาก AnalysisHistory เท่านั้น: ${predictionsData.length} รายการ`);
-
-          } catch (fallbackError) {
-            console.error("เกิดข้อผิดพลาดแม้แต่การดึง AnalysisHistory:", fallbackError);
-            setAllPredictions([]);
-          }
-        }
+        setAllPredictions([]);
       } finally {
         setLoading(false);
       }
