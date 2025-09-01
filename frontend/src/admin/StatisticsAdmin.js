@@ -215,6 +215,7 @@ function StatisticsAdmin() {
 
   // useEffect สำหรับดึงข้อมูลครั้งแรก
   useEffect(() => {
+    // แทนที่ส่วน fetchStatistics ใน useEffect
     const fetchStatistics = async () => {
       const db = getFirestore();
       setLoading(true);
@@ -247,19 +248,16 @@ function StatisticsAdmin() {
         });
         setUsersMap(usersMapTemp);
 
-        // ดึงข้อมูล predictions
-        const predictionSnapshot = await getDocs(collection(db, "AnalysisHistory"));
-
-        if (predictionSnapshot.empty) {
-          console.log("ไม่พบข้อมูลใน AnalysisHistory collection");
-          setAllPredictions([]);
-          setLoading(false);
-          return;
-        }
+        // ดึงข้อมูลจากหลาย collections
+        const [analysisSnapshot, reportAdminSnapshot] = await Promise.all([
+          getDocs(collection(db, "AnalysisHistory")),
+          getDocs(collection(db, "ReportDataAdmin"))
+        ]);
 
         const predictionsData = [];
 
-        predictionSnapshot.forEach(doc => {
+        // ประมวลผลข้อมูลจาก AnalysisHistory
+        analysisSnapshot.forEach(doc => {
           const data = doc.data();
 
           // ปรับการแปลง timestamp
@@ -304,18 +302,117 @@ function StatisticsAdmin() {
             userId: data.userId || "ไม่ทราบผู้ใช้",
             timestamp: createdAt,
             confidence: data.confidence || 0,
-            rawData: data
+            rawData: data,
+            source: "AnalysisHistory"
           };
 
-          // เพิ่มข้อมูลทั้งหมด ไม่กรองออก
           predictionsData.push(predictionItem);
         });
+
+        // ประมวลผลข้อมูลจาก ReportDataAdmin
+        reportAdminSnapshot.forEach(doc => {
+          const data = doc.data();
+
+          // ปรับการแปลง timestamp สำหรับ ReportDataAdmin
+          let createdAt = null;
+
+          if (data.reportDate?.seconds) {
+            createdAt = new Date(data.reportDate.seconds * 1000);
+          } else if (data.reportDate?.toDate) {
+            createdAt = data.reportDate.toDate();
+          } else if (data.createdAt?.seconds) {
+            createdAt = new Date(data.createdAt.seconds * 1000);
+          } else if (data.createdAt?.toDate) {
+            createdAt = data.createdAt.toDate();
+          } else if (data.timestamp?.seconds) {
+            createdAt = new Date(data.timestamp.seconds * 1000);
+          } else if (data.timestamp?.toDate) {
+            createdAt = data.timestamp.toDate();
+          } else if (data.reportDate instanceof Date) {
+            createdAt = data.reportDate;
+          } else if (data.createdAt instanceof Date) {
+            createdAt = data.createdAt;
+          } else if (data.timestamp instanceof Date) {
+            createdAt = data.timestamp;
+          } else if (typeof data.reportDate === 'string') {
+            createdAt = new Date(data.reportDate);
+          } else if (typeof data.createdAt === 'string') {
+            createdAt = new Date(data.createdAt);
+          } else if (typeof data.timestamp === 'string') {
+            createdAt = new Date(data.timestamp);
+          }
+
+          if (!createdAt || isNaN(createdAt.getTime())) {
+            createdAt = new Date();
+            console.log("ใช้วันที่ปัจจุบันสำหรับ ReportDataAdmin:", doc.id);
+          }
+
+          const predictionItem = {
+            id: `admin_${doc.id}`, // เพิ่ม prefix เพื่อไม่ให้ซ้ำ
+            disease: data.diseaseName || data.diseaseType || data.predictedClass || "ไม่ระบุโรค",
+            userId: data.userId || data.adminId || "ไม่ทราบผู้ใช้",
+            timestamp: createdAt,
+            confidence: data.confidence || 0,
+            rawData: data,
+            source: "ReportDataAdmin"
+          };
+
+          predictionsData.push(predictionItem);
+        });
+
+        console.log(`ดึงข้อมูลสำเร็จ: ${analysisSnapshot.size} จาก AnalysisHistory, ${reportAdminSnapshot.size} จาก ReportDataAdmin`);
+
+        if (predictionsData.length === 0) {
+          console.log("ไม่พบข้อมูลใน collections ที่ตรวจสอบ");
+          setAllPredictions([]);
+          setLoading(false);
+          return;
+        }
 
         setAllPredictions(predictionsData);
         processStatistics(predictionsData, usersMapTemp);
 
       } catch (error) {
         console.error("เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ:", error);
+
+        // ถ้าเกิดข้อผิดพลาด permissions ให้ลองดึงเฉพาะ AnalysisHistory
+        if (error.message.includes('permissions') || error.message.includes('Missing or insufficient')) {
+          console.log("พยายามดึงเฉพาะ AnalysisHistory เนื่องจากปัญหา permissions");
+          try {
+            const analysisSnapshot = await getDocs(collection(db, "AnalysisHistory"));
+            const predictionsData = [];
+
+            analysisSnapshot.forEach(doc => {
+              const data = doc.data();
+              let createdAt = new Date();
+
+              // ประมวลผล timestamp แบบเดิม
+              if (data.UpdateAt?.seconds) {
+                createdAt = new Date(data.UpdateAt.seconds * 1000);
+              } else if (data.timestamp?.seconds) {
+                createdAt = new Date(data.timestamp.seconds * 1000);
+              }
+
+              predictionsData.push({
+                id: doc.id,
+                disease: data.diseaseName || data.predictedClass || "ไม่ระบุโรค",
+                userId: data.userId || "ไม่ทราบผู้ใช้",
+                timestamp: createdAt,
+                confidence: data.confidence || 0,
+                rawData: data,
+                source: "AnalysisHistory"
+              });
+            });
+
+            setAllPredictions(predictionsData);
+            processStatistics(predictionsData, usersMapTemp);
+            console.log(`ดึงข้อมูลสำเร็จจาก AnalysisHistory เท่านั้น: ${predictionsData.length} รายการ`);
+
+          } catch (fallbackError) {
+            console.error("เกิดข้อผิดพลาดแม้แต่การดึง AnalysisHistory:", fallbackError);
+            setAllPredictions([]);
+          }
+        }
       } finally {
         setLoading(false);
       }
