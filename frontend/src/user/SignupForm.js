@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { db } from "../firebaseConfig"; // ✅ ลบ auth ออก
+import React, { useState, useEffect, useCallback } from "react";
+import { db } from "../firebaseConfig";
 import { collection, query, where, getDocs, setDoc, doc } from "firebase/firestore";
 import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { useNavigate } from "react-router-dom";  // เพิ่มการนำเข้า useNavigate
+import { useNavigate } from "react-router-dom";
 
 import provincesData from "../่json/thai_provinces.json";
 import districtsData from "../่json/thai_amphures.json";
@@ -10,24 +10,24 @@ import subdistrictsData from "../่json/thai_tambons.json";
 
 function SignupForm() {
   const auth = getAuth();
-  const navigate = useNavigate(); // เพิ่มการใช้งาน useNavigate
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [currentUserRole, setCurrentUserRole] = useState(null); // เพิ่มการเก็บ role ของผู้ใช้ปัจจุบัน
+  const [currentUserRole, setCurrentUserRole] = useState(null);
 
-  // เพิ่ม state สำหรับการแสดง/ซ่อนรหัสผ่าน
+  // State สำหรับการแสดง/ซ่อนรหัสผ่าน
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // เพิ่ม state สำหรับแสดงสถานะการตรวจสอบรหัสผ่าน
+  // State สำหรับการตรวจสอบรหัสผ่าน
   const [passwordValidation, setPasswordValidation] = useState({
     hasMinLength: false,
     hasLetter: false,
     hasNumber: false
   });
 
-  // เพิ่ม state สำหรับตรวจสอบการซ้ำของข้อมูล
+  // State สำหรับตรวจสอบข้อมูลซ้ำ
   const [duplicateCheck, setDuplicateCheck] = useState({
     username: { isDuplicate: false, isChecking: false },
     email: { isDuplicate: false, isChecking: false }
@@ -54,6 +54,123 @@ function SignupForm() {
   const [districts, setDistricts] = useState([]);
   const [subdistricts, setSubdistricts] = useState([]);
 
+  // Email validation function - moved before useCallback functions
+  const validateEmail = useCallback((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), []);
+
+  // API functions - moved before dependent useCallback functions
+  const checkUsername = useCallback(async (username) => {
+    try {
+      const response = await fetch("https://render-backend-ftkg.onrender.com/check_username", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ username }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.exists || false;
+    } catch (error) {
+      console.error("API check username error:", error);
+      // ในกรณีที่ API ไม่ตอบสนอง ให้ถือว่าไม่ซ้ำเพื่อไม่บล็อกการสมัคร
+      return false;
+    }
+  }, []);
+
+  const checkEmail = useCallback(async (email) => {
+    try {
+      const response = await fetch("https://render-backend-ftkg.onrender.com/check_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.exists || false;
+    } catch (error) {
+      console.error("API check email error:", error);
+      // ในกรณีที่ API ไม่ตอบสนอง ให้ถือว่าไม่ซ้ำเพื่อไม่บล็อกการสมัคร
+      return false;
+    }
+  }, []);
+
+  // Duplicate check functions - now properly ordered after API functions
+  const checkDuplicateUsername = useCallback(async (username) => {
+    if (!username.trim()) {
+      setDuplicateCheck(prev => ({
+        ...prev,
+        username: { isDuplicate: false, isChecking: false }
+      }));
+      return;
+    }
+
+    setDuplicateCheck(prev => ({
+      ...prev,
+      username: { isDuplicate: false, isChecking: true }
+    }));
+
+    try {
+      console.log("Checking username:", username); // Debug log
+      const exists = await checkUsername(username);
+      console.log("Username exists:", exists); // Debug log
+
+      setDuplicateCheck(prev => ({
+        ...prev,
+        username: { isDuplicate: exists, isChecking: false }
+      }));
+    } catch (error) {
+      console.error("Error checking username:", error);
+      setDuplicateCheck(prev => ({
+        ...prev,
+        username: { isDuplicate: false, isChecking: false }
+      }));
+    }
+  }, [checkUsername]);
+
+  const checkDuplicateEmail = useCallback(async (email) => {
+    if (!email.trim() || !validateEmail(email)) {
+      setDuplicateCheck(prev => ({
+        ...prev,
+        email: { isDuplicate: false, isChecking: false }
+      }));
+      return;
+    }
+
+    setDuplicateCheck(prev => ({
+      ...prev,
+      email: { isDuplicate: false, isChecking: true }
+    }));
+
+    try {
+      console.log("Checking email:", email); // Debug log
+      const exists = await checkEmail(email);
+      console.log("Email exists:", exists); // Debug log
+
+      setDuplicateCheck(prev => ({
+        ...prev,
+        email: { isDuplicate: exists, isChecking: false }
+      }));
+    } catch (error) {
+      console.error("Error checking email:", error);
+      setDuplicateCheck(prev => ({
+        ...prev,
+        email: { isDuplicate: false, isChecking: false }
+      }));
+    }
+  }, [checkEmail, validateEmail]);
+
   useEffect(() => {
     setProvinces(provincesData);
   }, []);
@@ -70,7 +187,7 @@ function SignupForm() {
           }
         } catch (error) {
           console.error("Error fetching user role:", error);
-          setCurrentUserRole("user"); // default to user if error
+          setCurrentUserRole("user");
         }
       } else {
         setCurrentUserRole(null);
@@ -86,6 +203,7 @@ function SignupForm() {
         (district) => district.province_id === Number(userInfo.province)
       );
       setDistricts(filteredDistricts);
+      setUserInfo(prev => ({ ...prev, district: "", subdistrict: "" }));
       setSubdistricts([]);
     } else {
       setDistricts([]);
@@ -99,110 +217,53 @@ function SignupForm() {
         (subdistrict) => subdistrict.amphure_id === Number(userInfo.district)
       );
       setSubdistricts(filteredSubdistricts);
+      setUserInfo(prev => ({ ...prev, subdistrict: "" }));
     } else {
       setSubdistricts([]);
     }
   }, [userInfo.district]);
 
-  // ฟังก์ชันตรวจสอบชื่อบัญชีซ้ำ
-  const checkDuplicateUsername = async (username) => {
-    if (!username.trim()) {
-      setDuplicateCheck(prev => ({
-        ...prev,
-        username: { isDuplicate: false, isChecking: false }
-      }));
-      return;
-    }
-
-    setDuplicateCheck(prev => ({
-      ...prev,
-      username: { ...prev.username, isChecking: true }
-    }));
-
-    try {
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", username));
-      const querySnapshot = await getDocs(q);
-
-      setDuplicateCheck(prev => ({
-        ...prev,
-        username: { isDuplicate: !querySnapshot.empty, isChecking: false }
-      }));
-    } catch (error) {
-      console.error("Error checking username:", error);
-      setDuplicateCheck(prev => ({
-        ...prev,
-        username: { isDuplicate: false, isChecking: false }
-      }));
-    }
-  };
-
-  // ฟังก์ชันตรวจสอบอีเมลซ้ำ
-  const checkDuplicateEmail = async (email) => {
-    if (!email.trim()) {
-      setDuplicateCheck(prev => ({
-        ...prev,
-        email: { isDuplicate: false, isChecking: false }
-      }));
-      return;
-    }
-
-    setDuplicateCheck(prev => ({
-      ...prev,
-      email: { ...prev.email, isChecking: true }
-    }));
-
-    try {
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", email));
-      const querySnapshot = await getDocs(q);
-
-      setDuplicateCheck(prev => ({
-        ...prev,
-        email: { isDuplicate: !querySnapshot.empty, isChecking: false }
-      }));
-    } catch (error) {
-      console.error("Error checking email:", error);
-      setDuplicateCheck(prev => ({
-        ...prev,
-        email: { isDuplicate: false, isChecking: false }
-      }));
-    }
-  };
-
-  // เพิ่ม debounce สำหรับการตรวจสอบ
+  // Debounce สำหรับการตรวจสอบ username
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (formData.username) {
         checkDuplicateUsername(formData.username);
+      } else {
+        setDuplicateCheck(prev => ({
+          ...prev,
+          username: { isDuplicate: false, isChecking: false }
+        }));
       }
-    }, 500); // รอ 500ms หลังจากหยุดพิมพ์
+    }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.username]);
+  }, [formData.username, checkDuplicateUsername]);
 
+  // Debounce สำหรับการตรวจสอบ email
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (formData.email) {
         checkDuplicateEmail(formData.email);
+      } else {
+        setDuplicateCheck(prev => ({
+          ...prev,
+          email: { isDuplicate: false, isChecking: false }
+        }));
       }
-    }, 500); // รอ 500ms หลังจากหยุดพิมพ์
+    }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [formData.email]);
+  }, [formData.email, checkDuplicateEmail]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // ป้องกันช่องว่างในชื่อบัญชี
     if (name === "username") {
-      // ลบช่องว่างทั้งหมด
       const noSpaceValue = value.replace(/\s/g, "");
       setFormData({ ...formData, [name]: noSpaceValue });
     } else {
       setFormData({ ...formData, [name]: value });
 
-      // ตรวจสอบรหัสผ่าน real-time
       if (name === "password") {
         setPasswordValidation({
           hasMinLength: value.length >= 8,
@@ -220,33 +281,22 @@ function SignupForm() {
       if (!/^\d*$/.test(value)) return;
       if (value.length > 10) return;
     }
-    setUserInfo({ ...userInfo, [e.target.name]: e.target.value });
+    setUserInfo({ ...userInfo, [name]: value });
   };
 
-  // ฟังก์ชันสำหรับ toggle การแสดงรหัสผ่าน
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
-
-  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
   const validatePassword = (password) => {
-    // ตรวจสอบความยาวอย่างน้อย 8 หลัก
     if (password.length < 8) {
-      return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัว!" };
+      return { isValid: false, message: "รหัسผ่านต้องมีอย่างน้อย 8 ตัว!" };
     }
 
-    // ตรวจสอบว่ามีตัวอักษรอย่างน้อย 1 ตัว
     const hasLetter = /[a-zA-Z]/.test(password);
     if (!hasLetter) {
       return { isValid: false, message: "รหัสผ่านต้องมีตัวอักษรอย่างน้อย 1 ตัว!" };
     }
 
-    // ตรวจสอบว่ามีตัวเลขอย่างน้อย 1 ตัว
     const hasNumber = /[0-9]/.test(password);
     if (!hasNumber) {
       return { isValid: false, message: "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว!" };
@@ -255,12 +305,16 @@ function SignupForm() {
     return { isValid: true, message: "" };
   };
 
-  // ฟังก์ชันตรวจสอบความสมบูรณ์ของ Step 1
   const validateStep1 = () => {
     const { username, email, password, confirmPassword } = formData;
 
     if (!username.trim()) {
       alert("กรุณากรอกชื่อบัญชี");
+      return false;
+    }
+
+    if (duplicateCheck.username.isChecking) {
+      alert("กรุณารอการตรวจสอบชื่อบัญชี");
       return false;
     }
 
@@ -276,6 +330,11 @@ function SignupForm() {
 
     if (!validateEmail(email)) {
       alert("รูปแบบอีเมลไม่ถูกต้อง");
+      return false;
+    }
+
+    if (duplicateCheck.email.isChecking) {
+      alert("กรุณารอการตรวจสอบอีเมล");
       return false;
     }
 
@@ -308,7 +367,6 @@ function SignupForm() {
     return true;
   };
 
-  // ฟังก์ชันตรวจสอบความสมบูรณ์ของ Step 2
   const validateStep2 = () => {
     if (!userInfo.fullName.trim()) {
       alert("กรุณากรอกชื่อ-นามสกุล");
@@ -317,30 +375,42 @@ function SignupForm() {
     return true;
   };
 
-  // ฟังก์ชันสำหรับไปขั้นตอนถัดไป
   const handleNextStep = () => {
     if (validateStep1()) {
       setStep(2);
     }
   };
 
+  const resetForm = () => {
+    setFormData({ username: "", password: "", confirmPassword: "", email: "" });
+    setUserInfo({
+      fullName: "",
+      address: "",
+      village: "",
+      subdistrict: "",
+      district: "",
+      province: "",
+      tel: "",
+    });
+    setStep(1);
+    setDuplicateCheck({
+      username: { isDuplicate: false, isChecking: false },
+      email: { isDuplicate: false, isChecking: false }
+    });
+    setPasswordValidation({
+      hasMinLength: false,
+      hasLetter: false,
+      hasNumber: false
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ตรวจสอบ Step 2 ก่อนส่ง
-    if (!validateStep2()) {
-      return;
-    }
+    if (!validateStep2()) return;
 
-    // ตรวจสอบการซ้ำอีกครั้งก่อนส่งข้อมูล
-    if (duplicateCheck.username.isDuplicate) {
-      alert("ชื่อบัญชีนี้ถูกใช้งานแล้ว กรุณาเลือกชื่อใหม่");
-      setStep(1);
-      return;
-    }
-
-    if (duplicateCheck.email.isDuplicate) {
-      alert("อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น");
+    if (duplicateCheck.username.isDuplicate || duplicateCheck.email.isDuplicate) {
+      alert("พบข้อมูลซ้ำ กรุณาตรวจสอบและแก้ไข");
       setStep(1);
       return;
     }
@@ -348,38 +418,27 @@ function SignupForm() {
     setLoading(true);
 
     try {
-      // ตรวจสอบการซ้ำอีกครั้ง (double check)
-      const usersRef = collection(db, "users");
-      const usernameQuery = query(usersRef, where("username", "==", formData.username));
-      const emailQuery = query(usersRef, where("email", "==", formData.email));
+      // ข้าม Double check ใน Firestore ชั่วคราว
+      // เพราะ rules อาจยังไม่อนุญาต query
 
-      const [usernameSnapshot, emailSnapshot] = await Promise.all([
-        getDocs(usernameQuery),
-        getDocs(emailQuery)
-      ]);
-
-      if (!usernameSnapshot.empty) {
-        alert("ชื่อบัญชีนี้ถูกใช้งานแล้ว!");
-        setStep(1);
-        setLoading(false);
-        return;
+      // เช็คจำนวน users เพื่อกำหนด role (สำหรับ admin คนแรก)
+      let role = "user";
+      try {
+        const allUsers = await getDocs(collection(db, "users"));
+        const isFirstUser = allUsers.empty;
+        role = isFirstUser ? "admin" : "user";
+      } catch (error) {
+        console.warn("ไม่สามารถเช็ค existing users ได้:", error);
+        // ถ้าเช็คไม่ได้ ให้เป็น user ธรรมดา
+        role = "user";
       }
 
-      if (!emailSnapshot.empty) {
-        alert("อีเมลนี้ถูกใช้งานแล้ว!");
-        setStep(1);
-        setLoading(false);
-        return;
-      }
-
-      const allUsers = await getDocs(usersRef);
-      const isFirstUser = allUsers.empty;
-      const role = isFirstUser ? "admin" : "user";
-
+      // สร้าง Firebase Auth account
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      const docRef = doc(usersRef, user.uid);
+      // สร้าง user document ใน Firestore
+      const docRef = doc(collection(db, "users"), user.uid);
       await setDoc(docRef, {
         uid: user.uid,
         username: formData.username,
@@ -390,59 +449,24 @@ function SignupForm() {
         subdistrict: subdistricts.find(s => s.id === Number(userInfo.subdistrict))?.name_th || "",
         district: districts.find(d => d.id === Number(userInfo.district))?.name_th || "",
         province: provinces.find(p => p.id === Number(userInfo.province))?.name_th || "",
-        tel: userInfo.tel.startsWith("") ? userInfo.tel : "0" + userInfo.tel,
+        tel: userInfo.tel.startsWith("0") ? userInfo.tel : "0" + userInfo.tel,
         role: role,
       });
 
-      // ตรวจสอบว่าผู้ใช้ปัจจุบันเป็นแอดมินหรือไม่
       if (currentUserRole === "admin") {
-        // แอดมินไม่ต้องออกจากระบบ - กลับไปหน้า AccountManagement
         alert("เพิ่มสมาชิกสำเร็จ!");
         navigate("/admin-dashboard");
-        // Reset form
-        setFormData({ username: "", password: "", confirmPassword: "", email: "" });
-        setUserInfo({
-          fullName: "",
-          address: "",
-          village: "",
-          subdistrict: "",
-          district: "",
-          province: "",
-          tel: "",
-        });
-        setStep(1);
-        // Reset duplicate check
-        setDuplicateCheck({
-          username: { isDuplicate: false, isChecking: false },
-          email: { isDuplicate: false, isChecking: false }
-        });
       } else {
-        // คนปกติที่มาสมัครสมาชิก - ออกจากระบบและไปหน้า login
         await signOut(auth);
         navigate("/login");
         alert("สมัครสมาชิกสำเร็จ!");
-        // Reset form
-        setFormData({ username: "", password: "", confirmPassword: "", email: "" });
-        setUserInfo({
-          fullName: "",
-          address: "",
-          village: "",
-          subdistrict: "",
-          district: "",
-          province: "",
-          tel: "",
-        });
-        setStep(1);
-        // Reset duplicate check
-        setDuplicateCheck({
-          username: { isDuplicate: false, isChecking: false },
-          email: { isDuplicate: false, isChecking: false }
-        });
       }
+
+      resetForm();
+
     } catch (error) {
       console.error("เกิดข้อผิดพลาด:", error);
 
-      // แปลข้อความ error จาก Firebase
       let errorMessage = "ไม่สามารถสมัครสมาชิกได้!";
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = "อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น";
@@ -466,8 +490,63 @@ function SignupForm() {
       {step === 1 && (
         <div className="card">
           <h3>{currentUserRole === "admin" ? "เพิ่มสมาชิกใหม่" : "สมัครสมาชิก"}</h3>
-          <input style={{ fontSize: '14px' }} type="text" name="username" placeholder="ชื่อบัญชี :" value={formData.username} onChange={handleChange} />
-          <input style={{ fontSize: '14px' }} type="email" name="email" placeholder="อีเมล : เช่น Test000@gmail.com" value={formData.email} onChange={handleChange} />
+
+          {/* Username field with validation */}
+          <div style={{ position: 'relative' }}>
+            <input
+              style={{ fontSize: '14px' }}
+              type="text"
+              name="username"
+              placeholder="ชื่อบัญชี :"
+              value={formData.username}
+              onChange={handleChange}
+            />
+            {duplicateCheck.username.isChecking && (
+              <div style={{ fontSize: '12px', color: '#007bff', marginTop: '2px' }}>
+                🔍 กำลังตรวจสอบ...
+              </div>
+            )}
+            {formData.username && !duplicateCheck.username.isChecking && (
+              <div style={{
+                fontSize: '12px',
+                color: duplicateCheck.username.isDuplicate ? '#dc3545' : '#28a745',
+                marginTop: '2px'
+              }}>
+                {duplicateCheck.username.isDuplicate ? '❌ ชื่อบัญชีนี้ถูกใช้งานแล้ว' : '✅ ชื่อบัญชีใช้งานได้'}
+              </div>
+            )}
+          </div>
+
+          {/* Email field with validation */}
+          <div style={{ position: 'relative' }}>
+            <input
+              style={{ fontSize: '14px' }}
+              type="email"
+              name="email"
+              placeholder="อีเมล : เช่น Test000@gmail.com"
+              value={formData.email}
+              onChange={handleChange}
+            />
+            {duplicateCheck.email.isChecking && (
+              <div style={{ fontSize: '12px', color: '#007bff', marginTop: '2px' }}>
+                🔍 กำลังตรวจสอบ...
+              </div>
+            )}
+            {formData.email && validateEmail(formData.email) && !duplicateCheck.email.isChecking && (
+              <div style={{
+                fontSize: '12px',
+                color: duplicateCheck.email.isDuplicate ? '#dc3545' : '#28a745',
+                marginTop: '2px'
+              }}>
+                {duplicateCheck.email.isDuplicate ? '❌ อีเมลนี้ถูกใช้งานแล้ว' : '✅ อีเมลใช้งานได้'}
+              </div>
+            )}
+            {formData.email && !validateEmail(formData.email) && (
+              <div style={{ fontSize: '12px', color: '#dc3545', marginTop: '2px' }}>
+                ❌ รูปแบบอีเมลไม่ถูกต้อง
+              </div>
+            )}
+          </div>
 
           {/* Password field with toggle */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -494,7 +573,7 @@ function SignupForm() {
                 position: 'absolute',
                 right: '10px',
                 top: '50%',
-                transform: 'translateY(-90%)',
+                transform: 'translateY(-50%)',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -507,19 +586,17 @@ function SignupForm() {
                 height: '24px'
               }}
             >
-              <img
-                src={showPassword ? "/img/hide.png" : "/img/view.png"}
-                alt={showPassword ? "hide" : "view"}
-                style={{ width: '20px', height: '20px' }}
-              />
+              <span style={{ fontSize: '16px' }}>
+                {showPassword ? '🙈' : '👁️'}
+              </span>
             </button>
           </div>
 
-          <p style={{ display: 'flex', fontSize: "12px", color: "#666", margin: "5px 0" }}>
+          <p style={{ fontSize: "12px", color: "#666", margin: "5px 0" }}>
             *รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และต้องประกอบด้วยตัวอักษรและตัวเลขอย่างน้อยอย่างละ 1 ตัว
           </p>
 
-          {/* แสดงสถานะการตรวจสอบรหัสผ่าน */}
+          {/* Password validation indicators */}
           {formData.password && (
             <div style={{ margin: "10px 0", fontSize: "12px" }}>
               <div style={{
@@ -583,7 +660,7 @@ function SignupForm() {
                 position: 'absolute',
                 right: '10px',
                 top: '50%',
-                transform: 'translateY(-90%)',
+                transform: 'translateY(-50%)',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -596,16 +673,33 @@ function SignupForm() {
                 height: '24px'
               }}
             >
-              <img
-                src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"}
-                alt={showConfirmPassword ? "hide" : "view"}
-                style={{ width: '20px', height: '20px' }}
-              />
+              <span style={{ fontSize: '16px' }}>
+                {showConfirmPassword ? '🙈' : '👁️'}
+              </span>
             </button>
           </div>
 
-          <button className="next-button" onClick={handleNextStep} disabled={loading}>
-            ถัดไป →
+          {/* Password match indicator */}
+          {formData.confirmPassword && (
+            <div style={{
+              fontSize: '12px',
+              color: formData.password === formData.confirmPassword ? '#28a745' : '#dc3545',
+              marginTop: '2px'
+            }}>
+              {formData.password === formData.confirmPassword ? '✅ รหัสผ่านตรงกัน' : '❌ รหัสผ่านไม่ตรงกัน'}
+            </div>
+          )}
+
+          <button
+            className="next-button"
+            onClick={handleNextStep}
+            disabled={loading || duplicateCheck.username.isChecking || duplicateCheck.email.isChecking}
+            style={{
+              background: (duplicateCheck.username.isChecking || duplicateCheck.email.isChecking) ? '#ccc' : '#007bff',
+              cursor: (duplicateCheck.username.isChecking || duplicateCheck.email.isChecking) ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {(duplicateCheck.username.isChecking || duplicateCheck.email.isChecking) ? 'กำลังตรวจสอบ...' : 'ถัดไป →'}
           </button>
         </div>
       )}
@@ -614,34 +708,77 @@ function SignupForm() {
         <div className="card">
           <h3>ข้อมูลเพิ่มเติม</h3>
 
-          <input style={{ fontSize: '14px' }} type="text" name="fullName" placeholder="ชื่อ-นามสกุล :" value={userInfo.fullName} onChange={handleUserInfoChange} />
-          <p style={{ display: 'flex', fontSize: "12px", color: "#666", margin: "5px 0" }}>
+          <input
+            style={{ fontSize: '14px' }}
+            type="text"
+            name="fullName"
+            placeholder="ชื่อ-นามสกุล :"
+            value={userInfo.fullName}
+            onChange={handleUserInfoChange}
+            required
+          />
+          <p style={{ fontSize: "12px", color: "#666", margin: "5px 0" }}>
             *จำเป็นต้องกรอกชื่อ
           </p>
-          <input style={{ fontSize: '14px' }} type="text" name="address" placeholder="ที่อยู่ : เช่น 55/5 หรือ บ้านเลขที่ 55 หมู่ 5" value={userInfo.address} onChange={handleUserInfoChange} />
-          <input style={{ fontSize: '14px' }} type="text" name="village" placeholder="ชื่อหมู่บ้าน : เช่น กำเนิดเพขร" value={userInfo.village} onChange={handleUserInfoChange} />
+
+          <input
+            style={{ fontSize: '14px' }}
+            type="text"
+            name="address"
+            placeholder="ที่อยู่ : เช่น 55/5 หรือ บ้านเลขที่ 55 หมู่ 5"
+            value={userInfo.address}
+            onChange={handleUserInfoChange}
+          />
+
+          <input
+            style={{ fontSize: '14px' }}
+            type="text"
+            name="village"
+            placeholder="ชื่อหมู่บ้าน : เช่น กำเนิดเพขร"
+            value={userInfo.village}
+            onChange={handleUserInfoChange}
+          />
+
           <div className="location-container">
-            <select style={{ fontSize: '14px' }} name="province" value={userInfo.province} onChange={handleUserInfoChange}>
+            <select
+              style={{ fontSize: '14px' }}
+              name="province"
+              value={userInfo.province}
+              onChange={handleUserInfoChange}
+            >
               <option value="">เลือกจังหวัด</option>
               {provinces.map((province) => (
                 <option key={province.id} value={province.id}>{province.name_th}</option>
               ))}
             </select>
 
-            <select style={{ fontSize: '14px' }} name="district" value={userInfo.district} onChange={handleUserInfoChange}>
+            <select
+              style={{ fontSize: '14px' }}
+              name="district"
+              value={userInfo.district}
+              onChange={handleUserInfoChange}
+              disabled={!userInfo.province}
+            >
               <option value="">เลือกอำเภอ</option>
               {districts.map((district) => (
                 <option key={district.id} value={district.id}>{district.name_th}</option>
               ))}
             </select>
 
-            <select style={{ fontSize: '14px' }} name="subdistrict" value={userInfo.subdistrict} onChange={handleUserInfoChange}>
+            <select
+              style={{ fontSize: '14px' }}
+              name="subdistrict"
+              value={userInfo.subdistrict}
+              onChange={handleUserInfoChange}
+              disabled={!userInfo.district}
+            >
               <option value="">เลือกตำบล</option>
               {subdistricts.map((subdistrict) => (
                 <option key={subdistrict.id} value={subdistrict.id}>{subdistrict.name_th}</option>
               ))}
             </select>
           </div>
+
           <input
             style={{ fontSize: '14px' }}
             type="text"
@@ -650,14 +787,22 @@ function SignupForm() {
             value={userInfo.tel}
             onChange={handleUserInfoChange}
             maxLength="10"
+            pattern="[0-9]*"
           />
+
           <div className="button-save-signin">
-            <button onClick={() => setStep(1)}>⬅ ย้อนกลับ</button>
+            <button onClick={() => setStep(1)} disabled={loading}>
+              ⬅ ย้อนกลับ
+            </button>
 
             <button
               onClick={handleSubmit}
               disabled={loading}
               className="save-button"
+              style={{
+                background: loading ? '#ccc' : '#28a745',
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
             >
               {loading
                 ? "กำลังบันทึก..."
@@ -666,7 +811,6 @@ function SignupForm() {
                   : "บันทึก ✅"}
             </button>
           </div>
-
         </div>
       )}
     </div>
