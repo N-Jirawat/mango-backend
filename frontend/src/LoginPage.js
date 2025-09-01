@@ -1,5 +1,5 @@
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -12,18 +12,17 @@ function LoginPage() {
 
   const isEmail = (input) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
 
-  // lookup email จาก username โดย query collection /users
+  // lookup email ผ่าน Flask backend
   const findEmailByUsername = async (username) => {
     try {
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", username));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        return userDoc.data().email;
-      }
-      return null;
+      const res = await fetch("https://render-backend-ftkg.onrender.com/find_email_by_username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+      return data.email;
     } catch (error) {
       console.error("Error finding user by username:", error);
       return null;
@@ -69,6 +68,7 @@ function LoginPage() {
         usernameFromLookup = loginInput;
       }
 
+      // login Firebase Auth ด้วย email + password
       const userCredential = await signInWithEmailAndPassword(auth, emailToUse, password);
       const loggedInUser = userCredential.user;
 
@@ -79,11 +79,8 @@ function LoginPage() {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        if (userData.role === "admin") {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/");
-        }
+        if (userData.role === "admin") navigate("/admin-dashboard");
+        else navigate("/");
       } else {
         alert("เกิดข้อผิดพลาด ไม่พบข้อมูลผู้ใช้หลัง login");
       }

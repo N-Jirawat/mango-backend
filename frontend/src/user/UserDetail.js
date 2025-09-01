@@ -8,11 +8,12 @@ import {
   addDoc,     // สำหรับเพิ่มเอกสาร
   updateDoc,  // สำหรับอัปเดตเอกสาร
   doc,        // สำหรับอ้างอิงเอกสาร
-  getDoc      // สำหรับดึงเอกสาร
+  getDoc,      // สำหรับดึงเอกสาร
+  deleteDoc
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
-import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "firebase/auth";
 import "../css/UserDetails.css";
 
 import provincesData from "../่json/thai_provinces.json";
@@ -513,6 +514,32 @@ function UserDetails() {
     }
   };
 
+  const handleDeleteOwnAccount = async () => {
+    const confirmDelete = window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีของคุณ?");
+    if (!confirmDelete) return;
+
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (user) {
+      try {
+        // ✅ 1. ลบข้อมูลใน Firestore (document ผู้ใช้)
+        await deleteDoc(doc(db, "users", user.uid));
+
+        // ✅ 2. ลบผู้ใช้จาก Firebase Authentication
+        await deleteUser(user);
+
+        alert("บัญชีและข้อมูลถูกลบเรียบร้อยแล้ว");
+
+        // ✅ 3. logout หรือ redirect ไปหน้า signup/login
+        window.location.href = "/login";
+      } catch (error) {
+        console.error("Error deleting account:", error);
+        alert(`ไม่สามารถลบบัญชี: ${error.message}`);
+      }
+    }
+  };
+
   const roleName = (role) => {
     switch (role) {
       case "admin": return "ผู้ดูแลระบบ";
@@ -700,6 +727,23 @@ function UserDetails() {
                   {emailError && <p className="error-message">{emailError}</p>}
                 </div>
               </div>
+
+              <button
+                onClick={handleDeleteOwnAccount}
+                className="report-link"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#ff0000ff',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: 'inherit',
+                  padding: 0,
+                  marginLeft: '10px'
+                }}
+              >
+                ลบบัญชี
+              </button>
 
               <div className="form-buttons-edit">
                 <button
