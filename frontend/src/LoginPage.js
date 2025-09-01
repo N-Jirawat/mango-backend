@@ -15,7 +15,7 @@ function LoginPage() {
   // lookup email ผ่าน Flask backend
   const findEmailByUsername = async (username) => {
     try {
-      const res = await fetch("https://render-backend-ftkg.onrender.com/find_email_by_username", {
+      const res = await fetch("https://render-backend-mu.vercel.app/find_email_by_username", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),

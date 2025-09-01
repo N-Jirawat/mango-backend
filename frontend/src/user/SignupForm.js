@@ -60,7 +60,7 @@ function SignupForm() {
   // API functions - moved before dependent useCallback functions
   const checkUsername = useCallback(async (username) => {
     try {
-      const response = await fetch("https://render-backend-ftkg.onrender.com/check_username", {
+      const response = await fetch("https://render-backend-mu.vercel.app/check_username", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +82,7 @@ function SignupForm() {
 
   const checkEmail = useCallback(async (email) => {
     try {
-      const response = await fetch("https://render-backend-ftkg.onrender.com/check_email", {
+      const response = await fetch("https://render-backend-mu.vercel.app/check_email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

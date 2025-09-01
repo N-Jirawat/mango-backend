@@ -26,7 +26,7 @@ function AccountManagement() {
 
   const [dropdownDirection, setDropdownDirection] = useState('drop-down');
 
-  const USER_BACKEND_URL = "https://render-backend-ftkg.onrender.com";
+  const USER_BACKEND_URL = "https://render-backend-mu.vercel.app";
 
   // แก้ไข useEffect สำหรับ dropdown แบบ fixed position
   useEffect(() => {
