@@ -9,16 +9,18 @@ import {
   updateDoc,  // สำหรับอัปเดตเอกสาร
   doc,        // สำหรับอ้างอิงเอกสาร
   getDoc,      // สำหรับดึงเอกสาร
-  deleteDoc
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
-import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "firebase/auth";
+import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import "../css/UserDetails.css";
 
 import provincesData from "../่json/thai_provinces.json";
 import districtsData from "../่json/thai_amphures.json";
 import subdistrictsData from "../่json/thai_tambons.json";
+
+// กำหนด URL ของ backend API
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
 function UserDetails() {
   const { id } = useParams();
@@ -59,6 +61,9 @@ function UserDetails() {
     hasLetter: false,
     hasNumber: false
   });
+
+  // เพิ่ม state สำหรับเก็บอีเมลเดิม
+  const [originalEmail, setOriginalEmail] = useState("");
 
   // 👉 เวลามีการเลือก จังหวัด
   const handleProvinceChange = (e) => {
@@ -190,6 +195,48 @@ function UserDetails() {
     }
 
     return { isValid: true, message: "" };
+  };
+
+  // ฟังก์ชันสำหรับตรวจสอบอีเมลซ้ำผ่าน backend
+  const checkEmailExists = async (email, excludeUid = null) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/check_email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, exclude_uid: excludeUid })
+      });
+      
+      const result = await response.json();
+      return result.exists;
+    } catch (error) {
+      console.error('Error checking email:', error);
+      return false;
+    }
+  };
+
+  // ฟังก์ชันสำหรับอัปเดตอีเมลผ่าน backend
+  const updateEmailInFirebase = async (uid, newEmail) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/update_email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ uid, new_email: newEmail })
+      });
+      
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update email');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error updating email:', error);
+      throw error;
+    }
   };
 
   // ฟังก์ชันสำหรับ toggle การแสดงรหัสผ่าน
@@ -332,18 +379,42 @@ function UserDetails() {
       setPhoneError("");
     }
 
-    // ตรวจสอบอีเมล (เหมือนเดิม)
+    // ตรวจสอบอีเมล
     if (!validateEmail(formData.email)) {
       setEmailError("รูปแบบอีเมลไม่ถูกต้อง");
       return;
-    } else {
-      setEmailError("");
     }
 
-    // บันทึกข้อมูล (เหมือนเดิม)
+    // ตรวจสอบว่าอีเมลเปลี่ยนแล้วมีคนใช้แล้วหรือไม่
+    if (formData.email !== originalEmail) {
+      const emailExists = await checkEmailExists(formData.email, id);
+      if (emailExists) {
+        setEmailError("อีเมลนี้ถูกใช้แล้ว");
+        return;
+      }
+    }
+
+    setEmailError("");
+
     try {
+      // อัปเดตข้อมูลใน Firestore
       await updateDoc(doc(db, "users", id), formData);
+
+      // ถ้าอีเมลเปลี่ยนแปลง ให้อัปเดตใน Firebase Auth ด้วย
+      if (formData.email !== originalEmail) {
+        try {
+          await updateEmailInFirebase(id, formData.email);
+          console.log("อัปเดตอีเมลใน Firebase Auth สำเร็จ");
+        } catch (error) {
+          console.error("Error updating email in Firebase Auth:", error);
+          // หากอัปเดต Auth ไม่สำเร็จ แต่ Firestore สำเร็จแล้ว
+          // ควร rollback Firestore หรือแจ้งเตือนผู้ใช้
+          alert("อัปเดตข้อมูลสำเร็จ แต่อาจมีปัญหากับการอัปเดตอีเมลในระบบยืนยันตัวตน");
+        }
+      }
+
       setUserInfo(prev => ({ ...prev, ...formData }));
+      setOriginalEmail(formData.email); // อัปเดตอีเมลเดิม
       setEditUser(false);
       alert("อัปเดตข้อมูลสำเร็จ");
     } catch (error) {
@@ -364,6 +435,9 @@ function UserDetails() {
       tel: userInfo.tel || "",
       email: userInfo.email || "",
     });
+
+    // เก็บอีเมลเดิมไว้เปรียบเทียบ
+    setOriginalEmail(userInfo.email || "");
 
     // 👉 preload districts ตาม province ที่มีใน Firebase
     if (userInfo.province) {
@@ -523,15 +597,24 @@ function UserDetails() {
 
     if (user) {
       try {
-        // ✅ 1. ลบข้อมูลใน Firestore (document ผู้ใช้)
-        await deleteDoc(doc(db, "users", user.uid));
+        // ใช้ backend API สำหรับลบบัญชี
+        const response = await fetch(`${BACKEND_URL}/delete_user`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ uid: user.uid })
+        });
 
-        // ✅ 2. ลบผู้ใช้จาก Firebase Authentication
-        await deleteUser(user);
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to delete account');
+        }
 
         alert("บัญชีและข้อมูลถูกลบเรียบร้อยแล้ว");
-
-        // ✅ 3. logout หรือ redirect ไปหน้า signup/login
+        
+        // redirect ไปหน้า login
         window.location.href = "/login";
       } catch (error) {
         console.error("Error deleting account:", error);

@@ -76,8 +76,6 @@ function SignupForm() {
       const data = await response.json();
       return data.exists || false;
     } catch (error) {
-      console.error("API check username error:", error);
-      // ในกรณีที่ API ไม่ตอบสนอง ให้ถือว่าไม่ซ้ำเพื่อไม่บล็อกการสมัคร
       return false;
     }
   }, []);
@@ -100,8 +98,6 @@ function SignupForm() {
       const data = await response.json();
       return data.exists || false;
     } catch (error) {
-      console.error("API check email error:", error);
-      // ในกรณีที่ API ไม่ตอบสนอง ให้ถือว่าไม่ซ้ำเพื่อไม่บล็อกการสมัคร
       return false;
     }
   }, []);
@@ -122,16 +118,13 @@ function SignupForm() {
     }));
 
     try {
-      console.log("Checking username:", username); // Debug log
       const exists = await checkUsername(username);
-      console.log("Username exists:", exists); // Debug log
 
       setDuplicateCheck(prev => ({
         ...prev,
         username: { isDuplicate: exists, isChecking: false }
       }));
     } catch (error) {
-      console.error("Error checking username:", error);
       setDuplicateCheck(prev => ({
         ...prev,
         username: { isDuplicate: false, isChecking: false }
@@ -154,16 +147,13 @@ function SignupForm() {
     }));
 
     try {
-      console.log("Checking email:", email); // Debug log
       const exists = await checkEmail(email);
-      console.log("Email exists:", exists); // Debug log
 
       setDuplicateCheck(prev => ({
         ...prev,
         email: { isDuplicate: exists, isChecking: false }
       }));
     } catch (error) {
-      console.error("Error checking email:", error);
       setDuplicateCheck(prev => ({
         ...prev,
         email: { isDuplicate: false, isChecking: false }
@@ -186,7 +176,6 @@ function SignupForm() {
             setCurrentUserRole(userData.role);
           }
         } catch (error) {
-          console.error("Error fetching user role:", error);
           setCurrentUserRole("user");
         }
       } else {
@@ -428,7 +417,6 @@ function SignupForm() {
         const isFirstUser = allUsers.empty;
         role = isFirstUser ? "admin" : "user";
       } catch (error) {
-        console.warn("ไม่สามารถเช็ค existing users ได้:", error);
         // ถ้าเช็คไม่ได้ ให้เป็น user ธรรมดา
         role = "user";
       }
@@ -465,7 +453,6 @@ function SignupForm() {
       resetForm();
 
     } catch (error) {
-      console.error("เกิดข้อผิดพลาด:", error);
 
       let errorMessage = "ไม่สามารถสมัครสมาชิกได้!";
       if (error.code === 'auth/email-already-in-use') {
@@ -586,9 +573,11 @@ function SignupForm() {
                 height: '24px'
               }}
             >
-              <span style={{ fontSize: '16px' }}>
-                {showPassword ? '🙈' : '👁️'}
-              </span>
+              <img
+                src={showPassword ? "/img/hide.png" : "/img/view.png"}
+                alt={showPassword ? "hide" : "view"}
+                style={{ width: '20px', height: '20px', marginBottom: '20px' }}
+              />
             </button>
           </div>
 
@@ -673,9 +662,11 @@ function SignupForm() {
                 height: '24px'
               }}
             >
-              <span style={{ fontSize: '16px' }}>
-                {showConfirmPassword ? '🙈' : '👁️'}
-              </span>
+              <img
+                src={showPassword ? "/img/hide.png" : "/img/view.png"}
+                alt={showPassword ? "hide" : "view"}
+                style={{ width: '20px', height: '20px', marginBottom: '20px' }}
+              />
             </button>
           </div>
 
