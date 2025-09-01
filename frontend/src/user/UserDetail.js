@@ -822,7 +822,8 @@ function UserDetails() {
                   cursor: 'pointer',
                   fontSize: 'inherit',
                   padding: 0,
-                  marginLeft: '10px'
+                  marginLeft: '10px',
+                  marginBottom: '20px'
                 }}
               >
                 ลบบัญชี
