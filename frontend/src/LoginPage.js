@@ -14,14 +14,27 @@ function LoginPage() {
 
   // lookup email ผ่าน Flask backend
   const findEmailByUsername = async (username) => {
-    const res = await fetch("https://render-backend-ftkg.onrender.com/find_email_by_username", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Unknown error");
-    return data.email;
+    try {
+      const res = await fetch("https://render-backend-ftkg.onrender.com/find_email_by_username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        console.error("Backend error:", data);
+        alert(data.error || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์");
+        return null;
+      }
+
+      return data.email;
+    } catch (error) {
+      console.error("Network or fetch error:", error);
+      alert("ไม่สามารถเชื่อมต่อ backend ได้");
+      return null;
+    }
   };
 
   // สร้าง /users/{uid} ถ้ายังไม่มี
