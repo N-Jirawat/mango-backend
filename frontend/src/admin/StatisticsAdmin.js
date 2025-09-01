@@ -215,15 +215,17 @@ function StatisticsAdmin() {
 
   // useEffect สำหรับดึงข้อมูลครั้งแรก
   useEffect(() => {
-    // แทนที่ส่วน fetchStatistics ใน useEffect
+    // แทนที่ส่วน fetchStatistics ใน useEffect (บรรทัดประมาณ 140-410)
     const fetchStatistics = async () => {
       const db = getFirestore();
       setLoading(true);
 
+      // ประกาศ usersMapTemp ไว้ก่อนเพื่อให้สามารถใช้ในทุก scope
+      let usersMapTemp = {};
+
       try {
         // ดึงข้อมูล users และปรับให้รองรับทั้ง uid และ document id
         const usersSnapshot = await getDocs(collection(db, "users"));
-        const usersMapTemp = {};
 
         usersSnapshot.forEach(doc => {
           const user = doc.data();
@@ -405,7 +407,7 @@ function StatisticsAdmin() {
             });
 
             setAllPredictions(predictionsData);
-            processStatistics(predictionsData, usersMapTemp);
+            processStatistics(predictionsData, usersMapTemp); // ตอนนี้ usersMapTemp สามารถเข้าถึงได้แล้ว
             console.log(`ดึงข้อมูลสำเร็จจาก AnalysisHistory เท่านั้น: ${predictionsData.length} รายการ`);
 
           } catch (fallbackError) {
