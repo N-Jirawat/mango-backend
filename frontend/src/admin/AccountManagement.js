@@ -695,7 +695,7 @@ function AccountManagement() {
 
               <div className="form-group-edit">
                 <label>เบอร์โทรศัพท์:</label>
-                <input type="tel" name="tel" value={formData.tel || ""} onChange={handleChange} placeholder="0812345678" className={`form-input-edit ${phoneError ? 'error' : ''}`} />
+                <input type="tel" name="tel" value={formData.tel || ""} onChange={handleChange} placeholder="" className={`form-input-edit ${phoneError ? 'error' : ''}`} />
                 {phoneError && <p className="error-message">{phoneError}</p>}
               </div>
 
