@@ -200,7 +200,7 @@ function AccountManagement() {
       setSubdistrictList([]);
     }
   };
-  
+
   const closeEditModal = () => {
     setEditUser(null);
     setFormData({});
@@ -345,7 +345,7 @@ function AccountManagement() {
           },
           body: JSON.stringify({
             uid: editUser.id,
-            email: formData.email,
+            new_email: formData.email,  // เปลี่ยนเป็น new_email
           }),
         });
 
