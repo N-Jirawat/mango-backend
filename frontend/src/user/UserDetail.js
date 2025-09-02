@@ -5,9 +5,9 @@ import { getDocs, collection, query, where, addDoc, doc, getDoc, updateDoc } fro
 import { db } from "../firebaseConfig";
 import "../css/UserDetails.css";
 
-import provincesData from "../json/thai_provinces.json";
-import districtsData from "../json/thai_amphures.json";
-import subdistrictsData from "../json/thai_tambons.json";
+import provincesData from "../่json/thai_provinces.json";
+import districtsData from "../่json/thai_amphures.json";
+import subdistrictsData from "../่json/thai_tambons.json";
 
 const BACKEND_URL = "https://render-backend-mu.vercel.app";
 
