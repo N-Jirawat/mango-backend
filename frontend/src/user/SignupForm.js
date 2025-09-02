@@ -24,13 +24,13 @@ function SignupForm() {
   const [passwordValidation, setPasswordValidation] = useState({
     hasMinLength: false,
     hasLetter: false,
-    hasNumber: false
+    hasNumber: false,
   });
 
   // State สำหรับตรวจสอบข้อมูลซ้ำ
   const [duplicateCheck, setDuplicateCheck] = useState({
     username: { isDuplicate: false, isChecking: false },
-    email: { isDuplicate: false, isChecking: false }
+    email: { isDuplicate: false, isChecking: false },
   });
 
   const [formData, setFormData] = useState({
@@ -54,28 +54,36 @@ function SignupForm() {
   const [districts, setDistricts] = useState([]);
   const [subdistricts, setSubdistricts] = useState([]);
 
-  // Email validation function - moved before useCallback functions
+  // Email validation function
   const validateEmail = useCallback((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), []);
 
-  // API functions - moved before dependent useCallback functions
+  // API functions with timeout
   const checkUsername = useCallback(async (username) => {
     try {
       const response = await fetch("https://render-backend-mu.vercel.app/check_username", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          "Accept": "application/json",
         },
         body: JSON.stringify({ username }),
+        signal: AbortSignal.timeout(10000), // Timeout 10 วินาที
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
       return data.exists || false;
     } catch (error) {
+      console.error("Check username error:", error);
+      if (error.name === "TimeoutError") {
+        alert("การตรวจสอบชื่อบัญชีใช้เวลานานเกินไป กรุณาลองใหม่");
+      } else if (error.message.includes("Failed to fetch")) {
+        alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อตรวจสอบชื่อบัญชี อาจเป็นปัญหา CORS หรือเครือข่าย");
+      }
       return false;
     }
   }, []);
@@ -86,80 +94,92 @@ function SignupForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          "Accept": "application/json",
         },
         body: JSON.stringify({ email }),
+        signal: AbortSignal.timeout(10000), // Timeout 10 วินาที
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
       return data.exists || false;
     } catch (error) {
+      console.error("Check email error:", error);
+      if (error.name === "TimeoutError") {
+        alert("การตรวจสอบอีเมลใช้เวลานานเกินไป กรุณาลองใหม่");
+      } else if (error.message.includes("Failed to fetch")) {
+        alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อตรวจสอบอีเมล อาจเป็นปัญหา CORS หรือเครือข่าย");
+      }
       return false;
     }
   }, []);
 
-  // Duplicate check functions - now properly ordered after API functions
-  const checkDuplicateUsername = useCallback(async (username) => {
-    if (!username.trim()) {
-      setDuplicateCheck(prev => ({
+  // Duplicate check functions
+  const checkDuplicateUsername = useCallback(
+    async (username) => {
+      if (!username.trim()) {
+        setDuplicateCheck((prev) => ({
+          ...prev,
+          username: { isDuplicate: false, isChecking: false },
+        }));
+        return;
+      }
+
+      setDuplicateCheck((prev) => ({
         ...prev,
-        username: { isDuplicate: false, isChecking: false }
+        username: { isDuplicate: false, isChecking: true },
       }));
-      return;
-    }
 
-    setDuplicateCheck(prev => ({
-      ...prev,
-      username: { isDuplicate: false, isChecking: true }
-    }));
+      try {
+        const exists = await checkUsername(username);
+        setDuplicateCheck((prev) => ({
+          ...prev,
+          username: { isDuplicate: exists, isChecking: false },
+        }));
+      } catch (error) {
+        setDuplicateCheck((prev) => ({
+          ...prev,
+          username: { isDuplicate: false, isChecking: false },
+        }));
+      }
+    },
+    [checkUsername]
+  );
 
-    try {
-      const exists = await checkUsername(username);
+  const checkDuplicateEmail = useCallback(
+    async (email) => {
+      if (!email.trim() || !validateEmail(email)) {
+        setDuplicateCheck((prev) => ({
+          ...prev,
+          email: { isDuplicate: false, isChecking: false },
+        }));
+        return;
+      }
 
-      setDuplicateCheck(prev => ({
+      setDuplicateCheck((prev) => ({
         ...prev,
-        username: { isDuplicate: exists, isChecking: false }
+        email: { isDuplicate: false, isChecking: true },
       }));
-    } catch (error) {
-      setDuplicateCheck(prev => ({
-        ...prev,
-        username: { isDuplicate: false, isChecking: false }
-      }));
-    }
-  }, [checkUsername]);
 
-  const checkDuplicateEmail = useCallback(async (email) => {
-    if (!email.trim() || !validateEmail(email)) {
-      setDuplicateCheck(prev => ({
-        ...prev,
-        email: { isDuplicate: false, isChecking: false }
-      }));
-      return;
-    }
-
-    setDuplicateCheck(prev => ({
-      ...prev,
-      email: { isDuplicate: false, isChecking: true }
-    }));
-
-    try {
-      const exists = await checkEmail(email);
-
-      setDuplicateCheck(prev => ({
-        ...prev,
-        email: { isDuplicate: exists, isChecking: false }
-      }));
-    } catch (error) {
-      setDuplicateCheck(prev => ({
-        ...prev,
-        email: { isDuplicate: false, isChecking: false }
-      }));
-    }
-  }, [checkEmail, validateEmail]);
+      try {
+        const exists = await checkEmail(email);
+        setDuplicateCheck((prev) => ({
+          ...prev,
+          email: { isDuplicate: exists, isChecking: false },
+        }));
+      } catch (error) {
+        setDuplicateCheck((prev) => ({
+          ...prev,
+          email: { isDuplicate: false, isChecking: false },
+        }));
+      }
+    },
+    [checkEmail, validateEmail]
+  );
 
   useEffect(() => {
     setProvinces(provincesData);
@@ -176,6 +196,7 @@ function SignupForm() {
             setCurrentUserRole(userData.role);
           }
         } catch (error) {
+          console.error("Error fetching user role:", error);
           setCurrentUserRole("user");
         }
       } else {
@@ -192,7 +213,7 @@ function SignupForm() {
         (district) => district.province_id === Number(userInfo.province)
       );
       setDistricts(filteredDistricts);
-      setUserInfo(prev => ({ ...prev, district: "", subdistrict: "" }));
+      setUserInfo((prev) => ({ ...prev, district: "", subdistrict: "" }));
       setSubdistricts([]);
     } else {
       setDistricts([]);
@@ -206,7 +227,7 @@ function SignupForm() {
         (subdistrict) => subdistrict.amphure_id === Number(userInfo.district)
       );
       setSubdistricts(filteredSubdistricts);
-      setUserInfo(prev => ({ ...prev, subdistrict: "" }));
+      setUserInfo((prev) => ({ ...prev, subdistrict: "" }));
     } else {
       setSubdistricts([]);
     }
@@ -218,9 +239,9 @@ function SignupForm() {
       if (formData.username) {
         checkDuplicateUsername(formData.username);
       } else {
-        setDuplicateCheck(prev => ({
+        setDuplicateCheck((prev) => ({
           ...prev,
-          username: { isDuplicate: false, isChecking: false }
+          username: { isDuplicate: false, isChecking: false },
         }));
       }
     }, 500);
@@ -234,9 +255,9 @@ function SignupForm() {
       if (formData.email) {
         checkDuplicateEmail(formData.email);
       } else {
-        setDuplicateCheck(prev => ({
+        setDuplicateCheck((prev) => ({
           ...prev,
-          email: { isDuplicate: false, isChecking: false }
+          email: { isDuplicate: false, isChecking: false },
         }));
       }
     }, 500);
@@ -257,7 +278,7 @@ function SignupForm() {
         setPasswordValidation({
           hasMinLength: value.length >= 8,
           hasLetter: /[a-zA-Z]/.test(value),
-          hasNumber: /[0-9]/.test(value)
+          hasNumber: /[0-9]/.test(value),
         });
       }
     }
@@ -278,7 +299,7 @@ function SignupForm() {
 
   const validatePassword = (password) => {
     if (password.length < 8) {
-      return { isValid: false, message: "รหัسผ่านต้องมีอย่างน้อย 8 ตัว!" };
+      return { isValid: false, message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัว!" };
     }
 
     const hasLetter = /[a-zA-Z]/.test(password);
@@ -361,6 +382,10 @@ function SignupForm() {
       alert("กรุณากรอกชื่อ-นามสกุล");
       return false;
     }
+    if (userInfo.tel && !/^0[0-9]{9}$/.test(userInfo.tel)) {
+      alert("เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลักและขึ้นต้นด้วย 0");
+      return false;
+    }
     return true;
   };
 
@@ -384,12 +409,12 @@ function SignupForm() {
     setStep(1);
     setDuplicateCheck({
       username: { isDuplicate: false, isChecking: false },
-      email: { isDuplicate: false, isChecking: false }
+      email: { isDuplicate: false, isChecking: false },
     });
     setPasswordValidation({
       hasMinLength: false,
       hasLetter: false,
-      hasNumber: false
+      hasNumber: false,
     });
   };
 
@@ -417,7 +442,7 @@ function SignupForm() {
         const isFirstUser = allUsers.empty;
         role = isFirstUser ? "admin" : "user";
       } catch (error) {
-        // ถ้าเช็คไม่ได้ ให้เป็น user ธรรมดา
+        console.error("Error checking user count:", error);
         role = "user";
       }
 
@@ -432,12 +457,12 @@ function SignupForm() {
         username: formData.username,
         email: formData.email,
         fullName: userInfo.fullName,
-        address: userInfo.address,
-        village: userInfo.village,
-        subdistrict: subdistricts.find(s => s.id === Number(userInfo.subdistrict))?.name_th || "",
-        district: districts.find(d => d.id === Number(userInfo.district))?.name_th || "",
-        province: provinces.find(p => p.id === Number(userInfo.province))?.name_th || "",
-        tel: userInfo.tel.startsWith("0") ? userInfo.tel : "0" + userInfo.tel,
+        address: userInfo.address || "",
+        village: userInfo.village || "",
+        subdistrict: subdistricts.find((s) => s.id === Number(userInfo.subdistrict))?.name_th || "",
+        district: districts.find((d) => d.id === Number(userInfo.district))?.name_th || "",
+        province: provinces.find((p) => p.id === Number(userInfo.province))?.name_th || "",
+        tel: userInfo.tel || "", // เก็บเป็นค่าว่างถ้าไม่กรอก
         role: role,
       });
 
@@ -446,23 +471,29 @@ function SignupForm() {
         navigate("/admin-dashboard");
       } else {
         await signOut(auth);
-        navigate("/login");
         alert("สมัครสมาชิกสำเร็จ!");
+        navigate("/login");
       }
 
       resetForm();
-
     } catch (error) {
-
+      console.error("Signup error:", error);
       let errorMessage = "ไม่สามารถสมัครสมาชิกได้!";
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.code === "auth/email-already-in-use") {
         errorMessage = "อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น";
+        setDuplicateCheck((prev) => ({
+          ...prev,
+          email: { isDuplicate: true, isChecking: false },
+        }));
         setStep(1);
-      } else if (error.code === 'auth/weak-password') {
+      } else if (error.code === "auth/weak-password") {
         errorMessage = "รหัสผ่านไม่ปลอดภัย กรุณาใช้รหัสผ่านที่แข็งแกร่งกว่านี้";
         setStep(1);
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.code === "auth/invalid-email") {
         errorMessage = "รูปแบบอีเมลไม่ถูกต้อง";
+        setStep(1);
+      } else if (error.code === "auth/too-many-requests") {
+        errorMessage = "มีการร้องขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่";
         setStep(1);
       }
 
@@ -479,64 +510,74 @@ function SignupForm() {
           <h3>{currentUserRole === "admin" ? "เพิ่มสมาชิกใหม่" : "สมัครสมาชิก"}</h3>
 
           {/* Username field with validation */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: "relative" }}>
             <input
-              style={{ fontSize: '14px' }}
+              style={{ fontSize: "14px" }}
               type="text"
               name="username"
               placeholder="ชื่อบัญชี :"
               value={formData.username}
               onChange={handleChange}
+              disabled={loading}
             />
             {duplicateCheck.username.isChecking && (
-              <div style={{ fontSize: '12px', color: '#007bff', marginTop: '2px' }}>
+              <div style={{ fontSize: "12px", color: "#007bff", marginTop: "2px" }}>
                 🔍 กำลังตรวจสอบ...
               </div>
             )}
             {formData.username && !duplicateCheck.username.isChecking && (
-              <div style={{
-                fontSize: '12px',
-                color: duplicateCheck.username.isDuplicate ? '#dc3545' : '#28a745',
-                marginTop: '2px'
-              }}>
-                {duplicateCheck.username.isDuplicate ? '❌ ชื่อบัญชีนี้ถูกใช้งานแล้ว' : '✅ ชื่อบัญชีใช้งานได้'}
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: duplicateCheck.username.isDuplicate ? "#dc3545" : "#28a745",
+                  marginTop: "2px",
+                }}
+              >
+                {duplicateCheck.username.isDuplicate
+                  ? "❌ ชื่อบัญชีนี้ถูกใช้งานแล้ว"
+                  : "✅ ชื่อบัญชีใช้งานได้"}
               </div>
             )}
           </div>
 
           {/* Email field with validation */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: "relative" }}>
             <input
-              style={{ fontSize: '14px' }}
+              style={{ fontSize: "14px" }}
               type="email"
               name="email"
               placeholder="อีเมล : เช่น Test000@gmail.com"
               value={formData.email}
               onChange={handleChange}
+              disabled={loading}
             />
             {duplicateCheck.email.isChecking && (
-              <div style={{ fontSize: '12px', color: '#007bff', marginTop: '2px' }}>
+              <div style={{ fontSize: "12px", color: "#007bff", marginTop: "2px" }}>
                 🔍 กำลังตรวจสอบ...
               </div>
             )}
             {formData.email && validateEmail(formData.email) && !duplicateCheck.email.isChecking && (
-              <div style={{
-                fontSize: '12px',
-                color: duplicateCheck.email.isDuplicate ? '#dc3545' : '#28a745',
-                marginTop: '2px'
-              }}>
-                {duplicateCheck.email.isDuplicate ? '❌ อีเมลนี้ถูกใช้งานแล้ว' : '✅ อีเมลใช้งานได้'}
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: duplicateCheck.email.isDuplicate ? "#dc3545" : "#28a745",
+                  marginTop: "2px",
+                }}
+              >
+                {duplicateCheck.email.isDuplicate
+                  ? "❌ อีเมลนี้ถูกใช้งานแล้ว"
+                  : "✅ อีเมลใช้งานได้"}
               </div>
             )}
             {formData.email && !validateEmail(formData.email) && (
-              <div style={{ fontSize: '12px', color: '#dc3545', marginTop: '2px' }}>
+              <div style={{ fontSize: "12px", color: "#dc3545", marginTop: "2px" }}>
                 ❌ รูปแบบอีเมลไม่ถูกต้อง
               </div>
             )}
           </div>
 
           {/* Password field with toggle */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
             <input
               type={showPassword ? "text" : "password"}
               name="password"
@@ -544,39 +585,41 @@ function SignupForm() {
               value={formData.password}
               onChange={handleChange}
               style={{
-                width: '100%',
-                paddingRight: '40px',
-                boxSizing: 'border-box',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                padding: '10px',
-                fontSize: '14px'
+                width: "100%",
+                paddingRight: "40px",
+                boxSizing: "border-box",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                padding: "10px",
+                fontSize: "14px",
               }}
+              disabled={loading}
             />
             <button
               type="button"
               onClick={togglePasswordVisibility}
               style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0',
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0",
                 zIndex: 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '24px',
-                height: '24px'
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "24px",
+                height: "24px",
               }}
+              disabled={loading}
             >
               <img
                 src={showPassword ? "/img/hide.png" : "/img/view.png"}
                 alt={showPassword ? "hide" : "view"}
-                style={{ width: '20px', height: '20px', marginBottom: '20px' }}
+                style={{ width: "20px", height: "20px", marginBottom: "20px" }}
               />
             </button>
           </div>
@@ -588,34 +631,40 @@ function SignupForm() {
           {/* Password validation indicators */}
           {formData.password && (
             <div style={{ margin: "10px 0", fontSize: "12px" }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                margin: "3px 0",
-                color: passwordValidation.hasMinLength ? "#28a745" : "#dc3545"
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  margin: "3px 0",
+                  color: passwordValidation.hasMinLength ? "#28a745" : "#dc3545",
+                }}
+              >
                 <span style={{ marginRight: "5px" }}>
                   {passwordValidation.hasMinLength ? "✅" : "❌"}
                 </span>
                 อย่างน้อย 8 ตัวอักษร
               </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                margin: "3px 0",
-                color: passwordValidation.hasLetter ? "#28a745" : "#dc3545"
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  margin: "3px 0",
+                  color: passwordValidation.hasLetter ? "#28a745" : "#dc3545",
+                }}
+              >
                 <span style={{ marginRight: "5px" }}>
                   {passwordValidation.hasLetter ? "✅" : "❌"}
                 </span>
                 มีตัวอักษรอย่างน้อย 1 ตัว (a-z, A-Z)
               </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                margin: "3px 0",
-                color: passwordValidation.hasNumber ? "#28a745" : "#dc3545"
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  margin: "3px 0",
+                  color: passwordValidation.hasNumber ? "#28a745" : "#dc3545",
+                }}
+              >
                 <span style={{ marginRight: "5px" }}>
                   {passwordValidation.hasNumber ? "✅" : "❌"}
                 </span>
@@ -625,7 +674,7 @@ function SignupForm() {
           )}
 
           {/* Confirm Password field with toggle */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
             <input
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
@@ -633,51 +682,57 @@ function SignupForm() {
               value={formData.confirmPassword}
               onChange={handleChange}
               style={{
-                width: '100%',
-                paddingRight: '40px',
-                boxSizing: 'border-box',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                padding: '10px',
-                fontSize: '14px'
+                width: "100%",
+                paddingRight: "40px",
+                boxSizing: "border-box",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                padding: "10px",
+                fontSize: "14px",
               }}
+              disabled={loading}
             />
             <button
               type="button"
               onClick={toggleConfirmPasswordVisibility}
               style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0',
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0",
                 zIndex: 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '24px',
-                height: '24px'
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "24px",
+                height: "24px",
               }}
+              disabled={loading}
             >
               <img
-                src={showPassword ? "/img/hide.png" : "/img/view.png"}
-                alt={showPassword ? "hide" : "view"}
-                style={{ width: '20px', height: '20px', marginBottom: '20px' }}
+                src={showConfirmPassword ? "/img/hide.png" : "/img/view.png"}
+                alt={showConfirmPassword ? "hide" : "view"}
+                style={{ width: "20px", height: "20px", marginBottom: "20px" }}
               />
             </button>
           </div>
 
           {/* Password match indicator */}
           {formData.confirmPassword && (
-            <div style={{
-              fontSize: '12px',
-              color: formData.password === formData.confirmPassword ? '#28a745' : '#dc3545',
-              marginTop: '2px'
-            }}>
-              {formData.password === formData.confirmPassword ? '✅ รหัสผ่านตรงกัน' : '❌ รหัสผ่านไม่ตรงกัน'}
+            <div
+              style={{
+                fontSize: "12px",
+                color: formData.password === formData.confirmPassword ? "#28a745" : "#dc3545",
+                marginTop: "2px",
+              }}
+            >
+              {formData.password === formData.confirmPassword
+                ? "✅ รหัสผ่านตรงกัน"
+                : "❌ รหัสผ่านไม่ตรงกัน"}
             </div>
           )}
 
@@ -686,11 +741,19 @@ function SignupForm() {
             onClick={handleNextStep}
             disabled={loading || duplicateCheck.username.isChecking || duplicateCheck.email.isChecking}
             style={{
-              background: (duplicateCheck.username.isChecking || duplicateCheck.email.isChecking) ? '#ccc' : '#007bff',
-              cursor: (duplicateCheck.username.isChecking || duplicateCheck.email.isChecking) ? 'not-allowed' : 'pointer'
+              background:
+                loading || duplicateCheck.username.isChecking || duplicateCheck.email.isChecking
+                  ? "#ccc"
+                  : "#007bff",
+              cursor:
+                loading || duplicateCheck.username.isChecking || duplicateCheck.email.isChecking
+                  ? "not-allowed"
+                  : "pointer",
             }}
           >
-            {(duplicateCheck.username.isChecking || duplicateCheck.email.isChecking) ? 'กำลังตรวจสอบ...' : 'ถัดไป →'}
+            {loading || duplicateCheck.username.isChecking || duplicateCheck.email.isChecking
+              ? "กำลังตรวจสอบ..."
+              : "ถัดไป →"}
           </button>
         </div>
       )}
@@ -700,85 +763,96 @@ function SignupForm() {
           <h3>ข้อมูลเพิ่มเติม</h3>
 
           <input
-            style={{ fontSize: '14px' }}
+            style={{ fontSize: "14px" }}
             type="text"
             name="fullName"
             placeholder="ชื่อ-นามสกุล :"
             value={userInfo.fullName}
             onChange={handleUserInfoChange}
             required
+            disabled={loading}
           />
-          <p style={{ fontSize: "12px", color: "#666", margin: "5px 0" }}>
+          <p style={{ display: 'flex',fontSize: "12px", color: "#666", margin: "5px 0" }}>
             *จำเป็นต้องกรอกชื่อ
           </p>
 
           <input
-            style={{ fontSize: '14px' }}
+            style={{ fontSize: "14px" }}
             type="text"
             name="address"
             placeholder="ที่อยู่ : เช่น 55/5 หรือ บ้านเลขที่ 55 หมู่ 5"
             value={userInfo.address}
             onChange={handleUserInfoChange}
+            disabled={loading}
           />
 
           <input
-            style={{ fontSize: '14px' }}
+            style={{ fontSize: "14px" }}
             type="text"
             name="village"
             placeholder="ชื่อหมู่บ้าน : เช่น กำเนิดเพขร"
             value={userInfo.village}
             onChange={handleUserInfoChange}
+            disabled={loading}
           />
 
           <div className="location-container">
             <select
-              style={{ fontSize: '14px' }}
+              style={{ fontSize: "14px" }}
               name="province"
               value={userInfo.province}
               onChange={handleUserInfoChange}
+              disabled={loading}
             >
               <option value="">เลือกจังหวัด</option>
               {provinces.map((province) => (
-                <option key={province.id} value={province.id}>{province.name_th}</option>
+                <option key={province.id} value={province.id}>
+                  {province.name_th}
+                </option>
               ))}
             </select>
 
             <select
-              style={{ fontSize: '14px' }}
+              style={{ fontSize: "14px" }}
               name="district"
               value={userInfo.district}
               onChange={handleUserInfoChange}
-              disabled={!userInfo.province}
+              disabled={!userInfo.province || loading}
             >
               <option value="">เลือกอำเภอ</option>
               {districts.map((district) => (
-                <option key={district.id} value={district.id}>{district.name_th}</option>
+                <option key={district.id} value={district.id}>
+                  {district.name_th}
+                </option>
               ))}
             </select>
 
             <select
-              style={{ fontSize: '14px' }}
+              style={{ fontSize: "14px" }}
               name="subdistrict"
               value={userInfo.subdistrict}
               onChange={handleUserInfoChange}
-              disabled={!userInfo.district}
+              disabled={!userInfo.district || loading}
             >
               <option value="">เลือกตำบล</option>
               {subdistricts.map((subdistrict) => (
-                <option key={subdistrict.id} value={subdistrict.id}>{subdistrict.name_th}</option>
+                <option key={subdistrict.id} value={subdistrict.id}>
+                  {subdistrict.name_th}
+                </option>
               ))}
             </select>
           </div>
 
           <input
-            style={{ fontSize: '14px' }}
+            style={{ fontSize: "14px" }}
             type="text"
             name="tel"
-            placeholder="หมายเลขโทรศัพท์ :"
+            placeholder="หมายเลขโทรศัพท์ : เช่น 0812345678"
             value={userInfo.tel}
             onChange={handleUserInfoChange}
             maxLength="10"
             pattern="[0-9]*"
+            disabled={loading}
           />
 
           <div className="button-save-signin">
@@ -791,15 +865,15 @@ function SignupForm() {
               disabled={loading}
               className="save-button"
               style={{
-                background: loading ? '#ccc' : '#28a745',
-                cursor: loading ? 'not-allowed' : 'pointer'
+                background: loading ? "#ccc" : "#28a745",
+                cursor: loading ? "not-allowed" : "pointer",
               }}
             >
               {loading
                 ? "กำลังบันทึก..."
                 : currentUserRole === "admin"
-                  ? "เพิ่มสมาชิก ✅"
-                  : "บันทึก ✅"}
+                ? "เพิ่มสมาชิก ✅"
+                : "บันทึก ✅"}
             </button>
           </div>
         </div>
