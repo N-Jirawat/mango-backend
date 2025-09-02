@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getAuth, signInWithCustomToken, onAuthStateChanged } from "firebase/auth";
+import { getAuth, updatePassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getDocs, collection, query, where, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import "../css/UserDetails.css";
 
-import provincesData from "../่json/thai_provinces.json";
-import districtsData from "../่json/thai_amphures.json";
-import subdistrictsData from "../่json/thai_tambons.json";
+import provincesData from "../json/thai_provinces.json";
+import districtsData from "../json/thai_amphures.json";
+import subdistrictsData from "../json/thai_tambons.json";
 
 const BACKEND_URL = "https://render-backend-mu.vercel.app";
 
@@ -119,20 +119,17 @@ function UserDetails() {
   // Initialize user data
   useEffect(() => {
     const auth = getAuth();
-
-    // ตรวจสอบสถานะ login
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       if (!currentUser) {
-        navigate("/login"); // ถ้าไม่ได้ login ให้ไปหน้า login
+        navigate("/login");
         return;
       }
 
       try {
-        // ดึงข้อมูลผู้ใช้จาก Firestore
         const userDoc = await getDoc(doc(db, "users", id));
         if (userDoc.exists()) {
           setUserInfo(userDoc.data());
-          setFormData(userDoc.data()); // preload formData
+          setFormData(userDoc.data());
           setOriginalEmail(userDoc.data().email || "");
         } else {
           alert("ไม่พบข้อมูลผู้ใช้");
@@ -151,7 +148,7 @@ function UserDetails() {
   // Save user reports to ReportDataUser
   useEffect(() => {
     const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       if (!currentUser) return;
 
       try {
@@ -187,8 +184,6 @@ function UserDetails() {
       }));
     }
     if (emailError && name === "email") setEmailError("");
-
-    // Check if email has changed
     if (name === "email") {
       setChangeEmail(value !== originalEmail);
     }
@@ -221,7 +216,6 @@ function UserDetails() {
     let isValid = true;
     const errors = { ...passwordErrors };
 
-    // ตรวจสอบเบอร์โทร (ถ้าไม่ใช่การเปลี่ยนรหัสผ่านอย่างเดียว)
     if (!changePassword && formData.tel && !/^0[0-9]{9}$/.test(formData.tel)) {
       setPhoneError("เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลักและขึ้นต้นด้วย 0");
       isValid = false;
@@ -229,7 +223,6 @@ function UserDetails() {
       setPhoneError("");
     }
 
-    // ตรวจสอบรูปแบบอีเมล (ถ้าไม่ใช่การเปลี่ยนรหัสผ่านอย่างเดียว)
     if (!changePassword) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (formData.email && !emailRegex.test(formData.email)) {
@@ -240,7 +233,6 @@ function UserDetails() {
       }
     }
 
-    // ตรวจสอบรหัสผ่าน ถ้ากำลังเปลี่ยนรหัสผ่าน
     if (changePassword) {
       if (!passwordData.currentPassword) {
         errors.currentPassword = "กรุณากรอกรหัสผ่านเดิม";
@@ -264,7 +256,6 @@ function UserDetails() {
       }
     }
 
-    // ตรวจสอบรหัสผ่าน ถ้าเปลี่ยนอีเมลแต่ไม่เปลี่ยนรหัสผ่าน
     if (!changePassword && changeEmail && !passwordData.currentPassword) {
       errors.currentPassword = "กรุณากรอกรหัสผ่านเดิมเพื่อยืนยันตัวตน";
       isValid = false;
@@ -287,7 +278,7 @@ function UserDetails() {
     try {
       console.log("Starting update process...", { changePassword, changeEmail });
 
-      // อัปเดตข้อมูล Firestore ก่อน (เฉพาะเมื่อไม่ใช่การเปลี่ยนรหัสผ่านอย่างเดียว)
+      // Update Firestore data if not only changing password
       if (!changePassword || changeEmail) {
         const userDocRef = doc(db, "users", id);
         await updateDoc(userDocRef, {
@@ -304,94 +295,51 @@ function UserDetails() {
         console.log("Firestore data updated");
       }
 
-      // อัปเดตรหัสผ่านผ่าน backend ก่อน (ถ้ามี)
+      // Update password using Firebase Client SDK
       if (changePassword) {
         console.log("Attempting to update password...");
+        const user = auth.currentUser;
+        if (!user) {
+          throw new Error("ผู้ใช้ไม่ได้ล็อกอิน");
+        }
 
+        // Re-authenticate user
         try {
-          const response = await fetch(`${BACKEND_URL}/update_password`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json",
-              // เอา Access-Control-Allow-Origin header ออก - ให้ server handle
-            },
-            body: JSON.stringify({
-              uid: id,
-              current_password: passwordData.currentPassword,
-              new_password: passwordData.newPassword,
-            }),
-            // เพิ่มการจัดการ timeout
-            signal: AbortSignal.timeout(45000) // เพิ่มเป็น 45 วินาที
-          });
+          await signInWithEmailAndPassword(auth, user.email, passwordData.currentPassword);
+        } catch (authError) {
+          throw new Error("รหัสผ่านเดิมไม่ถูกต้อง");
+        }
 
-          console.log("Password update response status:", response.status);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Password update failed:", errorText);
-
-            try {
-              const errorJson = JSON.parse(errorText);
-              throw new Error(errorJson.error || "Failed to update password");
-            } catch {
-              throw new Error(`HTTP ${response.status}: ${errorText || "Failed to update password"}`);
-            }
+        // Update password
+        try {
+          await updatePassword(user, passwordData.newPassword);
+          console.log("Password updated successfully");
+          alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
+        } catch (updateError) {
+          console.error("Password update error:", updateError);
+          if (updateError.code === "auth/requires-recent-login") {
+            throw new Error("ต้องล็อกอินใหม่เพื่อเปลี่ยนรหัสผ่าน กรุณาลองอีกครั้ง");
           }
-
-          const result = await response.json();
-          console.log("Password update successful:", result);
-
-          // Re-login ด้วย token ใหม่ (ถ้ามี)
-          if (result.id_token) {
-            try {
-              const auth = getAuth();
-              await signInWithCustomToken(auth, result.id_token);
-              console.log("Re-authenticated with new token");
-              alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว และเข้าสู่ระบบใหม่อัตโนมัติ");
-            } catch (tokenError) {
-              console.warn("Re-authentication failed:", tokenError);
-              alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว (กรุณาเข้าสู่ระบบใหม่)");
-            }
-          } else {
-            alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
-          }
-
-        } catch (fetchError) {
-          console.error("Password update fetch error:", fetchError);
-
-          // จัดการ error แยกประเภท - เพิ่ม CORS error handling
-          if (fetchError.name === 'TimeoutError') {
-            throw new Error("การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง");
-          } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
-            // เพิ่มการตรวจสอบ CORS error
-            console.error("Possible CORS issue or network connectivity problem");
-            throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ อาจเป็นปัญหา CORS หรือเครือข่าย กรุณาลองใหม่อีกครั้ง");
-          } else if (fetchError.message.includes('CORS')) {
-            throw new Error("ปัญหาการเชื่อมต่อ CORS กรุณาแจ้งผู้ดูแลระบบ");
-          } else {
-            throw fetchError;
-          }
+          throw new Error("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + updateError.message);
         }
       }
 
-      // อัปเดตอีเมลผ่าน backend (ถ้ามี)
+      // Update email via backend
       if (changeEmail) {
         console.log("Attempting to update email...");
-
         try {
           const response = await fetch(`${BACKEND_URL}/update_email`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Accept": "application/json"
+              "Accept": "application/json",
             },
             body: JSON.stringify({
               uid: id,
               new_email: formData.email,
               current_password: passwordData.currentPassword,
             }),
-            signal: AbortSignal.timeout(45000)
+            signal: AbortSignal.timeout(30000),
           });
 
           if (!response.ok) {
@@ -408,56 +356,48 @@ function UserDetails() {
           console.log("Email update successful:", result);
           alert("เปลี่ยนอีเมลเรียบร้อยแล้ว");
           setOriginalEmail(formData.email);
-
         } catch (fetchError) {
           console.error("Email update error:", fetchError);
-
-          if (fetchError.name === 'TimeoutError') {
+          if (fetchError.name === "TimeoutError") {
             throw new Error("การเปลี่ยนอีเมลใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง");
-          } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
-            throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อเปลี่ยนอีเมลได้ อาจเป็นปัญหา CORS");
+          } else if (fetchError.name === "TypeError" && fetchError.message.includes("Failed to fetch")) {
+            throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อเปลี่ยนอีเมลได้ อาจเป็นปัญหา CORS หรือเครือข่าย");
           } else {
             throw fetchError;
           }
         }
       }
 
-      // แจ้งเตือนสำหรับการอัปเดตข้อมูลทั่วไป
       if (!changeEmail && !changePassword) {
         alert("อัปเดตข้อมูลเรียบร้อยแล้ว");
       }
 
-      // รีเซ็ต state
+      // Reset state
       setChangeEmail(false);
       setChangePassword(false);
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setPasswordErrors({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setPasswordValidation({ hasMinLength: false, hasLetter: false, hasNumber: false });
       setEditModal(false);
-
       console.log("Update process completed successfully");
 
     } catch (error) {
       console.error("Error updating user:", error);
-
-      // แสดงข้อผิดพลาดที่ชัดเจนขึ้น
       if (error.message.includes("รหัสผ่านเดิมไม่ถูกต้อง")) {
-        alert("รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง");
+        alert("รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่");
       } else if (error.message.includes("CORS")) {
         alert("ปัญหาการเชื่อมต่อ CORS: " + error.message + "\nกรุณาแจ้งผู้ดูแลระบบ");
-      } else if (error.message.includes("password") || changePassword) {
+      } else if (error.message.includes("password")) {
         alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + error.message);
-      } else if (error.message.includes("email") || changeEmail) {
+      } else if (error.message.includes("email")) {
         alert("เกิดข้อผิดพลาดในการเปลี่ยนอีเมล: " + error.message);
-        // คืนค่าอีเมลเดิมถ้าเปลี่ยนไม่สำเร็จ
-        setFormData(prev => ({ ...prev, email: originalEmail }));
-        setUserInfo(prev => ({ ...prev, email: originalEmail }));
+        setFormData((prev) => ({ ...prev, email: originalEmail }));
+        setUserInfo((prev) => ({ ...prev, email: originalEmail }));
       } else if (error.message.includes("เชื่อมต่อ")) {
-        alert("ปัญหาการเชื่อมต่อ: " + error.message + "\nกรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่อีกครั้ง");
+        alert("ปัญหาการเชื่อมต่อ: " + error.message + "\nกรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่");
       } else {
         alert("เกิดข้อผิดพลาด: " + error.message);
       }
-
     } finally {
       setLoading(false);
     }
@@ -495,7 +435,6 @@ function UserDetails() {
     setEmailError("");
     setChangeEmail(false);
 
-    // Preload districts and subdistricts only if not in password change mode
     if (!changePassword && userInfo.province) {
       const province = provinces.find((p) => p.name_th === userInfo.province);
       if (province) {
@@ -547,25 +486,23 @@ function UserDetails() {
     const confirmDelete = window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีของคุณ?");
     if (!confirmDelete) return;
 
-    // Ask for password confirmation for delete
     const currentPassword = window.prompt("กรุณากรอกรหัสผ่านเพื่อยืนยันการลบบัญชี:");
     if (!currentPassword) return;
 
-    const auth = getAuth();
     const user = auth.currentUser;
-
     if (user) {
       try {
+        // Re-authenticate before deletion
+        await signInWithEmailAndPassword(auth, user.email, currentPassword);
+        
         const response = await fetch(`${BACKEND_URL}/delete_user`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
           },
-          body: JSON.stringify({
-            uid: user.uid
-            // current_password: currentPassword // ปิดชั่วคราว
-          }),
+          body: JSON.stringify({ uid: user.uid }),
+          signal: AbortSignal.timeout(30000),
         });
 
         if (!response.ok) {
@@ -574,19 +511,20 @@ function UserDetails() {
           try {
             const errorJson = JSON.parse(errorText);
             errorMessage = errorJson.error || errorMessage;
-          } catch (e) {
+          } catch {
             errorMessage = `HTTP ${response.status}: ${errorText}`;
           }
           throw new Error(errorMessage);
         }
 
-        const result = await response.json();
         alert("บัญชีและข้อมูลถูกลบเรียบร้อยแล้ว");
-        window.location.href = "/login";
+        navigate("/login");
       } catch (error) {
         console.error("Error deleting account:", error);
-        if (error.message.includes("Failed to fetch") || error.message.includes("CORS")) {
-          alert(`ไม่สามารถลบบัญชี: ปัญหาการเชื่อมต่อ CORS หรือเครือข่าย กรุณาลองใหม่อีกครั้ง`);
+        if (error.code === "auth/wrong-password") {
+          alert("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่");
+        } else if (error.message.includes("Failed to fetch")) {
+          alert("ไม่สามารถลบบัญชี: ปัญหาการเชื่อมต่อ CORS หรือเครือข่าย กรุณาลองใหม่");
         } else {
           alert(`ไม่สามารถลบบัญชี: ${error.message}`);
         }
@@ -619,8 +557,7 @@ function UserDetails() {
       <p>
         <strong>ที่อยู่ :</strong>{" "}
         {userInfo.address
-          ? `${userInfo.address}, บ้าน ${userInfo.village || "-"}, ตำบล ${userInfo.subdistrict || "-"
-          }, อำเภอ ${userInfo.district || "-"}, จังหวัด ${userInfo.province || "-"}`
+          ? `${userInfo.address}, บ้าน ${userInfo.village || "-"}, ตำบล ${userInfo.subdistrict || "-"}, อำเภอ ${userInfo.district || "-"}, จังหวัด ${userInfo.province || "-"}`
           : "-"}
       </p>
       <p><strong>เบอร์โทร :</strong> {userInfo.tel ? userInfo.tel : "-"}</p>
@@ -631,7 +568,7 @@ function UserDetails() {
           onClick={() => {
             console.log("Change password button clicked");
             setChangePassword(true);
-            setChangeEmail(false); // รีเซ็ต changeEmail
+            setChangeEmail(false);
             openEditModal();
           }}
           className="report-link"
