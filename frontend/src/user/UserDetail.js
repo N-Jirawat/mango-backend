@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getAuth, updatePassword, signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth, updatePassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { getDocs, collection, query, where, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import "../css/UserDetails.css";
@@ -53,6 +53,7 @@ function UserDetails() {
   const [originalEmail, setOriginalEmail] = useState("");
   const [changePassword, setChangePassword] = useState(false);
   const [changeEmail, setChangeEmail] = useState(false);
+  const [requiresReLogin, setRequiresReLogin] = useState(false); // เพิ่ม state เพื่อจัดการ re-login
 
   // Handle province change
   const handleProvinceChange = (e) => {
@@ -303,11 +304,21 @@ function UserDetails() {
           throw new Error("ผู้ใช้ไม่ได้ล็อกอิน");
         }
 
-        // Re-authenticate user
+        // Re-authenticate user with the latest email
         try {
-          await signInWithEmailAndPassword(auth, user.email, passwordData.currentPassword);
+          const emailToUse = changeEmail && formData.email ? formData.email : user.email;
+          await signInWithEmailAndPassword(auth, emailToUse, passwordData.currentPassword);
+          console.log("Re-authentication successful");
         } catch (authError) {
-          throw new Error("รหัสผ่านเดิมไม่ถูกต้อง");
+          console.error("Re-authentication error:", authError);
+          if (authError.code === "auth/wrong-password") {
+            throw new Error("รหัสผ่านเดิมไม่ถูกต้อง");
+          } else if (authError.code === "auth/user-not-found" || authError.code === "auth/invalid-email") {
+            throw new Error("อีเมลไม่ถูกต้องหรือไม่พบผู้ใช้ กรุณาลองใหม่");
+          } else if (authError.code === "auth/too-many-requests") {
+            throw new Error("มีการร้องขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่");
+          }
+          throw new Error("เกิดข้อผิดพลาดในการยืนยันตัวตน: " + authError.message);
         }
 
         // Update password
@@ -318,6 +329,7 @@ function UserDetails() {
         } catch (updateError) {
           console.error("Password update error:", updateError);
           if (updateError.code === "auth/requires-recent-login") {
+            setRequiresReLogin(true);
             throw new Error("ต้องล็อกอินใหม่เพื่อเปลี่ยนรหัสผ่าน กรุณาลองอีกครั้ง");
           }
           throw new Error("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + updateError.message);
@@ -356,6 +368,10 @@ function UserDetails() {
           console.log("Email update successful:", result);
           alert("เปลี่ยนอีเมลเรียบร้อยแล้ว");
           setOriginalEmail(formData.email);
+          // Force re-login after email change to refresh session
+          await signOut(auth);
+          alert("กรุณาล็อกอินใหม่ด้วยอีเมลใหม่");
+          navigate("/login");
         } catch (fetchError) {
           console.error("Email update error:", fetchError);
           if (fetchError.name === "TimeoutError") {
@@ -379,12 +395,16 @@ function UserDetails() {
       setPasswordErrors({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setPasswordValidation({ hasMinLength: false, hasLetter: false, hasNumber: false });
       setEditModal(false);
+      setRequiresReLogin(false);
       console.log("Update process completed successfully");
 
     } catch (error) {
       console.error("Error updating user:", error);
       if (error.message.includes("รหัสผ่านเดิมไม่ถูกต้อง")) {
         alert("รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่");
+      } else if (error.message.includes("ต้องล็อกอินใหม่")) {
+        alert("ต้องล็อกอินใหม่เพื่อดำเนินการ กรุณาล็อกอินด้วยอีเมลและรหัสผ่านของคุณ");
+        navigate("/login");
       } else if (error.message.includes("CORS")) {
         alert("ปัญหาการเชื่อมต่อ CORS: " + error.message + "\nกรุณาแจ้งผู้ดูแลระบบ");
       } else if (error.message.includes("password")) {
@@ -434,6 +454,7 @@ function UserDetails() {
     setPhoneError("");
     setEmailError("");
     setChangeEmail(false);
+    setRequiresReLogin(false);
 
     if (!changePassword && userInfo.province) {
       const province = provinces.find((p) => p.name_th === userInfo.province);
@@ -479,6 +500,7 @@ function UserDetails() {
     });
     setChangePassword(false);
     setChangeEmail(false);
+    setRequiresReLogin(false);
   };
 
   // Handle delete account
@@ -523,6 +545,8 @@ function UserDetails() {
         console.error("Error deleting account:", error);
         if (error.code === "auth/wrong-password") {
           alert("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่");
+        } else if (error.code === "auth/too-many-requests") {
+          alert("มีการร้องขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่");
         } else if (error.message.includes("Failed to fetch")) {
           alert("ไม่สามารถลบบัญชี: ปัญหาการเชื่อมต่อ CORS หรือเครือข่าย กรุณาลองใหม่");
         } else {
@@ -562,6 +586,12 @@ function UserDetails() {
       </p>
       <p><strong>เบอร์โทร :</strong> {userInfo.tel ? userInfo.tel : "-"}</p>
       <p><strong>อีเมล :</strong> {userInfo.email || "-"}</p>
+
+      {requiresReLogin && (
+        <p style={{ color: "red", fontWeight: "bold" }}>
+          ต้องล็อกอินใหม่เพื่อดำเนินการเปลี่ยนรหัสผ่าน กรุณาล็อกอินด้วยอีเมลและรหัสผ่านของคุณ
+        </p>
+      )}
 
       <div className="link-container">
         <button
