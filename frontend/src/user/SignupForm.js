@@ -78,7 +78,6 @@ function SignupForm() {
       const data = await response.json();
       return data.exists || false;
     } catch (error) {
-      console.error("Check username error:", error);
       if (error.name === "TimeoutError") {
         alert("การตรวจสอบชื่อบัญชีใช้เวลานานเกินไป กรุณาลองใหม่");
       } else if (error.message.includes("Failed to fetch")) {
@@ -108,7 +107,6 @@ function SignupForm() {
       const data = await response.json();
       return data.exists || false;
     } catch (error) {
-      console.error("Check email error:", error);
       if (error.name === "TimeoutError") {
         alert("การตรวจสอบอีเมลใช้เวลานานเกินไป กรุณาลองใหม่");
       } else if (error.message.includes("Failed to fetch")) {
@@ -196,7 +194,6 @@ function SignupForm() {
             setCurrentUserRole(userData.role);
           }
         } catch (error) {
-          console.error("Error fetching user role:", error);
           setCurrentUserRole("user");
         }
       } else {
@@ -432,9 +429,6 @@ function SignupForm() {
     setLoading(true);
 
     try {
-      // ข้าม Double check ใน Firestore ชั่วคราว
-      // เพราะ rules อาจยังไม่อนุญาต query
-
       // เช็คจำนวน users เพื่อกำหนด role (สำหรับ admin คนแรก)
       let role = "user";
       try {
@@ -442,7 +436,6 @@ function SignupForm() {
         const isFirstUser = allUsers.empty;
         role = isFirstUser ? "admin" : "user";
       } catch (error) {
-        console.error("Error checking user count:", error);
         role = "user";
       }
 
@@ -462,7 +455,7 @@ function SignupForm() {
         subdistrict: subdistricts.find((s) => s.id === Number(userInfo.subdistrict))?.name_th || "",
         district: districts.find((d) => d.id === Number(userInfo.district))?.name_th || "",
         province: provinces.find((p) => p.id === Number(userInfo.province))?.name_th || "",
-        tel: userInfo.tel || "", // เก็บเป็นค่าว่างถ้าไม่กรอก
+        tel: userInfo.tel || "", 
         role: role,
       });
 
@@ -477,7 +470,6 @@ function SignupForm() {
 
       resetForm();
     } catch (error) {
-      console.error("Signup error:", error);
       let errorMessage = "ไม่สามารถสมัครสมาชิกได้!";
       if (error.code === "auth/email-already-in-use") {
         errorMessage = "อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น";
@@ -847,7 +839,7 @@ function SignupForm() {
             style={{ fontSize: "14px" }}
             type="text"
             name="tel"
-            placeholder="หมายเลขโทรศัพท์ : เช่น 0812345678"
+            placeholder="หมายเลขโทรศัพท์ :"
             value={userInfo.tel}
             onChange={handleUserInfoChange}
             maxLength="10"

@@ -38,14 +38,12 @@ function App() {
               uid: user.uid
             });
           } else {
-            console.warn("User document not found");
             setCurrentUser(null);
           }
         } else {
           setCurrentUser(null);
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
         setCurrentUser(null);
       } finally {
         setLoading(false);

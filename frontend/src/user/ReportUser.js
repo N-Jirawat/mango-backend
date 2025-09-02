@@ -99,7 +99,6 @@ function ReportUser() {
           }
 
         } catch (error) {
-          console.log("ไม่พบข้อมูลใน AnalysisHistory :", error);
           try {
             const analysisQuery = query(collection(db, "AnalysisHistory"), where("uid", "==", user.uid));
             const analysisSnapshot = await getDocs(analysisQuery);
@@ -138,7 +137,6 @@ function ReportUser() {
               setMostFrequentDisease(`${mostFrequent[0]} (${mostFrequent[1]} ครั้ง)`);
             }
           } catch (err) {
-            console.error("ไม่สามารถดึงข้อมูลจาก AnalysisHistory ได้:", err);
             setAnalysisCount(0);
             setDiseaseStats({});
             setLastActive(null);

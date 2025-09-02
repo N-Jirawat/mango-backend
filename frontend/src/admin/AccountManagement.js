@@ -152,8 +152,6 @@ function AccountManagement() {
         ...doc.data(),
       }));
       setUsersList(users);
-    } catch (error) {
-      console.error("เกิดข้อผิดพลาดในการดึงรายชื่อผู้ใช้:", error);
     } finally {
       setLoading(false);
     }
@@ -164,8 +162,6 @@ function AccountManagement() {
     if (!confirmDelete) return;
 
     try {
-      console.log('กำลังเรียก User Management Backend:', `${USER_BACKEND_URL}/delete_user`);
-
       const response = await fetch(`${USER_BACKEND_URL}/delete_user`, {
         method: "DELETE",
         headers: {
@@ -179,15 +175,11 @@ function AccountManagement() {
         throw new Error(`Error ${response.status}: ${errorData.error || response.statusText}`);
       }
 
-      const result = await response.json();
-      console.log('ลบผู้ใช้สำเร็จ:', result);
-
       setUsersList((prev) => prev.filter((user) => user.id !== uid));
       setDropdownOpenId(null);
       alert("ลบผู้ใช้เรียบร้อยแล้ว");
 
     } catch (error) {
-      console.error('Error:', error);
       alert(`ลบผู้ใช้ไม่สำเร็จ: ${error.message}`);
     }
   };

@@ -56,7 +56,6 @@ function History() {
         );
 
         if (!validDiseaseName) {
-          console.log('No valid disease name found for prediction:', prediction.id);
           return false;
         }
 
@@ -109,8 +108,8 @@ function History() {
         historyData.push(data);
       });
       setAllPredictions(historyData);
-    } catch (error) {
-      console.error("Error fetching with orderBy:", error);
+    } catch {
+      console.error("Error fetching with orderBy");
       try {
         const fallbackQuery = query(
           collection(db, "AnalysisHistory"),

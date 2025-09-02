@@ -48,7 +48,6 @@ function ImageUpload({ setPredictionResult }) {
       setPredictionResult(null);
       setError(null);
     } catch (error) {
-      console.error("Error creating object URL:", error);
       alert("เกิดข้อผิดพลาดในการโหลดภาพ กรุณาลองใหม่");
     }
   };
@@ -98,7 +97,6 @@ function ImageUpload({ setPredictionResult }) {
       }
 
     } catch (err) {
-      console.error('Error:', err);
       setError(err.message);
     } finally {
       setLoading(false);

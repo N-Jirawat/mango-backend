@@ -78,7 +78,6 @@ function ResultAnaly() {
             alert("บันทึกข้อมูลสำเร็จ!");
             navigate("/history");
         } catch (error) {
-            console.error("Error saving data:", error);
             alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
         }
     };
@@ -176,8 +175,7 @@ function ResultAnaly() {
                     } else {
                         setResultInfo(null);
                     }
-                } catch (error) {
-                    console.error("❌ เกิดข้อผิดพลาดในการค้นหาข้อมูล:", error);
+                } catch {
                     setResultInfo(null);
                 }
             }

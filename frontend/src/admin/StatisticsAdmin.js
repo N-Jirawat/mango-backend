@@ -116,7 +116,6 @@ function StatisticsAdmin() {
         invalidDiseases.some(invalid =>
           disease.toLowerCase().includes(invalid.toLowerCase())
         )) {
-        console.log(`ข้ามข้อมูลโรค: "${disease}"`); // สำหรับ debug
         return; // ข้ามการประมวลผลข้อมูลนี้
       }
 
@@ -248,7 +247,6 @@ function StatisticsAdmin() {
 
       try {
         // ดึงข้อมูล users ก่อน
-        console.log("กำลังดึงข้อมูล users...");
         const usersSnapshot = await getDocs(collection(db, "users"));
 
         usersSnapshot.forEach(doc => {
@@ -269,7 +267,6 @@ function StatisticsAdmin() {
           }
         });
         setUsersMap(usersMapTemp);
-        console.log(`ดึงข้อมูล users สำเร็จ: ${Object.keys(usersMapTemp).length} รายการ`);
 
         const predictionsData = [];
         let analysisCount = 0;
@@ -277,7 +274,6 @@ function StatisticsAdmin() {
 
         // ลองดึง AnalysisHistory ก่อน
         try {
-          console.log("กำลังดึงข้อมูลจาก AnalysisHistory...");
           const analysisSnapshot = await getDocs(collection(db, "AnalysisHistory"));
           analysisCount = analysisSnapshot.size;
 
@@ -329,14 +325,12 @@ function StatisticsAdmin() {
             predictionsData.push(predictionItem);
           });
 
-          console.log(`ดึงข้อมูลจาก AnalysisHistory สำเร็จ: ${analysisCount} รายการ`);
-        } catch (analysisError) {
-          console.error("เกิดข้อผิดพลาดในการดึง AnalysisHistory:", analysisError);
+        } catch {
+          console.error("เกิดข้อผิดพลาด");
         }
 
         // พยายามดึง ReportDataAdmin แยกต่างหาก
         try {
-          console.log("กำลังดึงข้อมูลจาก ReportDataAdmin...");
           const reportAdminSnapshot = await getDocs(collection(db, "ReportDataAdmin"));
           reportAdminCount = reportAdminSnapshot.size;
 
@@ -387,25 +381,9 @@ function StatisticsAdmin() {
             predictionsData.push(predictionItem);
           });
 
-          console.log(`ดึงข้อมูลจาก ReportDataAdmin สำเร็จ: ${reportAdminCount} รายการ`);
-        } catch (reportError) {
-          console.error("ไม่สามารถเข้าถึง ReportDataAdmin:", reportError.message);
-          console.log("อาจเป็นเพราะไม่มีสิทธิ์ในการเข้าถึง collection นี้");
-
-          // แสดงแจ้งเตือนให้ผู้ใช้ทราบ
-          if (reportError.message.includes('Missing or insufficient permissions')) {
-            console.warn("⚠️ ไม่มีสิทธิ์เข้าถึง ReportDataAdmin - แสดงข้อมูลเฉพาะจาก AnalysisHistory");
-          }
+        } catch {
         }
-
-        // แสดงสรุปผลการดึงข้อมูล
-        console.log(`📊 สรุปการดึงข้อมูล:
-      - AnalysisHistory: ${analysisCount} รายการ
-      - ReportDataAdmin: ${reportAdminCount} รายการ
-      - รวมทั้งหมด: ${predictionsData.length} รายการ`);
-
         if (predictionsData.length === 0) {
-          console.log("⚠️ ไม่พบข้อมูลใน collections ทั้งหมด");
           setAllPredictions([]);
           setLoading(false);
           return;
@@ -417,11 +395,10 @@ function StatisticsAdmin() {
         // แสดงข้อความแจ้งเตือนถ้าดึงไม่ครบ
         if (reportAdminCount === 0 && analysisCount > 0) {
           // สร้าง notification หรือ state เพื่อแสดงข้อความเตือน
-          console.warn("🔒 หมายเหตุ: แสดงข้อมูลเฉพาะจากประวัติการวิเคราะห์ เนื่องจากไม่มีสิทธิ์เข้าถึงข้อมูล Admin");
+          console.warn("ไม่มีสิทธิ์เข้าถึงข้อมูล Admin");
         }
 
-      } catch (error) {
-        console.error("เกิดข้อผิดพลาดในการดึงข้อมูลสถิติ:", error);
+      } catch {
         setAllPredictions([]);
       } finally {
         setLoading(false);

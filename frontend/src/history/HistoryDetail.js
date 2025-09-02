@@ -45,7 +45,6 @@ function HistoryDetail() {
       alert("ลบข้อมูลสำเร็จ");
       navigate("/history");
     } catch (error) {
-      console.error("เกิดข้อผิดพลาดในการลบ:", error);
       alert("เกิดข้อผิดพลาดในการลบข้อมูล");
     }
   };
@@ -64,7 +63,6 @@ function HistoryDetail() {
       try {
         base64Img = await getBase64FromUrl(imageUrl);
       } catch (err) {
-        console.error("แปลงรูปภาพเป็น Base64 ไม่สำเร็จ:", err);
         alert("ไม่สามารถโหลดรูปภาพสำหรับ PDF ได้");
       }
     }

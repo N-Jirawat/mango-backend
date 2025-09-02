@@ -104,8 +104,6 @@ function ReportAdmin() {
                 });
 
                 setUsersReport(reportData);
-            } catch (error) {
-                console.error("ไม่สามารถดึงข้อมูลรายงานได้:", error);
             } finally {
                 setLoading(false);
             }
@@ -130,7 +128,6 @@ function ReportAdmin() {
     // ✅ ฟังก์ชันบันทึกลง Firestore (ReportDataAdmin)
     const saveReportToFirestore = async (usersReport) => {
         if (!Array.isArray(usersReport) || usersReport.length === 0) {
-            console.warn("ไม่มีข้อมูล usersReport ที่จะบันทึก:", usersReport);
             return;
         }
 

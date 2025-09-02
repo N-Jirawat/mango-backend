@@ -65,7 +65,6 @@ function ResetPasswordPage() {
             setMessage("✅ เปลี่ยนรหัสผ่านสำเร็จ! โปรดใช้รหัสผ่านใหม่นี้ในการเข้าสู่ระบบครั้งถัดไป");
             setCompleted(true);
         } catch (err) {
-            console.error(err);
             setError("เกิดข้อผิดพลาด โปรดลองใหม่");
         }
     };

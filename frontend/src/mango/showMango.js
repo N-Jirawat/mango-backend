@@ -29,11 +29,7 @@ function MangoImage({ imgId, diseaseName, fallbackSrc }) {
           if (imgPath) {
             setImageSrc(imgPath);
           }
-        } else {
-          console.log(`No image document found for ImgID: ${imgId}`);
         }
-      } catch (error) {
-        console.error(`Error fetching image for ${imgId}:`, error);
       } finally {
         setLoading(false);
       }
@@ -106,8 +102,6 @@ function ShowMango() {
         const filteredData = data.filter(item => !isNormalMango(item.DiseaseName));
         
         setMangoData(filteredData);
-      } catch (error) {
-        console.error("Error fetching mango data:", error);
       } finally {
         setLoading(false);
       }

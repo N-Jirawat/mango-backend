@@ -161,9 +161,8 @@ function UserDetails() {
           DateReUser: new Date(),
           AnalysisReports: reports,
         });
-        console.log("เพิ่ม ReportDataUser ใหม่เรียบร้อย");
       } catch (err) {
-        console.error("เกิดข้อผิดพลาดในการบันทึก ReportDataUser:", err);
+        console.error("เกิดข้อผิดพลาด", err);
       }
     });
 
@@ -277,8 +276,6 @@ function UserDetails() {
     setLoading(true);
 
     try {
-      console.log("Starting update process...", { changePassword, changeEmail });
-
       // Update Firestore data if not only changing password
       if (!changePassword || changeEmail) {
         const userDocRef = doc(db, "users", id);
@@ -293,12 +290,10 @@ function UserDetails() {
           email: formData.email || "",
         });
         setUserInfo((prev) => ({ ...prev, ...formData }));
-        console.log("Firestore data updated");
       }
 
       // Update password using Firebase Client SDK
       if (changePassword) {
-        console.log("Attempting to update password...");
         const user = auth.currentUser;
         if (!user) {
           throw new Error("ผู้ใช้ไม่ได้ล็อกอิน");
@@ -308,9 +303,7 @@ function UserDetails() {
         try {
           const emailToUse = changeEmail && formData.email ? formData.email : user.email;
           await signInWithEmailAndPassword(auth, emailToUse, passwordData.currentPassword);
-          console.log("Re-authentication successful");
         } catch (authError) {
-          console.error("Re-authentication error:", authError);
           if (authError.code === "auth/wrong-password") {
             throw new Error("รหัสผ่านเดิมไม่ถูกต้อง");
           } else if (authError.code === "auth/user-not-found" || authError.code === "auth/invalid-email") {
@@ -324,10 +317,8 @@ function UserDetails() {
         // Update password
         try {
           await updatePassword(user, passwordData.newPassword);
-          console.log("Password updated successfully");
           alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
         } catch (updateError) {
-          console.error("Password update error:", updateError);
           if (updateError.code === "auth/requires-recent-login") {
             setRequiresReLogin(true);
             throw new Error("ต้องล็อกอินใหม่เพื่อเปลี่ยนรหัสผ่าน กรุณาลองอีกครั้ง");
@@ -338,7 +329,6 @@ function UserDetails() {
 
       // Update email via backend
       if (changeEmail) {
-        console.log("Attempting to update email...");
         try {
           const response = await fetch(`${BACKEND_URL}/update_email`, {
             method: "POST",
@@ -364,8 +354,6 @@ function UserDetails() {
             }
           }
 
-          const result = await response.json();
-          console.log("Email update successful:", result);
           alert("เปลี่ยนอีเมลเรียบร้อยแล้ว");
           setOriginalEmail(formData.email);
           // Force re-login after email change to refresh session
@@ -373,7 +361,6 @@ function UserDetails() {
           alert("กรุณาล็อกอินใหม่ด้วยอีเมลใหม่");
           navigate("/login");
         } catch (fetchError) {
-          console.error("Email update error:", fetchError);
           if (fetchError.name === "TimeoutError") {
             throw new Error("การเปลี่ยนอีเมลใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง");
           } else if (fetchError.name === "TypeError" && fetchError.message.includes("Failed to fetch")) {
@@ -396,10 +383,8 @@ function UserDetails() {
       setPasswordValidation({ hasMinLength: false, hasLetter: false, hasNumber: false });
       setEditModal(false);
       setRequiresReLogin(false);
-      console.log("Update process completed successfully");
 
     } catch (error) {
-      console.error("Error updating user:", error);
       if (error.message.includes("รหัสผ่านเดิมไม่ถูกต้อง")) {
         alert("รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่");
       } else if (error.message.includes("ต้องล็อกอินใหม่")) {
@@ -729,7 +714,7 @@ function UserDetails() {
                         name="tel"
                         value={formData.tel && formData.tel.trim() !== "" ? formData.tel : ""}
                         onChange={handlePhoneInput}
-                        placeholder="0812345678"
+                        placeholder=""
                         className={`form-input-edit ${phoneError ? "error" : ""}`}
                       />
                       {phoneError && <p className="error-message">{phoneError}</p>}

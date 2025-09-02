@@ -2,41 +2,67 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import "./css/login.css";
 
 function LoginPage() {
   const [loginInput, setLoginInput] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState(0);
   const navigate = useNavigate();
 
   const isEmail = (input) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
 
+  const delayTimes = [0, 2000, 5000, 10000, 20000]; // หน่วง 0, 2, 5, 10, 20 วินาที
+
+  // นับถอยหลัง lockoutTime ทุกวินาที
+  useEffect(() => {
+    if (lockoutTime > 0) {
+      const timer = setInterval(() => {
+        setLockoutTime((prevTime) => {
+          if (prevTime <= 1000) {
+            return 0;
+          }
+          return prevTime - 1000;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [lockoutTime]);
+
   const findEmailByUsername = async (username) => {
     try {
-      const res = await fetch("https://render-backend-mu.vercel.app/find_email_by_username", {
+      const response = await fetch("https://render-backend-mu.vercel.app/find_email_by_username", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         body: JSON.stringify({ username }),
+        signal: AbortSignal.timeout(10000), // Timeout 10 วินาที
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        console.error("Backend error:", data);
-        alert(data.error || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์");
-        return null;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์");
       }
 
+      const data = await response.json();
       if (!data.email) {
-        alert("ไม่พบชื่อผู้ใช้นี้ในระบบ");
-        return null;
+        throw new Error("ไม่พบชื่อบัญชีนี้ในระบบ");
       }
 
       return data.email;
     } catch (error) {
-      console.error("Network or fetch error:", error);
-      alert("ไม่สามารถเชื่อมต่อ backend ได้");
-      return null;
+      if (error.name === "TimeoutError") {
+        throw new Error("การค้นหาชื่อบัญชีใช้เวลานานเกินไป กรุณาลองใหม่");
+      } else if (error.message.includes("ไม่พบชื่อบัญชีนี้ในระบบ")) {
+        throw new Error(error.message);
+      }
+      throw new Error("ไม่สามารถเชื่อมต่อ backend ได้ อาจเป็นปัญหาเครือข่ายหรือ CORS");
     }
   };
 
@@ -64,9 +90,17 @@ function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
+    if (lockoutTime > 0) {
+      alert(`กรุณารอ ${Math.ceil(lockoutTime / 1000)} วินาทีก่อนลองใหม่`);
+      setLoading(false);
+      return;
+    }
 
     if (!loginInput || !password) {
-      alert("กรุณากรอกชื่อผู้ใช้/อีเมลและรหัสผ่าน");
+      alert("กรุณากรอกชื่อบัญชีหรืออีเมลและรหัสผ่าน");
+      setLoading(false);
       return;
     }
 
@@ -75,17 +109,34 @@ function LoginPage() {
       let usernameFromLookup = "";
 
       if (!isEmail(loginInput)) {
-        const foundEmail = await findEmailByUsername(loginInput);
-        if (!foundEmail) {
+        emailToUse = await findEmailByUsername(loginInput);
+        if (!emailToUse) {
+          setLoginAttempts((prevAttempts) => prevAttempts + 1);
+          setLockoutTime(delayTimes[Math.min(loginAttempts + 1, delayTimes.length - 1)]);
+          alert(`ชื่อบัญชีหรือรหัสผ่านไม่ถูกต้อง กรุณารอ ${Math.ceil(delayTimes[Math.min(loginAttempts + 1, delayTimes.length - 1)] / 1000)} วินาทีก่อนลองใหม่`);
+          setLoading(false);
           return;
         }
-        emailToUse = foundEmail;
         usernameFromLookup = loginInput;
       }
 
-      const userCredential = await signInWithEmailAndPassword(auth, emailToUse, password);
-      const loggedInUser = userCredential.user;
+      const userCredential = await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error("การล็อกอินใช้เวลานานเกินไป กรุณาลองใหม่"));
+        }, 10000);
 
+        signInWithEmailAndPassword(auth, emailToUse, password)
+          .then((credential) => {
+            clearTimeout(timeoutId);
+            resolve(credential);
+          })
+          .catch((err) => {
+            clearTimeout(timeoutId);
+            reject(err);
+          });
+      });
+
+      const loggedInUser = userCredential.user;
       await ensureUserDocExists(loggedInUser, usernameFromLookup);
 
       const userDocRef = doc(db, "users", loggedInUser.uid);
@@ -93,6 +144,8 @@ function LoginPage() {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
+        setLoginAttempts(0);
+        setLockoutTime(0);
         if (userData.role === "admin") {
           navigate("/admin-dashboard");
         } else {
@@ -102,16 +155,11 @@ function LoginPage() {
         alert("ไม่พบข้อมูลผู้ใช้หลังล็อกอิน");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
-        alert("ชื่อผู้ใช้/อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-      } else if (error.code === "auth/invalid-email") {
-        alert("รูปแบบอีเมลไม่ถูกต้อง");
-      } else if (error.code === "auth/too-many-requests") {
-        alert("มีการพยายามล็อกอินมากเกินไป กรุณารอสักครู่แล้วลองใหม่");
-      } else {
-        alert("เกิดข้อผิดพลาดในการล็อกอิน: " + error.message);
-      }
+      setLoginAttempts((prevAttempts) => prevAttempts + 1);
+      setLockoutTime(delayTimes[Math.min(loginAttempts + 1, delayTimes.length - 1)]);
+      alert(`ชื่อบัญชีหรือรหัสผ่านไม่ถูกต้อง กรุณารอ ${Math.ceil(delayTimes[Math.min(loginAttempts + 1, delayTimes.length - 1)] / 1000)} วินาทีก่อนลองใหม่`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -121,10 +169,11 @@ function LoginPage() {
       <form onSubmit={handleLogin}>
         <input
           type="text"
-          placeholder="ชื่อผู้ใช้หรืออีเมล"
+          placeholder="ชื่อบัญชีหรืออีเมล"
           value={loginInput}
           onChange={(e) => setLoginInput(e.target.value)}
           required
+          disabled={loading || lockoutTime > 0}
         />
         <input
           type="password"
@@ -132,9 +181,11 @@ function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          disabled={loading || lockoutTime > 0}
         />
-        <button type="submit">เข้าสู่ระบบ</button>
-
+        <button type="login-submit" disabled={loading || lockoutTime > 0}>
+          {loading ? "กำลังล็อกอิน..." : lockoutTime > 0 ? `รอ ${Math.ceil(lockoutTime / 1000)} วินาที` : "เข้าสู่ระบบ"}
+        </button>
         <div className="login-footer-links">
           <Link to="/signup" className="footer-link">
             สมัครสมาชิก

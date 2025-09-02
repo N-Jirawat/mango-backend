@@ -50,7 +50,6 @@ function UserMangoDetail() {
                     setError("ไม่พบข้อมูลโรคนี้");
                 }
             } catch (err) {
-                console.error("เกิดข้อผิดพลาดในการโหลดข้อมูลโรค:", err);
                 setError("เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองใหม่อีกครั้ง");
             } finally {
                 setLoading(false);
@@ -68,7 +67,6 @@ function UserMangoDetail() {
 
     const handleImageError = (e) => {
         e.target.style.display = 'none';
-        console.warn("ไม่สามารถโหลดรูปภาพได้:", e.target.src);
     };
 
     const handleImageLoad = (e) => {
