@@ -216,36 +216,6 @@ function UserDetails() {
     }
   };
 
-  // Verify password with backend
-  const verifyPasswordWithBackend = async (password) => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/verify_password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        },
-        body: JSON.stringify({
-          uid: id,
-          password: password
-        }),
-      });
-
-      if (!response.ok) {
-        // CORS หรือ network error - skip verification
-        console.warn("Password verification failed due to network/CORS, skipping verification");
-        return true;
-      }
-
-      const result = await response.json();
-      return result.valid;
-    } catch (error) {
-      console.warn("Password verification error, skipping verification:", error);
-      // หากเกิด error (เช่น CORS) ให้ข้ามการตรวจสอบ
-      return true;
-    }
-  };
-
   // Validate form data
   const validateForm = () => {
     let isValid = true;
@@ -343,15 +313,16 @@ function UserDetails() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Accept": "application/json"
+              "Accept": "application/json",
+              // เอา Access-Control-Allow-Origin header ออก - ให้ server handle
             },
             body: JSON.stringify({
               uid: id,
               current_password: passwordData.currentPassword,
               new_password: passwordData.newPassword,
             }),
-            // เพิ่ม timeout
-            signal: AbortSignal.timeout(30000) // 30 วินาที
+            // เพิ่มการจัดการ timeout
+            signal: AbortSignal.timeout(45000) // เพิ่มเป็น 45 วินาที
           });
 
           console.log("Password update response status:", response.status);
@@ -389,11 +360,15 @@ function UserDetails() {
         } catch (fetchError) {
           console.error("Password update fetch error:", fetchError);
 
-          // จัดการ error แยกประเภท
+          // จัดการ error แยกประเภท - เพิ่ม CORS error handling
           if (fetchError.name === 'TimeoutError') {
             throw new Error("การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง");
           } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
-            throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+            // เพิ่มการตรวจสอบ CORS error
+            console.error("Possible CORS issue or network connectivity problem");
+            throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ อาจเป็นปัญหา CORS หรือเครือข่าย กรุณาลองใหม่อีกครั้ง");
+          } else if (fetchError.message.includes('CORS')) {
+            throw new Error("ปัญหาการเชื่อมต่อ CORS กรุณาแจ้งผู้ดูแลระบบ");
           } else {
             throw fetchError;
           }
@@ -416,7 +391,7 @@ function UserDetails() {
               new_email: formData.email,
               current_password: passwordData.currentPassword,
             }),
-            signal: AbortSignal.timeout(30000)
+            signal: AbortSignal.timeout(45000)
           });
 
           if (!response.ok) {
@@ -440,7 +415,7 @@ function UserDetails() {
           if (fetchError.name === 'TimeoutError') {
             throw new Error("การเปลี่ยนอีเมลใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง");
           } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
-            throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อเปลี่ยนอีเมลได้");
+            throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อเปลี่ยนอีเมลได้ อาจเป็นปัญหา CORS");
           } else {
             throw fetchError;
           }
@@ -468,6 +443,8 @@ function UserDetails() {
       // แสดงข้อผิดพลาดที่ชัดเจนขึ้น
       if (error.message.includes("รหัสผ่านเดิมไม่ถูกต้อง")) {
         alert("รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง");
+      } else if (error.message.includes("CORS")) {
+        alert("ปัญหาการเชื่อมต่อ CORS: " + error.message + "\nกรุณาแจ้งผู้ดูแลระบบ");
       } else if (error.message.includes("password") || changePassword) {
         alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + error.message);
       } else if (error.message.includes("email") || changeEmail) {
@@ -579,35 +556,40 @@ function UserDetails() {
 
     if (user) {
       try {
-        // ข้ามการตรวจสอบรหัสผ่านชั่วคราวเนื่องจาก CORS issue
-        /*
-        // Verify password before deletion
-        const isValidPassword = await verifyPasswordWithBackend(currentPassword);
-        if (!isValidPassword) {
-          alert("รหัสผ่านไม่ถูกต้อง ไม่สามารถลบบัญชีได้");
-          return;
-        }
-        */
-
         const response = await fetch(`${BACKEND_URL}/delete_user`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
           body: JSON.stringify({
             uid: user.uid
             // current_password: currentPassword // ปิดชั่วคราว
           }),
         });
 
-        const result = await response.json();
         if (!response.ok) {
-          throw new Error(result.error || "Failed to delete account");
+          const errorText = await response.text();
+          let errorMessage = "Failed to delete account";
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.error || errorMessage;
+          } catch (e) {
+            errorMessage = `HTTP ${response.status}: ${errorText}`;
+          }
+          throw new Error(errorMessage);
         }
 
+        const result = await response.json();
         alert("บัญชีและข้อมูลถูกลบเรียบร้อยแล้ว");
         window.location.href = "/login";
       } catch (error) {
         console.error("Error deleting account:", error);
-        alert(`ไม่สามารถลบบัญชี: ${error.message}`);
+        if (error.message.includes("Failed to fetch") || error.message.includes("CORS")) {
+          alert(`ไม่สามารถลบบัญชี: ปัญหาการเชื่อมต่อ CORS หรือเครือข่าย กรุณาลองใหม่อีกครั้ง`);
+        } else {
+          alert(`ไม่สามารถลบบัญชี: ${error.message}`);
+        }
       }
     }
   };
