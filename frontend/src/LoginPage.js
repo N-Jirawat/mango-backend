@@ -93,7 +93,6 @@ function LoginPage() {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        alert("ล็อกอินสำเร็จ");
         if (userData.role === "admin") {
           navigate("/admin-dashboard");
         } else {

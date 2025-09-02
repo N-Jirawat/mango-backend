@@ -223,6 +223,26 @@ function UserDetails() {
     }
   };
 
+  // Verify password with backend
+  const verifyPasswordWithBackend = async (password) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/verify_password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          uid: id,
+          password: password
+        }),
+      });
+
+      const result = await response.json();
+      return response.ok && result.valid;
+    } catch (error) {
+      console.error("Password verification error:", error);
+      return false;
+    }
+  };
+
   // Validate form data
   const validateForm = () => {
     let isValid = true;
@@ -247,7 +267,11 @@ function UserDetails() {
 
     // Validate password if changing password
     if (changePassword) {
-      // Remove current password validation since backend doesn't verify it
+      if (!passwordData.currentPassword) {
+        errors.currentPassword = "กรุณากรอกรหัสผ่านเดิม";
+        isValid = false;
+      }
+
       if (!passwordData.newPassword) {
         errors.newPassword = "กรุณากรอกรหัสผ่านใหม่";
         isValid = false;
@@ -262,7 +286,7 @@ function UserDetails() {
       }
     }
 
-    // Validate current password if email changed (but not if just changing password since backend doesn't verify it)
+    // Validate current password if email changed
     if (changeEmail && !changePassword && !passwordData.currentPassword) {
       errors.currentPassword = "กรุณากรอกรหัสผ่านเดิมเพื่อยืนยันตัวตน";
       isValid = false;
@@ -285,6 +309,16 @@ function UserDetails() {
     setLoading(true);
 
     try {
+      // Verify current password with backend if required
+      if ((changePassword || changeEmail) && passwordData.currentPassword) {
+        const isValidPassword = await verifyPasswordWithBackend(passwordData.currentPassword);
+        if (!isValidPassword) {
+          setPasswordErrors(prev => ({ ...prev, currentPassword: "รหัสผ่านเดิมไม่ถูกต้อง" }));
+          setLoading(false);
+          return;
+        }
+      }
+
       // Update user info in Firestore first
       const userDocRef = doc(db, "users", id);
       await updateDoc(userDocRef, {
@@ -319,7 +353,8 @@ function UserDetails() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
               uid: id, 
-              new_email: formData.email
+              new_email: formData.email,
+              current_password: passwordData.currentPassword
             }),
           });
 
@@ -342,7 +377,6 @@ function UserDetails() {
       // ========== อัปเดตรหัสผ่าน ==========
       if (changePassword) {
         try {
-          // Try using fetch first
           const response = await fetch(`${BACKEND_URL}/update_password`, {
             method: "POST",
             headers: { 
@@ -352,6 +386,7 @@ function UserDetails() {
             },
             body: JSON.stringify({ 
               uid: id, 
+              current_password: passwordData.currentPassword,
               new_password: passwordData.newPassword
             }),
           });
@@ -369,13 +404,7 @@ function UserDetails() {
           alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
         } catch (passwordError) {
           console.error("Password update error:", passwordError);
-          
-          // If CORS error, show specific message
-          if (passwordError.message.includes("fetch") || passwordError.message.includes("CORS")) {
-            alert("เกิดข้อผิดพลาดการเชื่อมต่อกับเซิร์ฟเวอร์ (CORS)\n\nกรุณาลอง:\n1. รีเฟรชหน้าแล้วลองใหม่\n2. หรือติดต่อผู้ดูแลระบบ\n\nสำหรับ Development: ให้เปิด browser ด้วย --disable-web-security");
-          } else {
-            alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + passwordError.message);
-          }
+          alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + passwordError.message);
         }
       }
 
@@ -480,15 +509,29 @@ function UserDetails() {
     const confirmDelete = window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีของคุณ?");
     if (!confirmDelete) return;
 
+    // Ask for password confirmation for delete
+    const currentPassword = window.prompt("กรุณากรอกรหัสผ่านเพื่อยืนยันการลบบัญชี:");
+    if (!currentPassword) return;
+
     const auth = getAuth();
     const user = auth.currentUser;
 
     if (user) {
       try {
+        // Verify password before deletion
+        const isValidPassword = await verifyPasswordWithBackend(currentPassword);
+        if (!isValidPassword) {
+          alert("รหัสผ่านไม่ถูกต้อง ไม่สามารถลบบัญชีได้");
+          return;
+        }
+
         const response = await fetch(`${BACKEND_URL}/delete_user`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uid: user.uid }),
+          body: JSON.stringify({ 
+            uid: user.uid,
+            current_password: currentPassword
+          }),
         });
 
         const result = await response.json();
@@ -696,6 +739,49 @@ function UserDetails() {
 
               {changePassword && (
                 <>
+                  <div className="form-group-edit">
+                    <label>รหัสผ่านเดิม:</label>
+                    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                      <input
+                        type={showCurrentPassword ? "text" : "password"}
+                        name="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={handlePasswordChange}
+                        placeholder="รหัสผ่านเดิม"
+                        className={`form-input-edit ${passwordErrors.currentPassword ? "error" : ""}`}
+                        style={{ paddingRight: "40px", fontSize: "14px" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={toggleCurrentPasswordVisibility}
+                        style={{
+                          position: "absolute",
+                          right: "10px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "0",
+                          zIndex: 10,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "24px",
+                          height: "24px",
+                        }}
+                      >
+                        <img
+                          src={showCurrentPassword ? "/img/hide.png" : "/img/view.png"}
+                          alt={showCurrentPassword ? "hide" : "view"}
+                          style={{ width: "20px", height: "20px", marginBottom: "20px" }}
+                        />
+                      </button>
+                    </div>
+                    {passwordErrors.currentPassword && (
+                      <p className="error-message">{passwordErrors.currentPassword}</p>
+                    )}
+                  </div>
                   <div className="form-group-edit">
                     <label>รหัสผ่านใหม่:</label>
                     <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
