@@ -172,6 +172,10 @@ function AccountManagement() {
   };
 
   const openEditModal = (user) => {
+    if (!user?.id) {
+      alert("ไม่สามารถแก้ไขได้: ข้อมูลผู้ใช้ไม่สมบูรณ์");
+      return;
+    }
     setEditUser(user);
     setFormData({ ...user });
     setPhoneError("");
@@ -302,11 +306,13 @@ function AccountManagement() {
   };
 
   const handleSubmitUpdate = async () => {
+    // Validate phone
     if (formData.tel && !validatePhone(formData.tel)) {
       setPhoneError("เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก");
       return;
     }
 
+    // Validate email
     if (formData.email && !validateEmail(formData.email)) {
       setEmailError("กรุณากรอกอีเมลให้ถูกต้อง");
       return;
@@ -316,7 +322,7 @@ function AccountManagement() {
       const updateData = { ...formData };
       delete updateData.username;
 
-      // รับ Firebase ID token
+      // Get Firebase ID token
       const user = auth.currentUser;
       let idToken = null;
       if (user) {
@@ -325,8 +331,11 @@ function AccountManagement() {
         throw new Error("ต้องล็อกอินเพื่ออัปเดตข้อมูล");
       }
 
-      // ถ้าอีเมลเปลี่ยน ส่งคำขอไปยัง backend
+      // Validate editUser and formData.email before sending update_email request
       if (formData.email && formData.email !== editUser.email) {
+        if (!editUser?.id) {
+          throw new Error("ขาดรหัสผู้ใช้");
+        }
         const response = await fetch(`${USER_BACKEND_URL}/update_email`, {
           method: "POST",
           headers: {
@@ -341,11 +350,11 @@ function AccountManagement() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(`Error ${response.status}: ${errorData.error || response.statusText}`);
+          throw new Error(`ข้อผิดพลาด ${response.status}: ${errorData.error || response.statusText}`);
         }
       }
 
-      // อัปเดตข้อมูลใน Firestore
+      // Update data in Firestore
       await updateDoc(doc(db, "users", editUser.id), updateData);
       await fetchUsersList();
       closeEditModal();
