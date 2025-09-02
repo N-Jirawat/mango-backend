@@ -26,7 +26,7 @@ function HistoryDetail() {
   }
 
   const {
-    DiseaseName,
+    diseaseName,
     confidence,
     Style,
     Protection,
@@ -79,7 +79,7 @@ function HistoryDetail() {
           }
           : null,
         { text: "ชื่อโรค:", style: "greenLabel" },
-        { text: DiseaseName, margin: [0, 0, 0, 10] },
+        { text: diseaseName, margin: [0, 0, 0, 10] },
 
         { text: "ความมั่นใจ (Confidence):", style: "greenLabel" },
         { text: `${Math.round(confidence * 100)}%`, margin: [0, 0, 0, 10] },
@@ -109,7 +109,7 @@ function HistoryDetail() {
     pdfMake
       .createPdf(docDefinition)
       .download(
-        `รายงานโรค_${DiseaseName}_${new Date().toLocaleDateString("th-TH")}.pdf`
+        `รายงานโรค_${diseaseName}_${new Date().toLocaleDateString("th-TH")}.pdf`
       );
   };
 
@@ -142,7 +142,7 @@ function HistoryDetail() {
       )}
 
       <div className="details-item">
-        <strong>ชื่อโรค:</strong> {DiseaseName}
+        <strong>ชื่อโรค:</strong> {diseaseName}
       </div>
       <div className="details-item">
         <strong>ความมั่นใจ (confidence):</strong> {typeof confidence === 'number' ? confidence.toFixed(4) : 'ไม่มีข้อมูล'}%
@@ -152,7 +152,7 @@ function HistoryDetail() {
         <strong>รายละเอียดโรค:</strong> {Style || "ไม่มีข้อมูลรายละเอียดโรค"}
       </div>
       <div className="details-item">
-        <strong>วิธีป้องกัน:</strong> {Protection || "ไม่มีข้อมูลวิธีการป้องกัน"}
+        <strong>วิธีป้องกัน:</strong> {Protection|| "ไม่มีข้อมูลวิธีการป้องกัน"}
       </div>
       <div className="details-item">
         <strong>วิธีการรักษา:</strong> {Treatment || "ไม่มีข้อมูลวิธีการรักษา"}

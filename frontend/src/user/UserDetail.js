@@ -268,6 +268,7 @@ function UserDetails() {
   const auth = getAuth();
 
   // Handle form submission (user info and/or password)
+  // แก้ไขใน handleSubmitUpdate function
   const handleSubmitUpdate = async (e) => {
     e.preventDefault();
 
@@ -299,19 +300,18 @@ function UserDetails() {
           throw new Error("ผู้ใช้ไม่ได้ล็อกอิน");
         }
 
-        // Re-authenticate user with the latest email
+        // Re-authenticate user with the current email (not the new email)
         try {
-          const emailToUse = changeEmail && formData.email ? formData.email : user.email;
-          await signInWithEmailAndPassword(auth, emailToUse, passwordData.currentPassword);
+          await signInWithEmailAndPassword(auth, user.email, passwordData.currentPassword);
         } catch (authError) {
-          if (authError.code === "auth/wrong-password") {
-            throw new Error("รหัสผ่านเดิมไม่ถูกต้อง");
+          if (authError.code === "auth/wrong-password" || authError.code === "auth/invalid-credential") {
+            throw new Error("รหัสผ่านไม่ถูกต้อง");
           } else if (authError.code === "auth/user-not-found" || authError.code === "auth/invalid-email") {
             throw new Error("อีเมลไม่ถูกต้องหรือไม่พบผู้ใช้ กรุณาลองใหม่");
           } else if (authError.code === "auth/too-many-requests") {
             throw new Error("มีการร้องขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่");
           }
-          throw new Error("เกิดข้อผิดพลาดในการยืนยันตัวตน: " + authError.message);
+          throw new Error("รหัสผ่านไม่ถูกต้อง");
         }
 
         // Update password
@@ -327,14 +327,37 @@ function UserDetails() {
         }
       }
 
-      // Update email via backend
+      // Update email via backend (แก้ไขส่วนนี้)
       if (changeEmail) {
         try {
+          // ตรวจสอบรหัสผ่านก่อนเรียก Backend
+          const user = auth.currentUser;
+          if (!user) {
+            throw new Error("ผู้ใช้ไม่ได้ล็อกอิน");
+          }
+
+          // Re-authenticate เพื่อยืนยันรหัสผ่าน
+          try {
+            await signInWithEmailAndPassword(auth, user.email, passwordData.currentPassword);
+          } catch (authError) {
+            if (authError.code === "auth/wrong-password" || authError.code === "auth/invalid-credential") {
+              throw new Error("รหัสผ่านไม่ถูกต้อง");
+            } else if (authError.code === "auth/too-many-requests") {
+              throw new Error("มีการร้องขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่");
+            }
+            throw new Error("รหัสผ่านไม่ถูกต้อง");
+          }
+
+          // ดึง Firebase Token
+          const token = await user.getIdToken();
+
+          // เรียก Backend เพื่อเปลี่ยนอีเมล
           const response = await fetch(`${BACKEND_URL}/update_email`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "Accept": "application/json",
+              "Authorization": `Bearer ${token}`,  // เพิ่ม Token
             },
             body: JSON.stringify({
               uid: id,
@@ -385,8 +408,8 @@ function UserDetails() {
       setRequiresReLogin(false);
 
     } catch (error) {
-      if (error.message.includes("รหัสผ่านเดิมไม่ถูกต้อง")) {
-        alert("รหัสผ่านเดิมไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่");
+      if (error.message.includes("รหัสผ่านไม่ถูกต้อง")) {
+        alert("รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่");
       } else if (error.message.includes("ต้องล็อกอินใหม่")) {
         alert("ต้องล็อกอินใหม่เพื่อดำเนินการ กรุณาล็อกอินด้วยอีเมลและรหัสผ่านของคุณ");
         navigate("/login");
@@ -501,12 +524,16 @@ function UserDetails() {
       try {
         // Re-authenticate before deletion
         await signInWithEmailAndPassword(auth, user.email, currentPassword);
-        
+
+        // ดึง Firebase Token
+        const token = await user.getIdToken();
+
         const response = await fetch(`${BACKEND_URL}/delete_user`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
+            "Authorization": `Bearer ${token}`,  // เพิ่ม Token
           },
           body: JSON.stringify({ uid: user.uid }),
           signal: AbortSignal.timeout(30000),
@@ -528,14 +555,14 @@ function UserDetails() {
         navigate("/login");
       } catch (error) {
         console.error("Error deleting account:", error);
-        if (error.code === "auth/wrong-password") {
+        if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
           alert("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่");
         } else if (error.code === "auth/too-many-requests") {
           alert("มีการร้องขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่");
         } else if (error.message.includes("Failed to fetch")) {
           alert("ไม่สามารถลบบัญชี: ปัญหาการเชื่อมต่อ CORS หรือเครือข่าย กรุณาลองใหม่");
         } else {
-          alert(`ไม่สามารถลบบัญชี: ${error.message}`);
+          alert("รหัสผ่านไม่ถูกต้อง");
         }
       }
     }
