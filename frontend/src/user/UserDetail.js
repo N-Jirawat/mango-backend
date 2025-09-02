@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getAuth, signInWithCustomToken, onAuthStateChanged } from "firebase/auth";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css"
-import { getDocs, collection, query, where, addDoc, doc, getDoc } from "firebase/firestore";
+import { getDocs, collection, query, where, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import "../css/UserDetails.css";
 
@@ -196,6 +194,11 @@ function UserDetails() {
       }));
     }
     if (emailError && name === "email") setEmailError("");
+    
+    // Check if email has changed
+    if (name === "email") {
+      setChangeEmail(value !== originalEmail);
+    }
   };
 
   // Handle phone input
@@ -220,58 +223,174 @@ function UserDetails() {
     }
   };
 
+  // Validate form data
+  const validateForm = () => {
+    let isValid = true;
+    const errors = { ...passwordErrors };
+
+    // Validate phone number
+    if (formData.tel && !/^0[0-9]{9}$/.test(formData.tel)) {
+      setPhoneError("เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลักและขึ้นต้นด้วย 0");
+      isValid = false;
+    } else {
+      setPhoneError("");
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      setEmailError("รูปแบบอีเมลไม่ถูกต้อง");
+      isValid = false;
+    } else {
+      setEmailError("");
+    }
+
+    // Validate password if changing password
+    if (changePassword) {
+      // Remove current password validation since backend doesn't verify it
+      if (!passwordData.newPassword) {
+        errors.newPassword = "กรุณากรอกรหัสผ่านใหม่";
+        isValid = false;
+      } else if (!passwordValidation.hasMinLength || !passwordValidation.hasLetter || !passwordValidation.hasNumber) {
+        errors.newPassword = "รหัสผ่านไม่ตรงตามเงื่อนไข";
+        isValid = false;
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        errors.confirmPassword = "รหัสผ่านไม่ตรงกัน";
+        isValid = false;
+      }
+    }
+
+    // Validate current password if email changed (but not if just changing password since backend doesn't verify it)
+    if (changeEmail && !changePassword && !passwordData.currentPassword) {
+      errors.currentPassword = "กรุณากรอกรหัสผ่านเดิมเพื่อยืนยันตัวตน";
+      isValid = false;
+    }
+
+    setPasswordErrors(errors);
+    return isValid;
+  };
+
   const auth = getAuth();
 
   // Handle form submission (user info and/or password)
   const handleSubmitUpdate = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Update user info in Firestore first
+      const userDocRef = doc(db, "users", id);
+      await updateDoc(userDocRef, {
+        fullName: formData.fullName || "",
+        address: formData.address || "",
+        village: formData.village || "",
+        province: formData.province || "",
+        district: formData.district || "",
+        subdistrict: formData.subdistrict || "",
+        tel: formData.tel || "",
+        email: formData.email || "",
+      });
+
+      // Update local userInfo state
+      setUserInfo(prev => ({
+        ...prev,
+        fullName: formData.fullName || "",
+        address: formData.address || "",
+        village: formData.village || "",
+        province: formData.province || "",
+        district: formData.district || "",
+        subdistrict: formData.subdistrict || "",
+        tel: formData.tel || "",
+        email: formData.email || "",
+      }));
+
       // ========== อัปเดตอีเมล ==========
       if (changeEmail) {
-        const response = await fetch(`${BACKEND_URL}/update_email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uid: id, new_email: formData.email }),
-        });
+        try {
+          const response = await fetch(`${BACKEND_URL}/update_email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              uid: id, 
+              new_email: formData.email
+            }),
+          });
 
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to update email");
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || "Failed to update email");
+          }
 
-        if (result.id_token) {
-          await signInWithCustomToken(auth, result.id_token);
-          console.log("Email updated and re-authenticated with new token");
+          alert("เปลี่ยนอีเมลเรียบร้อยแล้ว");
+          setOriginalEmail(formData.email);
+        } catch (emailError) {
+          console.error("Email update error:", emailError);
+          alert("เกิดข้อผิดพลาดในการเปลี่ยนอีเมล: " + emailError.message);
+          // Reset email to original if update failed
+          setFormData(prev => ({ ...prev, email: originalEmail }));
+          setUserInfo(prev => ({ ...prev, email: originalEmail }));
         }
-
-        toast.success("เปลี่ยนอีเมลเรียบร้อยแล้ว", { position: "top-center" });
       }
 
       // ========== อัปเดตรหัสผ่าน ==========
       if (changePassword) {
-        const response = await fetch(`${BACKEND_URL}/update_password`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uid: id, new_password: passwordData.newPassword }),
-        });
+        try {
+          // Try using fetch first
+          const response = await fetch(`${BACKEND_URL}/update_password`, {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              "Access-Control-Request-Method": "POST",
+              "Access-Control-Request-Headers": "Content-Type"
+            },
+            body: JSON.stringify({ 
+              uid: id, 
+              new_password: passwordData.newPassword
+            }),
+          });
 
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to update password");
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || "Failed to update password");
+          }
 
-        if (result.id_token) {
-          await signInWithCustomToken(auth, result.id_token);
-          console.log("Password updated and re-authenticated with new token");
+          if (result.id_token) {
+            await signInWithCustomToken(auth, result.id_token);
+            console.log("Password updated and re-authenticated with new token");
+          }
+
+          alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
+        } catch (passwordError) {
+          console.error("Password update error:", passwordError);
+          
+          // If CORS error, show specific message
+          if (passwordError.message.includes("fetch") || passwordError.message.includes("CORS")) {
+            alert("เกิดข้อผิดพลาดการเชื่อมต่อกับเซิร์ฟเวอร์ (CORS)\n\nกรุณาลอง:\n1. รีเฟรชหน้าแล้วลองใหม่\n2. หรือติดต่อผู้ดูแลระบบ\n\nสำหรับ Development: ให้เปิด browser ด้วย --disable-web-security");
+          } else {
+            alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + passwordError.message);
+          }
         }
+      }
 
-        toast.success("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว", { position: "top-center" });
+      if (!changeEmail && !changePassword) {
+        alert("อัปเดตข้อมูลเรียบร้อยแล้ว");
       }
 
       setChangeEmail(false);
       setChangePassword(false);
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setEditModal(false);
+      
     } catch (error) {
       console.error("Error in handleSubmitUpdate:", error);
-      toast.error("เกิดข้อผิดพลาด: " + error.message, { position: "top-center" });
+      alert("เกิดข้อผิดพลาด: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -307,6 +426,7 @@ function UserDetails() {
     });
     setPhoneError("");
     setEmailError("");
+    setChangeEmail(false);
 
     // Preload districts and subdistricts only if not in password change mode
     if (!changePassword && userInfo.province) {
@@ -352,6 +472,7 @@ function UserDetails() {
       confirmPassword: "",
     });
     setChangePassword(false);
+    setChangeEmail(false);
   };
 
   // Handle delete account
@@ -576,49 +697,6 @@ function UserDetails() {
               {changePassword && (
                 <>
                   <div className="form-group-edit">
-                    <label>รหัสผ่านเดิม:</label>
-                    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                      <input
-                        type={showCurrentPassword ? "text" : "password"}
-                        name="currentPassword"
-                        value={passwordData.currentPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="รหัสผ่านเดิม"
-                        className={`form-input-edit ${passwordErrors.currentPassword ? "error" : ""}`}
-                        style={{ paddingRight: "40px", fontSize: "14px" }}
-                      />
-                      <button
-                        type="button"
-                        onClick={toggleCurrentPasswordVisibility}
-                        style={{
-                          position: "absolute",
-                          right: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "0",
-                          zIndex: 10,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: "24px",
-                          height: "24px",
-                        }}
-                      >
-                        <img
-                          src={showCurrentPassword ? "/img/hide.png" : "/img/view.png"}
-                          alt={showCurrentPassword ? "hide" : "view"}
-                          style={{ width: "20px", height: "20px", marginBottom: "20px" }}
-                        />
-                      </button>
-                    </div>
-                    {passwordErrors.currentPassword && (
-                      <p className="error-message">{passwordErrors.currentPassword}</p>
-                    )}
-                  </div>
-                  <div className="form-group-edit">
                     <label>รหัสผ่านใหม่:</label>
                     <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                       <input
@@ -753,7 +831,7 @@ function UserDetails() {
                 </>
               )}
 
-              {!changePassword && formData.email !== originalEmail && (
+              {!changePassword && changeEmail && (
                 <div className="form-group-edit">
                   <label>กรุณากรอกรหัสผ่านเดิมเพื่อยืนยันตัวตน:</label>
                   <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
@@ -831,15 +909,15 @@ function UserDetails() {
                   type="button"
                   onClick={handleSubmitUpdate}
                   className="btn-edit-user btn-green"
+                  disabled={loading}
                 >
-                  บันทึกการเปลี่ยนแปลง
+                  {loading ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-      <ToastContainer />
     </div>
   );
 }

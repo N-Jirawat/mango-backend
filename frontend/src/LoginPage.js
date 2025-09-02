@@ -4,8 +4,6 @@ import { auth, db } from "./firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 function LoginPage() {
   const [loginInput, setLoginInput] = useState("");
@@ -25,21 +23,19 @@ function LoginPage() {
       const data = await res.json();
       if (!res.ok) {
         console.error("Backend error:", data);
-        toast.error(data.error || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์", {
-          position: "top-center",
-        });
+        alert(data.error || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์");
         return null;
       }
 
       if (!data.email) {
-        toast.error("ไม่พบชื่อผู้ใช้นี้ในระบบ", { position: "top-center" });
+        alert("ไม่พบชื่อผู้ใช้นี้ในระบบ");
         return null;
       }
 
       return data.email;
     } catch (error) {
       console.error("Network or fetch error:", error);
-      toast.error("ไม่สามารถเชื่อมต่อ backend ได้", { position: "top-center" });
+      alert("ไม่สามารถเชื่อมต่อ backend ได้");
       return null;
     }
   };
@@ -70,9 +66,7 @@ function LoginPage() {
     e.preventDefault();
 
     if (!loginInput || !password) {
-      toast.error("กรุณากรอกชื่อผู้ใช้/อีเมลและรหัสผ่าน", {
-        position: "top-center",
-      });
+      alert("กรุณากรอกชื่อผู้ใช้/อีเมลและรหัสผ่าน");
       return;
     }
 
@@ -99,31 +93,25 @@ function LoginPage() {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        toast.success("ล็อกอินสำเร็จ", { position: "top-center" });
+        alert("ล็อกอินสำเร็จ");
         if (userData.role === "admin") {
           navigate("/admin-dashboard");
         } else {
           navigate("/");
         }
       } else {
-        toast.error("ไม่พบข้อมูลผู้ใช้หลังล็อกอิน", { position: "top-center" });
+        alert("ไม่พบข้อมูลผู้ใช้หลังล็อกอิน");
       }
     } catch (error) {
       console.error("Login error:", error);
       if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
-        toast.error("ชื่อผู้ใช้/อีเมลหรือรหัสผ่านไม่ถูกต้อง", {
-          position: "top-center",
-        });
+        alert("ชื่อผู้ใช้/อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       } else if (error.code === "auth/invalid-email") {
-        toast.error("รูปแบบอีเมลไม่ถูกต้อง", { position: "top-center" });
+        alert("รูปแบบอีเมลไม่ถูกต้อง");
       } else if (error.code === "auth/too-many-requests") {
-        toast.error("มีการพยายามล็อกอินมากเกินไป กรุณารอสักครู่แล้วลองใหม่", {
-          position: "top-center",
-        });
+        alert("มีการพยายามล็อกอินมากเกินไป กรุณารอสักครู่แล้วลองใหม่");
       } else {
-        toast.error("เกิดข้อผิดพลาดในการล็อกอิน: " + error.message, {
-          position: "top-center",
-        });
+        alert("เกิดข้อผิดพลาดในการล็อกอิน: " + error.message);
       }
     }
   };
@@ -157,7 +145,6 @@ function LoginPage() {
           </Link>
         </div>
       </form>
-      <ToastContainer />
     </div>
   );
 }
