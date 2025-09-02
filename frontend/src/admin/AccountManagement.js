@@ -200,7 +200,7 @@ function AccountManagement() {
       setSubdistrictList([]);
     }
   };
-
+  
   const closeEditModal = () => {
     setEditUser(null);
     setFormData({});
@@ -306,13 +306,13 @@ function AccountManagement() {
   };
 
   const handleSubmitUpdate = async () => {
-    // Validate phone
+    // ตรวจสอบเบอร์โทร
     if (formData.tel && !validatePhone(formData.tel)) {
       setPhoneError("เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก");
       return;
     }
 
-    // Validate email
+    // ตรวจสอบอีเมล
     if (formData.email && !validateEmail(formData.email)) {
       setEmailError("กรุณากรอกอีเมลให้ถูกต้อง");
       return;
@@ -322,7 +322,7 @@ function AccountManagement() {
       const updateData = { ...formData };
       delete updateData.username;
 
-      // Get Firebase ID token
+      // รับ Firebase ID token
       const user = auth.currentUser;
       let idToken = null;
       if (user) {
@@ -331,11 +331,12 @@ function AccountManagement() {
         throw new Error("ต้องล็อกอินเพื่ออัปเดตข้อมูล");
       }
 
-      // Validate editUser and formData.email before sending update_email request
+      // ตรวจสอบก่อนส่งคำขออัปเดตอีเมล
       if (formData.email && formData.email !== editUser.email) {
-        if (!editUser?.id) {
-          throw new Error("ขาดรหัสผู้ใช้");
+        if (!editUser?.id || !formData.email.trim()) {
+          throw new Error("ขาดรหัสผู้ใช้หรืออีเมลไม่ถูกต้อง");
         }
+
         const response = await fetch(`${USER_BACKEND_URL}/update_email`, {
           method: "POST",
           headers: {
@@ -354,7 +355,7 @@ function AccountManagement() {
         }
       }
 
-      // Update data in Firestore
+      // อัปเดตข้อมูลใน Firestore
       await updateDoc(doc(db, "users", editUser.id), updateData);
       await fetchUsersList();
       closeEditModal();
