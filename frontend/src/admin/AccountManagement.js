@@ -22,13 +22,12 @@ function AccountManagement() {
   const [districtList, setDistrictList] = useState([]);
   const [subdistrictList, setSubdistrictList] = useState([]);
   const [phoneError, setPhoneError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [dropdownOpenId, setDropdownOpenId] = useState(null);
-
   const [dropdownDirection, setDropdownDirection] = useState('drop-down');
 
   const USER_BACKEND_URL = "https://render-backend-mu.vercel.app";
 
-  // แก้ไข useEffect สำหรับ dropdown แบบ fixed position
   useEffect(() => {
     if (dropdownOpenId) {
       const timer = setTimeout(() => {
@@ -39,29 +38,23 @@ function AccountManagement() {
           const buttonRect = buttonElement.getBoundingClientRect();
           const windowHeight = window.innerHeight;
           const windowWidth = window.innerWidth;
-          const dropdownHeight = 300; // ประมาณ
+          const dropdownHeight = 300;
 
-          // คำนวณพื้นที่ว่าง
           const spaceBelow = windowHeight - buttonRect.bottom;
           const spaceAbove = buttonRect.top;
 
           let top, right;
 
-          // กำหนดตำแหน่งแนวนอน (ให้ชิดขวา)
           right = windowWidth - buttonRect.right;
-          if (right < 0) right = 10; // ป้องกันล้นจอขวา
+          if (right < 0) right = 10;
 
-          // กำหนดตำแหน่งแนวตั้ง
           if (spaceBelow >= 150) {
-            // เด้งลง
             top = buttonRect.bottom + 5;
             setDropdownDirection('drop-down');
           } else if (spaceAbove >= 150) {
-            // เด้งขึ้น
             top = buttonRect.top - dropdownHeight - 5;
             setDropdownDirection('drop-up');
           } else {
-            // พื้นที่ไม่พอทั้งสองด้าน - เลือกด้านที่มีพื้นที่มากกว่า
             if (spaceBelow > spaceAbove) {
               top = buttonRect.bottom + 5;
               setDropdownDirection('drop-down');
@@ -71,28 +64,16 @@ function AccountManagement() {
             }
           }
 
-          // ป้องกันล้นจอด้านบน
           if (top < 10) top = 10;
-          // ป้องกันล้นจอด้านล่าง
           if (top + dropdownHeight > windowHeight - 10) {
             top = windowHeight - dropdownHeight - 10;
           }
 
-          // ตั้งค่าตำแหน่ง
           dropdownElement.style.position = 'fixed';
           dropdownElement.style.top = `${top}px`;
           dropdownElement.style.right = `${right}px`;
           dropdownElement.style.left = 'auto';
           dropdownElement.style.bottom = 'auto';
-
-          console.log('Dropdown positioned at:', {
-            top,
-            right,
-            direction: spaceBelow >= 150 ? 'down' : 'up',
-            buttonRect,
-            spaceAbove,
-            spaceBelow
-          });
         }
       }, 10);
 
@@ -119,14 +100,13 @@ function AccountManagement() {
       if (!user) {
         navigate("/login");
       } else {
-        fetchUsersList(); // ✅ โหลดข้อมูลผู้ใช้
+        fetchUsersList();
       }
     });
 
     return () => unsubscribe();
   }, [navigate]);
 
-  // ฟิลเตอร์ผู้ใช้ตามคำค้นหา
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredUsers(usersList);
@@ -139,7 +119,7 @@ function AccountManagement() {
       });
       setFilteredUsers(filtered);
     }
-    setCurrentPage(1); // รีเซ็ตไปหน้าแรกเมื่อค้นหา
+    setCurrentPage(1);
   }, [searchTerm, usersList]);
 
   const fetchUsersList = async () => {
@@ -178,7 +158,6 @@ function AccountManagement() {
       setUsersList((prev) => prev.filter((user) => user.id !== uid));
       setDropdownOpenId(null);
       alert("ลบผู้ใช้เรียบร้อยแล้ว");
-
     } catch (error) {
       alert(`ลบผู้ใช้ไม่สำเร็จ: ${error.message}`);
     }
@@ -196,6 +175,7 @@ function AccountManagement() {
     setEditUser(user);
     setFormData({ ...user });
     setPhoneError("");
+    setEmailError("");
 
     setDropdownOpenId(null);
 
@@ -223,6 +203,7 @@ function AccountManagement() {
     setDistrictList([]);
     setSubdistrictList([]);
     setPhoneError("");
+    setEmailError("");
   };
 
   const handleOverlayClick = (e) => {
@@ -233,7 +214,17 @@ function AccountManagement() {
 
   const handleProvinceChange = (provinceName) => {
     const selectedProvince = provinces.find((p) => p.name_th === provinceName);
-    if (!selectedProvince) return;
+    if (!selectedProvince) {
+      setDistrictList([]);
+      setSubdistrictList([]);
+      setFormData((prev) => ({
+        ...prev,
+        province: provinceName,
+        district: '',
+        subdistrict: '',
+      }));
+      return;
+    }
 
     const filteredDistricts = districts.filter((d) => d.province_id === selectedProvince.id);
     setDistrictList(filteredDistricts);
@@ -249,7 +240,15 @@ function AccountManagement() {
 
   const handleDistrictChange = (districtName) => {
     const selectedDistrict = districts.find((d) => d.name_th === districtName);
-    if (!selectedDistrict) return;
+    if (!selectedDistrict) {
+      setSubdistrictList([]);
+      setFormData((prev) => ({
+        ...prev,
+        district: districtName,
+        subdistrict: '',
+      }));
+      return;
+    }
 
     const filteredTambons = subdistricts.filter((t) => t.amphure_id === selectedDistrict.id);
     setSubdistrictList(filteredTambons);
@@ -262,8 +261,15 @@ function AccountManagement() {
   };
 
   const validatePhone = (phone) => {
+    if (!phone) return true;
     const phoneRegex = /^[0-9]{10}$/;
     return phoneRegex.test(phone);
+  };
+
+  const validateEmail = (email) => {
+    if (!email) return true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const handleChange = (e) => {
@@ -277,6 +283,14 @@ function AccountManagement() {
         setPhoneError("เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก");
       } else {
         setPhoneError("");
+      }
+    } else if (name === "email") {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+
+      if (value && !validateEmail(value)) {
+        setEmailError("กรุณากรอกอีเมลให้ถูกต้อง");
+      } else {
+        setEmailError("");
       }
     } else if (name === "province") {
       handleProvinceChange(value);
@@ -293,8 +307,8 @@ function AccountManagement() {
       return;
     }
 
-    if (!formData.province || !formData.district || !formData.subdistrict) {
-      alert("กรุณาเลือกจังหวัด อำเภอ และตำบล");
+    if (formData.email && !validateEmail(formData.email)) {
+      setEmailError("กรุณากรอกอีเมลให้ถูกต้อง");
       return;
     }
 
@@ -302,13 +316,43 @@ function AccountManagement() {
       const updateData = { ...formData };
       delete updateData.username;
 
+      // รับ Firebase ID token
+      const user = auth.currentUser;
+      let idToken = null;
+      if (user) {
+        idToken = await user.getIdToken();
+      } else {
+        throw new Error("ต้องล็อกอินเพื่ออัปเดตข้อมูล");
+      }
+
+      // ถ้าอีเมลเปลี่ยน ส่งคำขอไปยัง backend
+      if (formData.email && formData.email !== editUser.email) {
+        const response = await fetch(`${USER_BACKEND_URL}/update_email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            uid: editUser.id,
+            email: formData.email,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`Error ${response.status}: ${errorData.error || response.statusText}`);
+        }
+      }
+
+      // อัปเดตข้อมูลใน Firestore
       await updateDoc(doc(db, "users", editUser.id), updateData);
       await fetchUsersList();
       closeEditModal();
       alert("อัปเดตข้อมูลเรียบร้อยแล้ว");
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการอัปเดต:", error);
-      alert("เกิดข้อผิดพลาดในการอัปเดต");
+      alert(`เกิดข้อผิดพลาดในการอัปเดต: ${error.message}`);
     }
   };
 
@@ -327,7 +371,7 @@ function AccountManagement() {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>กำลังโหลดข้อมูลสถิติ...</p>
+        <p>กำลังโหลดข้อมูลบัญชีผู้ใช้...</p>
       </div>
     );
   }
@@ -336,7 +380,6 @@ function AccountManagement() {
     <div className="manage-container">
       <h2 className="title">บัญชีผู้ใช้ทั้งหมด</h2>
 
-      {/* ปุ่มเพิ่มสมาชิกอยู่กลาง */}
       <div className="add-member-row">
         <button className="btn btn-green btn-add-user" onClick={() => navigate("/signup")}>
           ➕ เพิ่มสมาชิก
@@ -404,14 +447,11 @@ function AccountManagement() {
                   <td>{user.province || "-"}</td>
                   <td>{user.tel || "-"}</td>
                   <td>
-                    {/* สำหรับจอใหญ่ */}
                     <div className="btn-edit desktop-only">
                       <button className="btn btn-green" onClick={() => openEditModal(user)}>✏️ แก้ไข</button>
                       <button className="btn btn-gray" onClick={() => handleDeleteUser(user.id)}>🗑 ลบ</button>
                     </div>
 
-                    {/* สำหรับจอเล็ก */}
-                    {/* ส่วน dropdown ใน JSX - แทนที่ในตาราง */}
                     <div className="action-menu mobile-only" data-user-id={user.id}>
                       <button
                         className="btn btn-gray more-btn"
@@ -587,22 +627,23 @@ function AccountManagement() {
             <div className="modal-body">
               <div className="form-group-edit">
                 <label>ชื่อบัญชี:</label>
-                <input type="text" name="username" value={formData.username || ""} onChange={handleChange} required className="form-input-edit" disabled />
+                <input type="text" name="username" value={formData.username || ""} onChange={handleChange} className="form-input-edit" disabled />
               </div>
 
               <div className="form-group-edit">
                 <label>ชื่อ-นามสกุล:</label>
-                <input type="text" name="fullName" value={formData.fullName || ""} onChange={handleChange} required className="form-input-edit" />
+                <input type="text" name="fullName" value={formData.fullName || ""} onChange={handleChange} className="form-input-edit" />
               </div>
 
               <div className="form-group-edit">
                 <label>อีเมล:</label>
-                <input type="text" name="email" value={formData.email || ""} onChange={handleChange} required className="form-input-edit" />
+                <input type="text" name="email" value={formData.email || ""} onChange={handleChange} className={`form-input-edit ${emailError ? 'error' : ''}`} />
+                {emailError && <p className="error-message">{emailError}</p>}
               </div>
 
               <div className="form-group-edit">
                 <label>ที่อยู่:</label>
-                <textarea name="address" value={formData.address || ""} onChange={handleChange} required rows="2" className="form-input-edit form-textarea-edit" />
+                <textarea name="address" value={formData.address || ""} onChange={handleChange} rows="2" className="form-input-edit form-textarea-edit" />
               </div>
 
               <div className="form-group-edit">
@@ -613,7 +654,7 @@ function AccountManagement() {
               <div className="form-row-edit">
                 <div className="form-group-edit">
                   <label>จังหวัด: </label>
-                  <select name="province" value={formData.province || ""} onChange={handleChange} required className="form-select-edit">
+                  <select name="province" value={formData.province || ""} onChange={handleChange} className="form-select-edit">
                     <option value="">เลือกจังหวัด</option>
                     {provinces.map((province) => (
                       <option key={province.id} value={province.name_th}>{province.name_th}</option>
@@ -623,7 +664,7 @@ function AccountManagement() {
 
                 <div className="form-group-edit">
                   <label>อำเภอ: </label>
-                  <select name="district" value={formData.district || ""} onChange={handleChange} required disabled={!districtList.length} className="form-select-edit">
+                  <select name="district" value={formData.district || ""} onChange={handleChange} disabled={!districtList.length} className="form-select-edit">
                     <option value="">เลือกอำเภอ</option>
                     {districtList.map((districtItem) => (
                       <option key={districtItem.id} value={districtItem.name_th}>{districtItem.name_th}</option>
@@ -633,7 +674,7 @@ function AccountManagement() {
 
                 <div className="form-group-edit">
                   <label>ตำบล: </label>
-                  <select name="subdistrict" value={formData.subdistrict || ""} onChange={handleChange} required disabled={!subdistrictList.length} className="form-select-edit">
+                  <select name="subdistrict" value={formData.subdistrict || ""} onChange={handleChange} disabled={!subdistrictList.length} className="form-select-edit">
                     <option value="">เลือกตำบล</option>
                     {subdistrictList.map((subItem) => (
                       <option key={subItem.id} value={subItem.name_th}>{subItem.name_th}</option>
