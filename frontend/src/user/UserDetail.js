@@ -277,30 +277,14 @@ function UserDetails() {
     setLoading(true);
 
     try {
-      // Update Firestore data if not only changing password
-      if (!changePassword || changeEmail) {
-        const userDocRef = doc(db, "users", id);
-        await updateDoc(userDocRef, {
-          fullName: formData.fullName || "",
-          address: formData.address || "",
-          village: formData.village || "",
-          province: formData.province || "",
-          district: formData.district || "",
-          subdistrict: formData.subdistrict || "",
-          tel: formData.tel || "",
-          email: formData.email || "",
-        });
-        setUserInfo((prev) => ({ ...prev, ...formData }));
-      }
-
-      // Update password using Firebase Client SDK
-      if (changePassword) {
+      // *** ตรวจสอบรหัสผ่านก่อนทำอะไรทั้งหมด ***
+      if (changePassword || changeEmail) {
         const user = auth.currentUser;
         if (!user) {
           throw new Error("ผู้ใช้ไม่ได้ล็อกอิน");
         }
 
-        // Re-authenticate user with the current email (not the new email)
+        // Re-authenticate user with current password FIRST
         try {
           await signInWithEmailAndPassword(auth, user.email, passwordData.currentPassword);
         } catch (authError) {
@@ -313,51 +297,20 @@ function UserDetails() {
           }
           throw new Error("รหัสผ่านไม่ถูกต้อง");
         }
-
-        // Update password
-        try {
-          await updatePassword(user, passwordData.newPassword);
-          alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
-        } catch (updateError) {
-          if (updateError.code === "auth/requires-recent-login") {
-            setRequiresReLogin(true);
-            throw new Error("ต้องล็อกอินใหม่เพื่อเปลี่ยนรหัสผ่าน กรุณาลองอีกครั้ง");
-          }
-          throw new Error("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + updateError.message);
-        }
       }
 
-      // Update email via backend (แก้ไขส่วนนี้)
+      // *** ตรวจสอบและเปลี่ยนอีเมลกับ Backend ก่อน ***
       if (changeEmail) {
         try {
-          // ตรวจสอบรหัสผ่านก่อนเรียก Backend
           const user = auth.currentUser;
-          if (!user) {
-            throw new Error("ผู้ใช้ไม่ได้ล็อกอิน");
-          }
-
-          // Re-authenticate เพื่อยืนยันรหัสผ่าน
-          try {
-            await signInWithEmailAndPassword(auth, user.email, passwordData.currentPassword);
-          } catch (authError) {
-            if (authError.code === "auth/wrong-password" || authError.code === "auth/invalid-credential") {
-              throw new Error("รหัสผ่านไม่ถูกต้อง");
-            } else if (authError.code === "auth/too-many-requests") {
-              throw new Error("มีการร้องขอมากเกินไป กรุณารอสักครู่แล้วลองใหม่");
-            }
-            throw new Error("รหัสผ่านไม่ถูกต้อง");
-          }
-
-          // ดึง Firebase Token
           const token = await user.getIdToken();
 
-          // เรียก Backend เพื่อเปลี่ยนอีเมล
           const response = await fetch(`${BACKEND_URL}/update_email`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "Accept": "application/json",
-              "Authorization": `Bearer ${token}`,  // เพิ่ม Token
+              "Authorization": `Bearer ${token}`,
             },
             body: JSON.stringify({
               uid: id,
@@ -379,10 +332,6 @@ function UserDetails() {
 
           alert("เปลี่ยนอีเมลเรียบร้อยแล้ว");
           setOriginalEmail(formData.email);
-          // Force re-login after email change to refresh session
-          await signOut(auth);
-          alert("กรุณาล็อกอินใหม่ด้วยอีเมลใหม่");
-          navigate("/login");
         } catch (fetchError) {
           if (fetchError.name === "TimeoutError") {
             throw new Error("การเปลี่ยนอีเมลใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง");
@@ -392,6 +341,45 @@ function UserDetails() {
             throw fetchError;
           }
         }
+      }
+
+      // *** เปลี่ยนรหัสผ่าน (ถ้าต้องการ) ***
+      if (changePassword) {
+        const user = auth.currentUser;
+        try {
+          await updatePassword(user, passwordData.newPassword);
+          alert("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
+        } catch (updateError) {
+          if (updateError.code === "auth/requires-recent-login") {
+            setRequiresReLogin(true);
+            throw new Error("ต้องล็อกอินใหม่เพื่อเปลี่ยนรหัสผ่าน กรุณาลองอีกครั้ง");
+          }
+          throw new Error("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + updateError.message);
+        }
+      }
+
+      // *** อัปเดต Firestore หลังจากตรวจสอบรหัสผ่านสำเร็จแล้ว ***
+      if (!changePassword || changeEmail) {
+        const userDocRef = doc(db, "users", id);
+        await updateDoc(userDocRef, {
+          fullName: formData.fullName || "",
+          address: formData.address || "",
+          village: formData.village || "",
+          province: formData.province || "",
+          district: formData.district || "",
+          subdistrict: formData.subdistrict || "",
+          tel: formData.tel || "",
+          email: formData.email || "",
+        });
+        setUserInfo((prev) => ({ ...prev, ...formData }));
+      }
+
+      // *** Force logout หลังเปลี่ยนอีเมล ***
+      if (changeEmail) {
+        await signOut(auth);
+        alert("กรุณาล็อกอินใหม่ด้วยอีเมลใหม่");
+        navigate("/login");
+        return; // ออกจากฟังก์ชันทันที
       }
 
       if (!changeEmail && !changePassword) {
@@ -408,6 +396,22 @@ function UserDetails() {
       setRequiresReLogin(false);
 
     } catch (error) {
+      // *** Rollback Firestore ถ้าเกิดข้อผิดพลาด (ถ้าจำเป็น) ***
+      if (changeEmail && error.message.includes("email")) {
+        // Rollback email in UI
+        setFormData((prev) => ({ ...prev, email: originalEmail }));
+        setUserInfo((prev) => ({ ...prev, email: originalEmail }));
+
+        // Rollback Firestore if it was updated
+        try {
+          const userDocRef = doc(db, "users", id);
+          await updateDoc(userDocRef, { email: originalEmail });
+        } catch (rollbackError) {
+          console.error("Rollback failed:", rollbackError);
+        }
+      }
+
+      // Error handling
       if (error.message.includes("รหัสผ่านไม่ถูกต้อง")) {
         alert("รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่");
       } else if (error.message.includes("ต้องล็อกอินใหม่")) {
@@ -419,8 +423,6 @@ function UserDetails() {
         alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + error.message);
       } else if (error.message.includes("email")) {
         alert("เกิดข้อผิดพลาดในการเปลี่ยนอีเมล: อีเมลนี้อาจถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น");
-        setFormData((prev) => ({ ...prev, email: originalEmail }));
-        setUserInfo((prev) => ({ ...prev, email: originalEmail }));
       } else if (error.message.includes("เชื่อมต่อ")) {
         alert("ปัญหาการเชื่อมต่อ: " + error.message + "\nกรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่");
       } else {
