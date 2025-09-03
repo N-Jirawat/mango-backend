@@ -32,9 +32,7 @@ for (const envVar of requiredEnvVars) {
 let app;
 try {
   app = initializeApp(firebaseConfig);
-  console.log("Firebase initialized successfully");
 } catch (error) {
-  console.error("Error initializing Firebase:", error);
   throw error;
 }
 
@@ -44,10 +42,8 @@ const db = getFirestore(app);
 // ตั้งค่า session persistence
 setPersistence(auth, browserSessionPersistence)
   .then(() => {
-    console.log("Session persistence set to browserSessionPersistence");
   })
   .catch((error) => {
-    console.error("Error setting session persistence:", error);
   });
 
 export { auth, db };
