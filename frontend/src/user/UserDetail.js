@@ -418,7 +418,7 @@ function UserDetails() {
       } else if (error.message.includes("password")) {
         alert("เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน: " + error.message);
       } else if (error.message.includes("email")) {
-        alert("เกิดข้อผิดพลาดในการเปลี่ยนอีเมล: " + error.message);
+        alert("เกิดข้อผิดพลาดในการเปลี่ยนอีเมล: อีเมลนี้อาจถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น");
         setFormData((prev) => ({ ...prev, email: originalEmail }));
         setUserInfo((prev) => ({ ...prev, email: originalEmail }));
       } else if (error.message.includes("เชื่อมต่อ")) {
