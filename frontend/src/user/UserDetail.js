@@ -554,6 +554,7 @@ function UserDetails() {
         }
 
         alert("บัญชีและข้อมูลถูกลบเรียบร้อยแล้ว");
+        window.location.reload();
         navigate("/login");
       } catch (error) {
         console.error("Error deleting account:", error);
