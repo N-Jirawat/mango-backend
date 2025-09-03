@@ -36,6 +36,20 @@ function HistoryDetail() {
     docId,
   } = state;
 
+  // ฟังก์ชันจัดการการแสดงค่า confidence ให้ถูกต้อง
+  const getFormattedConfidence = (confidence) => {
+    if (typeof confidence !== 'number') {
+      return 'ไม่มีข้อมูล';
+    }
+    
+    // ถ้าค่ามากกว่า 1 แสดงว่าเป็นเปอร์เซ็นต์แล้ว
+    if (confidence > 1) {
+      return Math.min(confidence, 100).toFixed(4) + '%';
+    }
+    // ถ้าค่าน้อยกว่าหรือเท่ากับ 1 แสดงว่าเป็น decimal
+    return (confidence * 100).toFixed(4) + '%';
+  };
+
   const handleDelete = async () => {
     const confirmDelete = window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?");
     if (!confirmDelete) return;
@@ -82,7 +96,7 @@ function HistoryDetail() {
         { text: diseaseName, margin: [0, 0, 0, 10] },
 
         { text: "ความมั่นใจ (Confidence):", style: "greenLabel" },
-        { text: `${Math.round(confidence * 100)}%`, margin: [0, 0, 0, 10] },
+        { text: getFormattedConfidence(confidence), margin: [0, 0, 0, 10] },
 
         { text: "รายละเอียดโรค:", style: "greenLabel" },
         { text: Style || "ไม่มีข้อมูลรายละเอียดโรค", margin: [0, 0, 0, 10] },
@@ -145,14 +159,14 @@ function HistoryDetail() {
         <strong>ชื่อโรค:</strong> {diseaseName}
       </div>
       <div className="details-item">
-        <strong>ความมั่นใจ (confidence):</strong> {typeof confidence === 'number' ? confidence.toFixed(4) : 'ไม่มีข้อมูล'}%
+        <strong>ความมั่นใจ (confidence):</strong> {getFormattedConfidence(confidence)}
       </div>
 
       <div className="details-item">
         <strong>รายละเอียดโรค:</strong> {Style || "ไม่มีข้อมูลรายละเอียดโรค"}
       </div>
       <div className="details-item">
-        <strong>วิธีป้องกัน:</strong> {Protection|| "ไม่มีข้อมูลวิธีการป้องกัน"}
+        <strong>วิธีป้องกัน:</strong> {Protection || "ไม่มีข้อมูลวิธีการป้องกัน"}
       </div>
       <div className="details-item">
         <strong>วิธีการรักษา:</strong> {Treatment || "ไม่มีข้อมูลวิธีการรักษา"}
