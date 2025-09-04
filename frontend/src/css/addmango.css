@@ -161,6 +161,144 @@
   cursor: not-allowed;
   transform: none;
 }
+/* AddMango CSS */
+.disease-detail-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.addmango-header {
+  margin-bottom: 20px;
+}
+
+.back-button {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+  background-color: #5a6268;
+}
+
+.disease-detail-container h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.boxmango {
+  background-color: #f9f9f9;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.boxmango > div {
+  margin-bottom: 20px;
+}
+
+.boxmango label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #555;
+  font-size: 14px;
+}
+
+/* Input สำหรับชื่อโรค */
+.form-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 2px solid #ddd;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+/* Textarea สำหรับข้อมูลแบบหลายบรรทัด */
+.form-textarea {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 2px solid #ddd;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.3s ease;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+/* Input สำหรับอัปโหลดไฟล์ */
+.boxmango input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed #ddd;
+  border-radius: 6px;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.boxmango input[type="file"]:hover {
+  border-color: #4CAF50;
+}
+
+/* Image preview */
+.image-preview {
+  width: 200px;
+  height: auto;
+  margin-top: 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Button container */
+.button-container-addmango {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.button-container-addmango button {
+  padding: 12px 30px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  background-color: #28a745;
+  color: white;
+}
+
+.button-container-addmango button:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.button-container-addmango button:disabled {
+  background-color: #94d3a2;
+  cursor: not-allowed;
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -175,6 +313,18 @@
   
   .boxmango {
     padding: 20px;
+  }
+  .disease-detail-container {
+    padding: 10px;
+  }
+  
+  .boxmango {
+    padding: 20px;
+  }
+  
+  .button-container-addmango button {
+    width: 100%;
+    max-width: 300px;
   }
 }
 

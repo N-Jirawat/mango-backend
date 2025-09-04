@@ -133,6 +133,59 @@ function AddMango() {
       setLoading(false);
     }
   };
+
+  // ฟังก์ชันสำหรับ render ช่องกรอกข้อมูล
+  const renderFormField = (key) => {
+    const labels = {
+      diseaseName: "ชื่อโรค:",
+      symptoms: "ลักษณะอาการ:",
+      treatment: "วิธีรักษา:",
+      prevention: "วิธีป้องกัน:"
+    };
+
+    if (key === "diseaseName") {
+      return (
+        <div key={key}>
+          <label>{labels[key]}</label>
+          <input
+            type="text"
+            name={key}
+            value={formData[key]}
+            onChange={handleChange}
+            required
+            style={{
+              width: '100%',
+              padding: '8px',
+              fontSize: '14px',
+              borderRadius: '4px',
+              border: '1px solid #ddd'
+            }}
+          />
+        </div>
+      );
+    } else {
+      return (
+        <div key={key}>
+          <label>{labels[key]}</label>
+          <textarea
+            name={key}
+            value={formData[key]}
+            onChange={handleChange}
+            required
+            rows={4}
+            style={{
+              resize: 'vertical',
+              width: '100%',
+              padding: '8px',
+              fontSize: '14px',
+              borderRadius: '4px',
+              border: '1px solid #ddd'
+            }}
+          />
+        </div>
+      );
+    }
+  };
   
   return (
     <div className="disease-detail-container">
@@ -143,22 +196,8 @@ function AddMango() {
       </div>
       <h2>เพิ่มข้อมูลโรคมะม่วง</h2>
       <form onSubmit={handleSubmit} className="boxmango">
-        {Object.keys(formData).map((key) => (
-          <div key={key}>
-            <label>
-              {key === "diseaseName" ? "ชื่อโรค:" : 
-               key === "symptoms" ? "ลักษณะอาการ:" : 
-               key === "treatment" ? "วิธีรักษา:" : "วิธีป้องกัน:"}
-            </label>
-            <input 
-              type="text" 
-              name={key} 
-              value={formData[key]} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-        ))}
+        {Object.keys(formData).map((key) => renderFormField(key))}
+        
         <label>อัปโหลดรูปภาพ:</label>
         <input 
           type="file" 
@@ -170,7 +209,7 @@ function AddMango() {
           <img 
             src={imagePreview} 
             alt="ตัวอย่าง" 
-            style={{ width: "200px", marginTop: "10px" }} 
+            className="image-preview"
           />
         )}
         <div className="button-container-addmango">

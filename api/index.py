@@ -29,7 +29,7 @@ app = Flask(__name__)
 # กำหนดว่า API สามารถรับ Request จากโดเมนไหนได้บ้าง
 CORS(app, resources={r"/*": {"origins": "https://mangoleafanalyzer.onrender.com"}})
 # หรือสำหรับการทดสอบทุกโดเมน (ไม่แนะนำสำหรับ Production):
-# CORS(app, origins="*")
+#CORS(app, origins="*")
 
 # =================== การตั้งค่าพื้นฐานของระบบ ===================
 IMG_SIZE = (224, 224)  # ขนาดภาพที่โมเดลต้องการ

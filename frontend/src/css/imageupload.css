@@ -42,13 +42,16 @@ input[type="file"]:focus {
 
 .preview-container {
   margin: 20px 0;
+  display: flex;
+  justify-content: center;
 }
 
 .preview-image {
-  width: 100%;
-  max-width: 100%;
-  max-height: 350px;
-  object-fit: cover;
+  width: auto !important; /* ให้รูปภาพปรับขนาดตามสัดส่วนจริง */
+  max-width: 250px !important; /* ลดความกว้างสูงสุดลง */
+  max-height: 250px !important; /* เพิ่มความสูงสูงสุดเพื่อควบคุมขนาด */
+  height: auto;
+  object-fit: contain; /* เปลี่ยนจาก cover เป็น contain เพื่อไม่ให้ตัดภาพ */
   border-radius: 12px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
@@ -92,7 +95,7 @@ input[type="file"]:focus {
 }
 
 /* เพิ่ม Media Query สำหรับหน้าจอขนาดเล็ก */
-@media (max-width: 600px) {
+@media (max-width: 786px) {
   .container {
     padding: 16px;
     border-radius: 12px;
@@ -101,6 +104,11 @@ input[type="file"]:focus {
 
   .title {
     font-size: 18px;
+  }
+
+  .preview-image {
+    max-width: 300px !important; /* ลดขนาดเพิ่มเติมสำหรับหน้าจอเล็ก */
+    max-height: 300px !important;
   }
 
   .button {

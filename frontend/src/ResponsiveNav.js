@@ -69,7 +69,7 @@ const ResponsiveNav = ({ currentUser }) => {
     { path: '/predict', label: 'วิเคราะห์โรค', type: 'link' },
     { path: '/history', label: 'ประวัติการวิเคราะห์', type: 'protected' },
     { path: '/usermanual', label: 'คู่มือการใช้งาน', type: 'link' },
-    { path: '/statisticsadmin', label: 'สถิติผู้ใช้ทั้งหมด', type: 'protected' }
+    { path: '/statisticsadmin', label: 'สถิติการวิเคราะห์รวม', type: 'protected' }
   ];
 
   // ✅ แก้ลำดับและห่อด้วย useCallback

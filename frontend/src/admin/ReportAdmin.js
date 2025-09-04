@@ -304,7 +304,7 @@ function ReportAdmin() {
         <div className="table-wrapper">
             <div className="admin-report-container">
                 <h2>รายงานผลการใช้งานของสมาชิก</h2>
-                <p style={{display:'flex',fontSize: '12px'}}>*ข้อมูลของใบปกติจะไม่แสดงผลในหน้ารายงานผลการใช้งานของสมาชิก แต่จะถูกนับรวมในจำนวนภาพที่สมาชิกทำการวิเคราะห์โรค</p>
+                <p style={{display:'flex',fontSize: '12px'}}>*ข้อมูลของใบปกติจะไม่แสดงผลในหน้ารายงานผลการใช้งานของสมาชิก แต่จะถูกนับรวมในจำนวนภาพที่สมาชิกทำการบันทึกการวิเคราะห์</p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
                     <button
                         className="generate-report-btn"

@@ -8,7 +8,6 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
-
 .result-header {
   display: flex;
   justify-content: space-between;
@@ -27,8 +26,11 @@
 .image-preview {
   display: block;
   margin: 0 auto 25px;
-  width: 300px;
-  max-width: 100%;
+  width: auto; /* เปลี่ยนจาก 300px เป็น auto */
+  max-width: 400px; /* ลดขนาดสูงสุดลง */
+  max-height: 400px; /* เพิ่มความสูงสูงสุด */
+  height: auto; /* เพิ่มเพื่อให้รูปปรับตามสัดส่วน */
+  object-fit: contain; /* เพิ่มเพื่อไม่ให้ตัดภาพ */
   border-radius: 10px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
@@ -109,4 +111,30 @@
   background-color: #c8e6c9;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Media Query สำหรับหน้าจอขนาดเล็ก */
+@media (max-width: 600px) {
+  .result-container {
+    width: 95%;
+    padding: 20px;
+  }
+  
+  .title {
+    font-size: 20px;
+  }
+  
+  .image-preview {
+    max-width: 3000px; /* ลดขนาดเพิ่มเติมสำหรับหน้าจอเล็ก */
+    max-height: 300px;
+  }
+  
+  .result-item {
+    font-size: 15px;
+  }
+  
+  .save-btn {
+    font-size: 15px;
+    padding: 10px 20px;
+  }
 }
