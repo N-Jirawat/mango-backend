@@ -28,6 +28,31 @@ function ReportAdmin() {
     const usersPerPage = 10;
     const navigate = useNavigate();
 
+    // Function to check if disease is valid (exclude normal leaves)
+    const isValidDisease = (disease) => {
+        const invalidDiseases = [
+            'ไม่ระบุโรค',
+            'ไม่ทราบโรค',
+            'unknown',
+            'undefined',
+            'null',
+            'ไม่มีข้อมูล',
+            'no disease',
+            'ไม่พบโรค',
+            'not found',
+            'ใบปกติ',        // Exclude normal leaves
+            'normal leaves',
+            'healthy',
+            'normal'
+        ];
+
+        return disease &&
+            disease.trim() !== '' &&
+            !invalidDiseases.some(invalid =>
+                disease.toLowerCase().includes(invalid.toLowerCase())
+            );
+    };
+
     useEffect(() => {
         const auth = getAuth();
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -58,28 +83,49 @@ function ReportAdmin() {
 
                 const analysisSnapshot = await getDocs(collection(db, "AnalysisHistory"));
 
-                // map ตาม userId
-                const userReportsMap = {};
+                // map ตาม userId - แยกการนับทั้งหมดกับการนับเฉพาะโรค
+                const userAnalysisMap = {}; // สำหรับนับทั้งหมด
+                const userDiseaseMap = {};  // สำหรับนับเฉพาะโรค
+                
                 analysisSnapshot.docs.forEach(doc => {
                     const data = doc.data();
                     const userId = data.userId;
-                    if (!userReportsMap[userId]) userReportsMap[userId] = [];
-                    userReportsMap[userId].push({
+                    const disease = data.diseaseName || data.predictedClass || "ไม่ระบุโรค";
+                    
+                    // นับการวิเคราะห์ทั้งหมด (รวมใบปกติ)
+                    if (!userAnalysisMap[userId]) userAnalysisMap[userId] = [];
+                    userAnalysisMap[userId].push({
                         analysisId: doc.id,
-                        diseaseId: data.diseaseName || data.predictedClass || null,
+                        diseaseId: disease,
                         timestamp: data.timestamp || null
                     });
+                    
+                    // นับเฉพาะโรค (ไม่รวมใบปกติ) - ตรวจสอบให้แน่ใจ
+                    if (disease && isValidDisease(disease)) {
+                        if (!userDiseaseMap[userId]) userDiseaseMap[userId] = [];
+                        userDiseaseMap[userId].push({
+                            analysisId: doc.id,
+                            diseaseId: disease,
+                            timestamp: data.timestamp || null
+                        });
+                    }
                 });
 
-                const diseasesList = ["ใบปกติ", "โรคแอนแทรคโนส", "โรคราดำ", "โรคใบจุดนูน"];
+                // Updated diseases list - removed "ใบปกติ"
+                const diseasesList = ["โรคแอนแทรคโนส", "โรคราดำ", "โรคใบจุดนูน"];
 
                 const reportData = users.map(user => {
-                    const analyses = userReportsMap[user.id] || [];
+                    // ใช้ userAnalysisMap สำหรับนับทั้งหมด
+                    const allAnalyses = userAnalysisMap[user.id] || [];
+                    // ใช้ userDiseaseMap สำหรับนับเฉพาะโรค
+                    const diseaseAnalyses = userDiseaseMap[user.id] || [];
 
                     const diseaseCountMap = {};
-                    analyses.forEach(a => {
+                    diseaseAnalyses.forEach(a => {
                         const disease = a.diseaseId || "ไม่ระบุโรค";
-                        diseaseCountMap[disease] = (diseaseCountMap[disease] || 0) + 1;
+                        if (isValidDisease(disease)) {
+                            diseaseCountMap[disease] = (diseaseCountMap[disease] || 0) + 1;
+                        }
                     });
 
                     const mostFrequentDiseaseEntry = Object.entries(diseaseCountMap).sort((a, b) => b[1] - a[1])[0];
@@ -94,12 +140,12 @@ function ReportAdmin() {
                         username: user.username || "-",
                         fullName: user.fullName || "-",
                         email: user.email || "-",
-                        analysisCount: analyses.length,
+                        analysisCount: allAnalyses.length, // นับทั้งหมดรวมใบปกติ
                         mostFrequentDisease: mostFrequentDiseaseEntry
                             ? `${mostFrequentDiseaseEntry[0]} (${mostFrequentDiseaseEntry[1]} ครั้ง)`
                             : "-",
                         diseaseCounts,
-                        analysisHistory: analyses
+                        analysisHistory: diseaseAnalyses // ใช้เฉพาะโรคสำหรับบันทึก
                     };
                 });
 
@@ -124,8 +170,7 @@ function ReportAdmin() {
         return isNaN(num) ? 0 : num;
     };
 
-    // ✅ ฟังก์ชันบันทึกลง Firestore (ReportDataAdmin)
-    // ✅ ฟังก์ชันบันทึกลง Firestore (ReportDataAdmin)
+    // Save function - updated to only save valid diseases
     const saveReportToFirestore = async (usersReport) => {
         if (!Array.isArray(usersReport) || usersReport.length === 0) {
             return;
@@ -138,24 +183,24 @@ function ReportAdmin() {
             const q = query(colRef, where("UserID", "==", user.id));
             const querySnapshot = await getDocs(q);
 
-            // ✅ แปลง analysis ของ user เป็น array object (safe check)
-            const analysisArray = (user.analysisHistory || []).map(a => ({
-                AnalysisID: a.analysisId || "-",
-                DateReUser: a.timestamp?.seconds
-                    ? new Date(a.timestamp.seconds * 1000).toISOString()
-                    : null,
-                DiseaseID: a.diseaseId || null
-            }));
+            // Filter analysis to only include valid diseases
+            const analysisArray = (user.analysisHistory || [])
+                .filter(a => isValidDisease(a.diseaseId))
+                .map(a => ({
+                    AnalysisID: a.analysisId || "-",
+                    DateReUser: a.timestamp?.seconds
+                        ? new Date(a.timestamp.seconds * 1000).toISOString()
+                        : null,
+                    DiseaseID: a.diseaseId || null
+                }));
 
             if (querySnapshot.empty) {
-                // 👉 ยังไม่มี UserID นี้ → สร้าง doc ใหม่
                 await addDoc(colRef, {
                     DateReAdmin: serverTimestamp(),
                     UserID: user.id,
                     Analysis: analysisArray
                 });
             } else {
-                // 👉 มี UserID อยู่แล้ว → อัปเดต doc เดิม (เพิ่ม array)
                 const docRef = querySnapshot.docs[0].ref;
                 for (const analysis of analysisArray) {
                     await updateDoc(docRef, {
@@ -167,7 +212,7 @@ function ReportAdmin() {
         }
     };
 
-    // ✅ ฟังก์ชันสร้าง PDF
+    // Updated PDF generation - removed normal leaves column
     const generatePDF = async () => {
         setSaving(true);
         try {
@@ -184,7 +229,8 @@ function ReportAdmin() {
                     {
                         table: {
                             headerRows: 1,
-                            widths: ['auto', 60, 'auto', '*', 60, 'auto', 'auto', 'auto', 50, 60],
+                            // Updated widths - removed one column for normal leaves
+                            widths: ['auto', 80, 'auto', '*', 80, 'auto', 'auto', 'auto', 'auto'],
                             body: [
                                 [
                                     { text: "ลำดับ", style: "tableHeader" },
@@ -193,7 +239,7 @@ function ReportAdmin() {
                                     { text: "อีเมล", style: "tableHeader" },
                                     { text: "จำนวนภาพที่วิเคราะห์", style: "tableHeader" },
                                     { text: "โรคที่พบมากที่สุด", style: "tableHeader" },
-                                    { text: "ใบปกติ", style: "tableHeader" },
+                                    // Removed "ใบปกติ" column
                                     { text: "โรคแอนแทรคโนส", style: "tableHeader" },
                                     { text: "โรคราดำ", style: "tableHeader" },
                                     { text: "โรคใบจุดนูน", style: "tableHeader" }
@@ -205,7 +251,7 @@ function ReportAdmin() {
                                     { text: sanitize(user.email), style: "tableCell" },
                                     { text: toNumber(user.analysisCount).toString(), style: "tableCell" },
                                     { text: sanitize(user.mostFrequentDisease), style: "tableCell" },
-                                    { text: toNumber(user.diseaseCounts?.["ใบปกติ"]).toString(), style: "tableCell" },
+                                    // Removed normal leaves data
                                     { text: toNumber(user.diseaseCounts?.["โรคแอนแทรคโนส"]).toString(), style: "tableCell" },
                                     { text: toNumber(user.diseaseCounts?.["โรคราดำ"]).toString(), style: "tableCell" },
                                     { text: toNumber(user.diseaseCounts?.["โรคใบจุดนูน"]).toString(), style: "tableCell" },
@@ -233,10 +279,7 @@ function ReportAdmin() {
             };
             alert('ดาวน์โหลดรายงานสำเร็จ!')
 
-            // ✅ ดาวน์โหลด PDF
             pdfMake.createPdf(docDefinition).download("รายงานสมาชิก.pdf");
-
-            // ✅ บันทึกลง Firestore ด้วย (ส่ง usersReport ไปด้วย)
             await saveReportToFirestore(usersReport);
 
         } catch (error) {
@@ -261,6 +304,7 @@ function ReportAdmin() {
         <div className="table-wrapper">
             <div className="admin-report-container">
                 <h2>รายงานผลการใช้งานของสมาชิก</h2>
+                <p style={{display:'flex',fontSize: '12px'}}>*ข้อมูลของใบปกติจะไม่แสดงผลในหน้ารายงานผลการใช้งานของสมาชิก แต่จะถูกนับรวมในจำนวนภาพที่สมาชิกทำการวิเคราะห์โรค</p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
                     <button
                         className="generate-report-btn"
@@ -281,7 +325,7 @@ function ReportAdmin() {
                             <th>อีเมล</th>
                             <th>จำนวนภาพที่วิเคราะห์</th>
                             <th>โรคที่พบมากที่สุด</th>
-                            <th>ใบปกติ</th>
+                            {/* Removed "ใบปกติ" column */}
                             <th>โรคแอนแทรคโนส</th>
                             <th>โรคราดำ</th>
                             <th>โรคใบจุดนูน</th>
@@ -289,7 +333,7 @@ function ReportAdmin() {
                     </thead>
                     <tbody>
                         {currentUsers.length === 0 ? (
-                            <tr><td colSpan="10" style={{ textAlign: "center" }}>ยังไม่มีข้อมูล</td></tr>
+                            <tr><td colSpan="9" style={{ textAlign: "center" }}>ยังไม่มีข้อมูล</td></tr>
                         ) : (
                             currentUsers.map((user, index) => (
                                 <tr key={user.id}>
@@ -299,7 +343,7 @@ function ReportAdmin() {
                                     <td>{user.email}</td>
                                     <td>{user.analysisCount}</td>
                                     <td>{user.mostFrequentDisease}</td>
-                                    <td>{user.diseaseCounts["ใบปกติ"]}</td>
+                                    {/* Removed normal leaves data display */}
                                     <td>{user.diseaseCounts["โรคแอนแทรคโนส"]}</td>
                                     <td>{user.diseaseCounts["โรคราดำ"]}</td>
                                     <td>{user.diseaseCounts["โรคใบจุดนูน"]}</td>

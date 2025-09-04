@@ -127,11 +127,14 @@ function AccountManagement() {
     try {
       const usersRef = collection(db, "users");
       const snapshot = await getDocs(usersRef);
-      const users = snapshot.docs.map((doc) => ({
+      const allUsers = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setUsersList(users);
+      
+      // กรองเฉพาะผู้ใช้ที่มี role เป็น "user" เท่านั้น
+      const regularUsers = allUsers.filter(user => user.role === "user");
+      setUsersList(regularUsers);
     } finally {
       setLoading(false);
     }

@@ -16,6 +16,17 @@ function ReportUser() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // ฟังก์ชันสำหรับกรองข้อมูล ไม่รวม "ใบปกติ"
+  const filterNormalLeaves = (diseaseMap) => {
+    const filtered = {};
+    Object.entries(diseaseMap).forEach(([disease, count]) => {
+      if (disease !== "ใบปกติ" && disease !== "Normal" && disease !== "normal") {
+        filtered[disease] = count;
+      }
+    });
+    return filtered;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       const db = getFirestore();
@@ -49,7 +60,6 @@ function ReportUser() {
 
         try {
 
-          // Prediction Results
           // Prediction Results
           const predictionQuery = query(
             collection(db, "AnalysisHistory"),
@@ -85,11 +95,15 @@ function ReportUser() {
             }
           });
 
+          // กรองออก "ใบปกติ" สำหรับการแสดงผล
+          const filteredDiseaseStats = filterNormalLeaves(diseaseMap);
+
           setAnalysisCount(filteredPredictionDocs.length);
-          setDiseaseStats(diseaseMap);
+          setDiseaseStats(filteredDiseaseStats);
           setLastActive(latestDate?.toLocaleString("th-TH"));
 
-          const mostFrequent = Object.entries(diseaseMap).sort(
+          // หาโรคที่พบบ่อยที่สุด (ไม่รวม "ใบปกติ")
+          const mostFrequent = Object.entries(filteredDiseaseStats).sort(
             ([, a], [, b]) => b - a
           )[0];
           if (mostFrequent) {
@@ -128,11 +142,15 @@ function ReportUser() {
               }
             });
 
+            // กรองออก "ใบปกติ" สำหรับการแสดงผล
+            const filteredDiseaseStats = filterNormalLeaves(diseaseMap);
+
             setAnalysisCount(filteredDocs.length);
-            setDiseaseStats(diseaseMap);
+            setDiseaseStats(filteredDiseaseStats);
             setLastActive(latestDate?.toLocaleString("th-TH"));
 
-            const mostFrequent = Object.entries(diseaseMap).sort(([, a], [, b]) => b - a)[0];
+            // หาโรคที่พบบ่อยที่สุด (ไม่รวม "ใบปกติ")
+            const mostFrequent = Object.entries(filteredDiseaseStats).sort(([, a], [, b]) => b - a)[0];
             if (mostFrequent) {
               setMostFrequentDisease(`${mostFrequent[0]} (${mostFrequent[1]} ครั้ง)`);
             }
@@ -226,7 +244,8 @@ function ReportUser() {
             {Object.entries(diseaseStats)
               .sort(([, a], [, b]) => b - a)
               .map(([disease, count]) => {
-                const percentage = ((count / analysisCount) * 100).toFixed(1);
+                const totalDiseases = Object.values(diseaseStats).reduce((sum, c) => sum + c, 0);
+                const percentage = ((count / totalDiseases) * 100).toFixed(1);
                 return (
                   <tr key={disease}>
                     <td>{disease}</td>
@@ -238,7 +257,7 @@ function ReportUser() {
           </tbody>
         </table>
       ) : (
-        <p>ยังไม่มีข้อมูลการวิเคราะห์</p>
+        <p>ยังไม่มีข้อมูลการวิเคราะห์โรค</p>
       )}
 
       <div className="action-buttons">

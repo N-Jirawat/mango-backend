@@ -88,7 +88,30 @@ function StatisticsAdmin() {
     return [...new Set(districtsInProvince)].filter(district => district && district !== "ไม่ระบุอำเภอ").sort();
   }, [usersMap, filters.selectedProvince]);
 
-  // ฟังก์ชันประมวลผลสถิติ
+  const isValidDisease = (disease) => {
+    const invalidDiseases = [
+      'ไม่ระบุโรค',
+      'ไม่ทราบโรค',
+      'unknown',
+      'undefined',
+      'null',
+      'ไม่มีข้อมูล',
+      'no disease',
+      'ไม่พบโรค',
+      'not found',
+      'ใบปกติ',        // Add this line to exclude normal leaves
+      'normal leaves',  // Add English version too
+      'healthy',       // Add other variations
+      'normal'
+    ];
+
+    return disease &&
+      disease.trim() !== '' &&
+      !invalidDiseases.some(invalid =>
+        disease.toLowerCase().includes(invalid.toLowerCase())
+      );
+  };
+
   // แก้ไขในฟังก์ชัน processStatistics
   const processStatistics = useCallback((predictions, usersMapTemp) => {
     const diseaseMap = {};
@@ -98,30 +121,14 @@ function StatisticsAdmin() {
     predictions.forEach((prediction) => {
       const { disease, userId, timestamp } = prediction;
 
-      // กรองข้อมูลที่ไม่ระบุโรคออก
-      const invalidDiseases = [
-        'ไม่ระบุโรค',
-        'ไม่ทราบโรค',
-        'unknown',
-        'undefined',
-        'null',
-        'ไม่มีข้อมูล',
-        'no disease',
-        'ไม่พบโรค',
-        'not found'
-      ];
-
-      if (!disease ||
-        disease.trim() === '' ||
-        invalidDiseases.some(invalid =>
-          disease.toLowerCase().includes(invalid.toLowerCase())
-        )) {
-        return; // ข้ามการประมวลผลข้อมูลนี้
+      // Use the updated validation function
+      if (!isValidDisease(disease)) {
+        return; // Skip processing this data
       }
 
       const userInfo = usersMapTemp[userId];
 
-      // ใช้ข้อมูลผู้ใช้หรือค่าเริ่มต้น
+      // Rest of your existing logic remains the same...
       let district = "ไม่ระบุอำเภอ";
       let province = "ไม่ระบุจังหวัด";
 
@@ -130,21 +137,20 @@ function StatisticsAdmin() {
         province = userInfo.province || "ไม่ระบุจังหวัด";
       }
 
-      // ถ้า district และ province เป็นค่าว่าง ให้ใช้ค่าเริ่มต้น
       if (!district.trim()) district = "ไม่ระบุอำเภอ";
       if (!province.trim()) province = "ไม่ระบุจังหวัด";
 
-      // นับสถิติโรค
+      // Count disease statistics
       diseaseMap[disease] = (diseaseMap[disease] || 0) + 1;
 
-      // นับสถิติตามพื้นที่ (รวม province เข้าไปด้วย)
+      // Count statistics by area
       const areaKey = `${district}, ${province}`;
       if (!districtMap[areaKey]) {
         districtMap[areaKey] = {};
       }
       districtMap[areaKey][disease] = (districtMap[areaKey][disease] || 0) + 1;
 
-      // สถิติรายเดือน
+      // Monthly statistics
       if (timestamp && timestamp instanceof Date && !isNaN(timestamp.getTime())) {
         const monthKey = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}`;
         if (!monthlyData[monthKey]) {
@@ -158,12 +164,12 @@ function StatisticsAdmin() {
     setDiseaseStats(diseaseMap);
     setDistrictDiseaseMap(districtMap);
 
-    // แปลงข้อมูล timeline เป็นแบบสะสม (cumulative)
+    // Convert timeline data to cumulative format
     const sortedMonths = Object.keys(monthlyData).sort();
     const cumulativeData = {};
     const allDiseases = Object.keys(diseaseMap);
 
-    // เริ่มต้นด้วย 0 สำหรับทุกโรค
+    // Initialize with 0 for all diseases
     allDiseases.forEach(disease => {
       cumulativeData[disease] = 0;
     });
@@ -171,23 +177,23 @@ function StatisticsAdmin() {
     const timelineArray = sortedMonths.map(monthKey => {
       const monthData = monthlyData[monthKey];
 
-      // เพิ่มจำนวนของเดือนปัจจุบันเข้าไปในข้อมูลสะสม
+      // Add current month's count to cumulative data
       allDiseases.forEach(disease => {
         if (monthData.diseases[disease]) {
           cumulativeData[disease] += monthData.diseases[disease];
         }
       });
 
-      // สร้างข้อมูลสำหรับเดือนนี้ด้วยค่าสะสม
+      // Create data for this month with cumulative values
       return {
         month: formatMonthLabel(monthKey),
         count: Object.values(cumulativeData).reduce((sum, val) => sum + val, 0),
-        ...{ ...cumulativeData } // copy ค่าสะสมปัจจุบัน
+        ...{ ...cumulativeData } // copy current cumulative values
       };
     });
 
     setTimelineData(timelineArray);
-  }, [formatMonthLabel]);
+  }, [formatMonthLabel])
 
   const { startDate, endDate, selectedProvince, selectedDistrict } = filters;
 
@@ -1219,32 +1225,11 @@ function StatisticsAdmin() {
     }
   };
 
-  // เพิ่มฟังก์ชันตรวจสอบโรคที่ถูกต้อง
-  const isValidDisease = (disease) => {
-    const invalidDiseases = [
-      'ไม่ระบุโรค',
-      'ไม่ทราบโรค',
-      'unknown',
-      'undefined',
-      'null',
-      'ไม่มีข้อมูล',
-      'no disease',
-      'ไม่พบโรค',
-      'not found'
-    ];
-
-    return disease &&
-      disease.trim() !== '' &&
-      !invalidDiseases.some(invalid =>
-        disease.toLowerCase().includes(invalid.toLowerCase())
-      );
-  };
-
   // ใช้ในการกรอง pieData
   const pieData = useMemo(() => {
     const totalCount = Object.values(diseaseStats).reduce((sum, val) => sum + val, 0);
     return Object.entries(diseaseStats)
-      .filter(([disease]) => isValidDisease(disease)) // เพิ่มการกรอง
+      .filter(([disease]) => isValidDisease(disease)) // Apply the filter here too
       .map(([disease, count]) => ({
         name: disease,
         value: count,
@@ -1252,11 +1237,11 @@ function StatisticsAdmin() {
       }));
   }, [diseaseStats]);
 
-  // ใช้ในการกรอง chartData
+  // Update the chartData useMemo to use the same filter
   const chartData = useMemo(() => {
     return Object.entries(districtDiseaseMap)
       .map(([areaKey, diseases]) => {
-        // กรองเฉพาะโรคที่ถูกต้อง
+        // Filter only valid diseases
         const filteredDiseases = {};
         Object.entries(diseases).forEach(([disease, count]) => {
           if (isValidDisease(disease)) {
@@ -1264,7 +1249,7 @@ function StatisticsAdmin() {
           }
         });
 
-        // ถ้าไม่มีโรคที่ถูกต้องในพื้นที่นี้ ให้ return null
+        // If no valid diseases in this area, return null
         if (Object.keys(filteredDiseases).length === 0) {
           return null;
         }
@@ -1275,10 +1260,10 @@ function StatisticsAdmin() {
           ...filteredDiseases,
         };
       })
-      .filter(Boolean); // ลบ null values ออก
+      .filter(Boolean); // Remove null values
   }, [districtDiseaseMap]);
 
-  // ใช้ในการกรอง cleanedTimelineData
+  // Update the cleanedTimelineData useMemo to use the same filter
   const cleanedTimelineData = useMemo(() => {
     const validDiseases = Object.keys(diseaseStats).filter(isValidDisease);
 
@@ -1290,7 +1275,7 @@ function StatisticsAdmin() {
           cleanedItem[disease] = 0;
         } else {
           cleanedItem[disease] = item[disease];
-          cleanedItem.count += item[disease]; // อัปเดต count รวม
+          cleanedItem.count += item[disease]; // Update total count
         }
       });
 
