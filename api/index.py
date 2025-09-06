@@ -371,6 +371,10 @@ def health_check():
 
 @app.route('/predict', methods=['POST'])
 def predict_image():
+    print("⚡ /predict called")
+    print(f"request.files: {request.files}")
+    print(f"request.form: {request.form}")
+    print(f"request.headers: {request.headers}")
     """API หลักสำหรับทำนายโรคในใบมะม่วง - ปรับปรุงแล้ว"""
     try:
         # ตรวจสอบว่าโมเดลพร้อมใช้งาน
