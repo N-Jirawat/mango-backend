@@ -8,7 +8,6 @@ function ImageUpload({ setPredictionResult }) {
   const [isUploaded, setIsUploaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [serverStatus, setServerStatus] = useState('unknown');
 
   const navigate = useNavigate();
 
@@ -185,25 +184,6 @@ function ImageUpload({ setPredictionResult }) {
     setLoading(false);
   };
 
-  // ตรวจสอบสถานะเซิร์ฟเวอร์
-  useEffect(() => {
-    const checkServerHealth = async () => {
-      try {
-        const response = await fetch('https://mango-backend-665966382004.asia-southeast1.run.app/health');
-        if (response.ok) {
-          const data = await response.json();
-          setServerStatus(data.model_loaded ? 'ready' : 'loading');
-        } else {
-          setServerStatus('error');
-        }
-      } catch (error) {
-        setServerStatus('error');
-      }
-    };
-
-    checkServerHealth();
-  }, []);
-
   // ล้าง object URL เมื่อ component unmount
   useEffect(() => {
     return () => {
@@ -224,25 +204,16 @@ function ImageUpload({ setPredictionResult }) {
       />
       <p className='warning'>
         คำแนะนำ: ควรเป็นภาพของใบมะม่วงที่มีลักษณะโรคชัดเจน 
-        (ขนาดไฟล์ไม่เกิน 5MB, รองรับ JPG, PNG, WebP)
+        (ขนาดไฟล์ไม่เกิน 10MB, รองรับ JPG, PNG, WebP)
       </p>
-      
-      {serverStatus === 'error' && (
-        <p className="error">⚠️ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้</p>
-      )}
-      {serverStatus === 'loading' && (
-        <p className="warning">🔄 เซิร์ฟเวอร์กำลังโหลดโมเดล...</p>
-      )}
-      {serverStatus === 'ready' && (
-        <p style={{color: 'green'}}>✅ เซิร์ฟเวอร์พร้อมใช้งาน</p>
-      )}
       
       {preview && (
         <div className="preview-container">
           <img src={preview} alt="Preview" className="preview-image" />
         </div>
       )}
-      {isUploaded && serverStatus === 'ready' && (
+      
+      {isUploaded && (
         <button
           onClick={handleUpload}
           className="button"
@@ -251,11 +222,7 @@ function ImageUpload({ setPredictionResult }) {
           {loading ? 'กำลังวินิจฉัยโรค...' : 'วินิจฉัย'}
         </button>
       )}
-      {isUploaded && serverStatus !== 'ready' && (
-        <button className="button" disabled>
-          {serverStatus === 'loading' ? 'รอเซิร์ฟเวอร์โหลดโมเดล...' : 'เซิร์ฟเวอร์ไม่พร้อม'}
-        </button>
-      )}
+      
       {error && <p className="error">{error}</p>}
     </div>
   );
