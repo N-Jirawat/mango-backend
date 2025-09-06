@@ -17,7 +17,7 @@ from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 import cloudinary
 import cloudinary.uploader
 import os, json, time, signal
-import checkMango
+from . import checkMango
 from google.cloud import storage
 from datetime import datetime
 from contextlib import contextmanager
