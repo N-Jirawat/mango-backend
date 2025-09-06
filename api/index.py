@@ -1,5 +1,5 @@
 # =================================================================
-# Flask API สำหรับการวิเคราะห์โรคในใบมะม่วง (เวอร์ชันปรับปรุงแล้ว)
+# Flask API สำหรับการวิเคราะห์โรคในใบมะม่วง (เวอร์ชันแก้ไขปัญหา threading)
 # ใช้ Machine Learning (EfficientNetV2S) ในการตรวจจับและจำแนกโรค
 # =================================================================
 
@@ -16,13 +16,14 @@ from tensorflow.keras.applications import EfficientNetV2S
 from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
 import cloudinary
 import cloudinary.uploader
-import os, json, time, signal
+import os, json, time, threading
 from . import checkMango
 from google.cloud import storage
 from datetime import datetime
-from contextlib import contextmanager
 import traceback
 import psutil  # สำหรับตรวจสอบ system resources
+import concurrent.futures
+from functools import wraps
 
 # =================== การตั้งค่า Flask Application ===================
 app = Flask(__name__)
@@ -49,7 +50,7 @@ USE_FILTER = True
 MANGO_LEAF_THRESHOLD = 0.70
 DISEASE_CONFIDENCE_THRESHOLD = 0.80
 
-# Timeout settings
+# Timeout settings (ใช้กับ concurrent.futures แทน signal)
 MODEL_LOAD_TIMEOUT = 300  # 5 minutes
 PREDICTION_TIMEOUT = 30   # 30 seconds
 
@@ -84,24 +85,23 @@ model_load_error = None
 embedding_load_error = None
 app_start_time = datetime.now()
 
+# Thread executor สำหรับจัดการ timeout แทน signal
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+
 # =================== Utility Functions ===================
 
-@contextmanager
-def timeout(duration):
-    """Context manager สำหรับจำกัดเวลาการทำงาน"""
-    def timeout_handler(signum, frame):
-        raise TimeoutError(f"Operation timed out after {duration} seconds")
-    
-    # ใช้ได้เฉพาะใน Unix-like systems
-    if hasattr(signal, 'SIGALRM'):
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(duration)
-    
-    try:
-        yield
-    finally:
-        if hasattr(signal, 'SIGALRM'):
-            signal.alarm(0)
+def timeout_decorator(timeout_duration):
+    """Decorator สำหรับจำกัดเวลาการทำงานโดยใช้ concurrent.futures แทน signal"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            future = executor.submit(func, *args, **kwargs)
+            try:
+                return future.result(timeout=timeout_duration)
+            except concurrent.futures.TimeoutError:
+                raise TimeoutError(f"Function {func.__name__} timed out after {timeout_duration} seconds")
+        return wrapper
+    return decorator
 
 def get_system_info():
     """ดึงข้อมูลระบบสำหรับ monitoring"""
@@ -150,36 +150,39 @@ def verify_file_exists_and_not_empty(file_path, min_size=1024):
     
     return True, f"ไฟล์ถูกต้อง ({size:,} bytes)"
 
+@timeout_decorator(MODEL_LOAD_TIMEOUT)
+def _load_model_core():
+    """โหลดโมเดลหลัก (ฟังก์ชันภายใน)"""
+    # สร้างโฟลเดอร์
+    os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
+    
+    # ดาวน์โหลดโมเดลถ้ายังไม่มี
+    if not os.path.exists(LOCAL_MODEL_PATH):
+        download_from_gcs(GCS_BUCKET_NAME, MODEL_GCS_PATH, LOCAL_MODEL_PATH)
+    
+    # ตรวจสอบไฟล์
+    is_valid, message = verify_file_exists_and_not_empty(LOCAL_MODEL_PATH, min_size=1024*1024)
+    if not is_valid:
+        raise RuntimeError(f"ไฟล์โมเดลไม่ถูกต้อง: {message}")
+    
+    # โหลดโมเดล
+    print("📥 กำลังโหลดโมเดลเข้าสู่หน่วยความจำ...")
+    loaded_model = load_model(LOCAL_MODEL_PATH, compile=False)
+    
+    # ทดสอบโมเดล
+    print("🧪 ทดสอบโมเดล...")
+    dummy_input = np.random.random((1, 224, 224, 3)).astype(np.float32)
+    _ = loaded_model.predict(dummy_input, verbose=0)
+    
+    return loaded_model
+
 def load_model_safely():
     """โหลดโมเดลอย่างปลอดภัยพร้อม error handling"""
     global model, model_load_error
     
     try:
         print("🚀 เริ่มโหลดโมเดลหลัก...")
-        
-        # สร้างโฟลเดอร์
-        os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
-        
-        # ดาวน์โหลดโมเดลถ้ายังไม่มี
-        if not os.path.exists(LOCAL_MODEL_PATH):
-            with timeout(MODEL_LOAD_TIMEOUT):
-                download_from_gcs(GCS_BUCKET_NAME, MODEL_GCS_PATH, LOCAL_MODEL_PATH)
-        
-        # ตรวจสอบไฟล์
-        is_valid, message = verify_file_exists_and_not_empty(LOCAL_MODEL_PATH, min_size=1024*1024)  # อย่างน้อย 1MB
-        if not is_valid:
-            raise RuntimeError(f"ไฟล์โมเดลไม่ถูกต้อง: {message}")
-        
-        # โหลดโมเดล
-        print("📥 กำลังโหลดโมเดลเข้าสู่หน่วยความจำ...")
-        with timeout(MODEL_LOAD_TIMEOUT):
-            model = load_model(LOCAL_MODEL_PATH, compile=False)  # ไม่ compile เพื่อเร็วขึ้น
-        
-        # ทดสอบโมเดล
-        print("🧪 ทดสอบโมเดล...")
-        dummy_input = np.random.random((1, 224, 224, 3)).astype(np.float32)
-        _ = model.predict(dummy_input, verbose=0)
-        
+        model = _load_model_core()
         print(f"✅ โหลดโมเดลสำเร็จ")
         print(f"   📊 Input shape: {model.input_shape}")
         print(f"   📊 Output shape: {model.output_shape}")
@@ -197,6 +200,24 @@ def load_model_safely():
         traceback.print_exc()
         return False
 
+@timeout_decorator(MODEL_LOAD_TIMEOUT)
+def _load_embeddings_core():
+    """โหลด embeddings (ฟังก์ชันภายใน)"""
+    # โหลด EfficientNetV2S
+    embedding_model = EfficientNetV2S(include_top=False, weights="imagenet", pooling="avg")
+    print("✅ โหลด EfficientNetV2S สำเร็จ")
+    
+    # ดาวน์โหลดและโหลด embeddings
+    if not os.path.exists(LOCAL_EMBEDDING_PATH):
+        download_from_gcs(GCS_BUCKET_NAME, EMBEDDINGS_GCS_PATH, LOCAL_EMBEDDING_PATH)
+    
+    is_valid, message = verify_file_exists_and_not_empty(LOCAL_EMBEDDING_PATH, min_size=1024)
+    if not is_valid:
+        raise RuntimeError(f"ไฟล์ embedding ไม่ถูกต้อง: {message}")
+    
+    mango_embeddings = np.load(LOCAL_EMBEDDING_PATH)
+    return embedding_model, mango_embeddings
+
 def load_embedding_safely():
     """โหลด embedding model และ reference data อย่างปลอดภัย"""
     global embedding_load_error
@@ -208,24 +229,19 @@ def load_embedding_safely():
     
     try:
         print("🚀 เริ่มโหลด embedding model และข้อมูลอ้างอิง...")
+        embedding_model, mango_embeddings = _load_embeddings_core()
         
-        # โหลด EfficientNetV2S
-        checkMango.embedding_model = EfficientNetV2S(include_top=False, weights="imagenet", pooling="avg")
-        print("✅ โหลด EfficientNetV2S สำเร็จ")
-        
-        # ดาวน์โหลดและโหลด embeddings
-        if not os.path.exists(LOCAL_EMBEDDING_PATH):
-            with timeout(MODEL_LOAD_TIMEOUT):
-                download_from_gcs(GCS_BUCKET_NAME, EMBEDDINGS_GCS_PATH, LOCAL_EMBEDDING_PATH)
-        
-        is_valid, message = verify_file_exists_and_not_empty(LOCAL_EMBEDDING_PATH, min_size=1024)
-        if not is_valid:
-            raise RuntimeError(f"ไฟล์ embedding ไม่ถูกต้อง: {message}")
-        
-        checkMango.mango_embeddings = np.load(LOCAL_EMBEDDING_PATH)
+        checkMango.embedding_model = embedding_model
+        checkMango.mango_embeddings = mango_embeddings
         print(f"✅ โหลด embeddings สำเร็จ: {checkMango.mango_embeddings.shape}")
         return True
         
+    except TimeoutError as e:
+        error_msg = f"การโหลด embedding timeout: {e}"
+        print(f"⏰ {error_msg}")
+        embedding_load_error = error_msg
+        checkMango.mango_embeddings = np.array([])
+        return False
     except Exception as e:
         error_msg = f"ไม่สามารถโหลด embedding ได้: {str(e)}"
         print(f"❌ {error_msg}")
@@ -287,6 +303,19 @@ def validate_image_file(image_file):
     
     if file_size < 1024:  # 1 KB
         raise ValueError("ขนาดไฟล์เล็กเกินไป")
+
+@timeout_decorator(PREDICTION_TIMEOUT)
+def _check_mango_leaf_core(image_file, embeddings):
+    """ตรวจสอบใบมะม่วง (ฟังก์ชันภายใน)"""
+    image_file.seek(0)
+    return checkMango.is_mango_leaf_from_embedding(image_file, embeddings)
+
+@timeout_decorator(PREDICTION_TIMEOUT)
+def _predict_disease_core(image_file):
+    """ทำนายโรค (ฟังก์ชันภายใน)"""
+    image_file.seek(0)
+    img_array = load_and_prep_image(image_file)
+    return model.predict(img_array, verbose=0)
 
 # =================== Error Handlers ===================
 
@@ -350,11 +379,10 @@ def health_check():
     # ทดสอบโมเดลหลัก
     if model is not None:
         try:
-            with timeout(10):  # 10 วินาที timeout สำหรับการทดสอบ
-                dummy_input = np.random.random((1, 224, 224, 3)).astype(np.float32)
-                prediction = model.predict(dummy_input, verbose=0)
-                health_status["models"]["main_model"]["test_prediction_shape"] = list(prediction.shape)
-                health_status["models"]["main_model"]["test_status"] = "passed"
+            dummy_input = np.random.random((1, 224, 224, 3)).astype(np.float32)
+            prediction = model.predict(dummy_input, verbose=0)
+            health_status["models"]["main_model"]["test_prediction_shape"] = list(prediction.shape)
+            health_status["models"]["main_model"]["test_status"] = "passed"
         except Exception as e:
             health_status["models"]["main_model"]["test_status"] = f"failed: {str(e)}"
             health_status["status"] = "degraded"
@@ -371,11 +399,8 @@ def health_check():
 
 @app.route('/predict', methods=['POST'])
 def predict_image():
-    print("⚡ /predict called")
-    print(f"request.files: {request.files}")
-    print(f"request.form: {request.form}")
-    print(f"request.headers: {request.headers}")
     """API หลักสำหรับทำนายโรคในใบมะม่วง - ปรับปรุงแล้ว"""
+    print("⚡ /predict called")
     try:
         # ตรวจสอบว่าโมเดลพร้อมใช้งาน
         if model is None:
@@ -397,9 +422,7 @@ def predict_image():
         similarity = 0.0
         if USE_FILTER and hasattr(checkMango, 'mango_embeddings') and len(checkMango.mango_embeddings) > 0:
             try:
-                image.seek(0)
-                with timeout(PREDICTION_TIMEOUT):
-                    is_leaf, similarity = checkMango.is_mango_leaf_from_embedding(image, checkMango.mango_embeddings)
+                is_leaf, similarity = _check_mango_leaf_core(image, checkMango.mango_embeddings)
                 
                 if similarity < MANGO_LEAF_THRESHOLD:
                     return jsonify({
@@ -421,11 +444,8 @@ def predict_image():
                 similarity = 0.0  # ใช้ค่าเริ่มต้น
 
         # ทำนายโรค
-        image.seek(0)
         try:
-            with timeout(PREDICTION_TIMEOUT):
-                img_array = load_and_prep_image(image)
-                prediction = model.predict(img_array, verbose=0)
+            prediction = _predict_disease_core(image)
         except TimeoutError:
             return jsonify({
                 "error": "Prediction timeout",
@@ -483,6 +503,16 @@ def predict_image():
             "type": "server_error"
         }), 500
 
+@timeout_decorator(60)
+def _upload_to_cloudinary_core(image):
+    """อัปโหลดไปยัง Cloudinary (ฟังก์ชันภายใน)"""
+    return cloudinary.uploader.upload(
+        image, 
+        folder="mango_diseases",
+        resource_type="image",
+        timeout=60
+    )
+
 @app.route("/upload", methods=["POST"])
 def upload_image():
     """API สำหรับอัปโหลดภาพไปยัง Cloudinary - ปรับปรุงแล้ว"""
@@ -494,13 +524,7 @@ def upload_image():
         validate_image_file(image)
 
         # อัปโหลดไปยัง Cloudinary พร้อม timeout
-        with timeout(60):  # 1 นาที timeout
-            upload_result = cloudinary.uploader.upload(
-                image, 
-                folder="mango_diseases",
-                resource_type="image",
-                timeout=60
-            )
+        upload_result = _upload_to_cloudinary_core(image)
         
         return jsonify({
             "imageUrl": upload_result['secure_url'],
@@ -521,6 +545,11 @@ def upload_image():
             "message": f"การอัปโหลดล้มเหลว: {str(e)}"
         }), 500
 
+@timeout_decorator(30)
+def _delete_from_cloudinary_core(public_id):
+    """ลบจาก Cloudinary (ฟังก์ชันภายใน)"""
+    return cloudinary.uploader.destroy(public_id)
+
 @app.route("/delete", methods=["POST"])
 def delete_image():
     """API สำหรับลบภาพจาก Cloudinary - ปรับปรุงแล้ว"""
@@ -529,8 +558,7 @@ def delete_image():
         if not public_id:
             return jsonify({"error": "ไม่ได้ระบุ public_id"}), 400
 
-        with timeout(30):  # 30 วินาที timeout
-            result = cloudinary.uploader.destroy(public_id)
+        result = _delete_from_cloudinary_core(public_id)
         
         return jsonify({
             "result": "ลบภาพสำเร็จ",
@@ -721,6 +749,16 @@ def log_response_info(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     
     return response
+
+# =================== การปิด Executor เมื่อ App ปิด ===================
+import atexit
+
+def cleanup():
+    """ปิด thread executor เมื่อ app ปิด"""
+    executor.shutdown(wait=False)
+    print("🛑 Thread executor ปิดแล้ว")
+
+atexit.register(cleanup)
 
 # =================== การรันแอปพลิเคชัน ===================
 if __name__ == '__main__':

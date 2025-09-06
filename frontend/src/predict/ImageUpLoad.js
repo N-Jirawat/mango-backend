@@ -206,13 +206,18 @@ function ImageUpload({ setPredictionResult }) {
           <img src={preview} alt="Preview" className="preview-image" />
         </div>
       )}
-      {isUploaded && (
+      {isUploaded && serverStatus === 'ready' && (
         <button
           onClick={handleUpload}
           className="button"
           disabled={loading}
         >
           {loading ? 'กำลังวินิจฉัยโรค...' : 'วินิจฉัย'}
+        </button>
+      )}
+      {isUploaded && serverStatus !== 'ready' && (
+        <button className="button" disabled>
+          {serverStatus === 'loading' ? 'รอเซิร์ฟเวอร์โหลดโมเดล...' : 'เซิร์ฟเวอร์ไม่พร้อม'}
         </button>
       )}
       {error && <p className="error">{error}</p>}
