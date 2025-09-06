@@ -9,7 +9,7 @@ import {
 // เพิ่ม pdfMake imports
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "../PDF/vfs_fonts"; // ไฟล์ฟอนต์ Sarabun ต้องมีในโฟลเดอร์นี้
-import { saveStatisticsToFirestore } from './FirebaseStateLogger';
+import { saveStatisticsToFirestore, saveUserStatisticsToFirestore } from './FirebaseStateLogger';
 import { useNavigate } from 'react-router-dom';
 
 // กำหนดฟอนต์ให้ pdfMake
@@ -911,18 +911,38 @@ function StatisticsAdmin() {
     });
   };
 
+  // ใน StatisticsAdmin.js - แก้ไขฟังก์ชัน handleDownloadPDF
+
   const handleDownloadPDF = async () => {
     try {
       const currentDate = new Date().toLocaleDateString("th-TH");
 
-      // บันทึกสถิติลง Firebase ก่อนสร้าง PDF
-      let saveResult = null;
-      try {
-        saveResult = await saveStatisticsToFirestore(diseaseStats, filteredPredictions, filters);
-      } catch (error) {
-        console.error("เกิดข้อผิดพลาดในการบันทึกสถิติ:", error);
+      // ตรวจสอบ authentication
+      const { getAuth } = await import("firebase/auth");
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        alert("กรุณาเข้าสู่ระบบก่อนใช้งาน");
+        return;
       }
 
+      // บันทึกสถิติลง Firebase
+      let saveResult = null;
+
+      try {
+        // ตรวจสอบและบันทึกสถิติการวิเคราะห์
+        if (Array.isArray(filteredPredictions) && filteredPredictions.length > 0 && Object.keys(diseaseStats).length > 0) {
+          saveResult = await saveStatisticsToFirestore(diseaseStats, filteredPredictions, filters);
+        } else {
+          console.warn("ไม่มีข้อมูลสำหรับบันทึกสถิติการวิเคราะห์");
+        }
+        await saveUserStatisticsToFirestore("users");
+
+      } catch (firebaseError) {
+      }
+
+      // สร้างกราฟและ PDF (โค้ดเดิม)
       let pieChartImage = null;
       let barChartImage = null;
       let lineChartImage = null;
@@ -947,6 +967,7 @@ function StatisticsAdmin() {
         });
       }
 
+      // สร้างข้อมูลตัวกรอง
       const filterInfo = [];
       if (startDate) {
         filterInfo.push(`วันที่เริ่มต้น: ${new Date(startDate + 'T00:00:00').toLocaleDateString('th-TH')}`);
@@ -961,6 +982,7 @@ function StatisticsAdmin() {
         filterInfo.push(`อำเภอ: ${selectedDistrict}`);
       }
 
+      // สร้างตารางข้อมูลโรค
       const diseaseTableData = [
         [{ text: 'ชื่อโรค', style: 'tableHeader' }, { text: 'จำนวน (ครั้ง)', style: 'tableHeader' }, { text: 'เปอร์เซ็นต์', style: 'tableHeader' }]
       ];
@@ -977,6 +999,7 @@ function StatisticsAdmin() {
           ]);
         });
 
+      // สร้างตารางข้อมูลพื้นที่
       const areaTableData = [
         [{ text: 'พื้นที่', style: 'tableHeader' }, { text: 'จำนวนรวม (ครั้ง)', style: 'tableHeader' }, { text: 'โรคที่พบ', style: 'tableHeader' }]
       ];
@@ -997,6 +1020,7 @@ function StatisticsAdmin() {
         ]);
       });
 
+      // สร้างตารางข้อมูลเวลา
       const timelineTableData = [
         [{ text: 'เดือน', style: 'tableHeader' }, { text: 'จำนวนรวม', style: 'tableHeader' }]
       ];
@@ -1026,6 +1050,7 @@ function StatisticsAdmin() {
         });
       }
 
+      // สร้าง PDF Definition
       const docDefinition = {
         content: [
           { text: 'รายงานสถิติการวิเคราะห์โรคใบมะม่วง', style: 'header' },
@@ -1198,6 +1223,7 @@ function StatisticsAdmin() {
         pageMargins: [40, 60, 40, 60]
       };
 
+      // สร้างชื่อไฟล์
       let fileName = `รายงานสถิติโรคใบมะม่วง_${currentDate}`;
       if (hasActiveFilters) {
         if (selectedProvince) fileName += `_${selectedProvince}`;
@@ -1216,12 +1242,10 @@ function StatisticsAdmin() {
       pdfMake.createPdf(docDefinition).download(fileName);
 
       // แสดงข้อความสำเร็จ
-      if (saveResult) {
-        alert('สร้างรายงาน PDF สำเร็จ!');
-      }
+      alert('สร้างรายงาน PDF สำเร็จ!');
 
     } catch (error) {
-      alert("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF");
+      alert('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF');
     }
   };
 
