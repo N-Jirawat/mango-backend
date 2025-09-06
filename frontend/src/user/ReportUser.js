@@ -224,7 +224,7 @@ function ReportUser() {
             <td>{mostFrequentDisease}</td>
           </tr>
           <tr>
-            <td>⏰ วันที่ใช้งานล่าสุด</td>
+            <td>⏰ วันที่วิเคราะห์โรคล่าสุด</td>
             <td>{lastActive || "ยังไม่มีการใช้งาน"}</td>
           </tr>
         </tbody>
