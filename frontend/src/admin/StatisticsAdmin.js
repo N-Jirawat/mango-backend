@@ -1385,7 +1385,7 @@ function StatisticsAdmin() {
 
     // อัพเดทฟังก์ชัน zoom ให้ใช้ increment 25% และขยายช่วง
     const handleZoomIn = useCallback(() => {
-      setZoomLevel(prev => Math.min(prev + 25, 400)); // เพิ่มสูงสุดเป็น 400%
+      setZoomLevel(prev => Math.min(prev + 25, 150)); // เพิ่มสูงสุดเป็น 150%
     }, []);
 
     const handleZoomOut = useCallback(() => {
@@ -1448,7 +1448,7 @@ function StatisticsAdmin() {
               <button
                 className="zoom-btn zoom-in"
                 onClick={handleZoomIn}
-                disabled={zoomLevel >= 400}
+                disabled={zoomLevel >= 150}
                 title="ซูมเข้า (+25%)"
               >
                 +
