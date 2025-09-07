@@ -1887,7 +1887,7 @@ function StatisticsAdmin() {
                         <XAxis
                           dataKey="month"
                           interval={0}
-                          angle={-45}
+                          angle={-10}
                           textAnchor="end"
                           height={100}
                           tick={{ fontSize: 12 }}
@@ -1973,7 +1973,7 @@ function StatisticsAdmin() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
                           dataKey="locationLabel"
-                          angle={-45}
+                          angle={-10}
                           textAnchor="end"
                           interval={0}
                           height={120}
