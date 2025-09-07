@@ -34,7 +34,6 @@ function ReportUser() {
 
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
-          alert("กรุณาเข้าสู่ระบบก่อนใช้งาน");
           navigate("/login");
           return;
         }
