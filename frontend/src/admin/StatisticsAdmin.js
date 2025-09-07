@@ -1575,16 +1575,15 @@ function StatisticsAdmin() {
                       outerRadius={Math.max(40, 120 * Math.min(zoomLevel / 100, 2))} // ปรับขนาดขั้นต่ำ
                       dataKey="value"
                       label={({ name, percentage }) => {
-                        // แสดง label ตามขนาด zoom
-                        if (zoomLevel < 50) {
-                          return `${percentage}%`; // แสดงแค่เปอร์เซ็นต์เมื่อซูมเล็ก
-                        } else if (zoomLevel < 75) {
-                          return `${name}\n${percentage}%`; // แสดงชื่อและเปอร์เซ็นต์
+                        // ตรวจสอบขนาดหน้าจอ - ถ้าเล็กกว่า 768px (มือถือ/แท็บเล็ต) แสดงแค่เปอร์เซ็นต์
+                        const isMobile = window.innerWidth < 768;
+                        if (isMobile) {
+                          return `${percentage}%`; // แสดงแค่เปอร์เซ็นต์เมื่อหน้าจอเล็ก
                         } else {
-                          return `${name}\n${percentage}%`; // แสดงทั้งหมด
+                          return `${name}\n${percentage}%`; // แสดงทั้งชื่อและเปอร์เซ็นต์เมื่อหน้าจอใหญ่
                         }
                       }}
-                      labelLine={zoomLevel >= 75} // แสดง label line เมื่อซูมใหญ่พอ
+                      labelLine={true} // แสดง label line เสมอ
                     >
                       {chartDataToShow.map((entry, index) => {
                         const colorIndex = diseaseNames.indexOf(entry.name);
