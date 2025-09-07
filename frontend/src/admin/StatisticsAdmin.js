@@ -34,7 +34,7 @@ function StatisticsAdmin() {
 
   // เพิ่ม state สำหรับ fullscreen และ zoom
   const [fullscreenChart, setFullscreenChart] = useState(null);
-  const [zoomLevel, setZoomLevel] = useState(100); // Zoom level เป็นเปอร์เซ็นต์
+  const [zoomLevel, setZoomLevel] = useState(75); // Zoom level เป็นเปอร์เซ็นต์
 
   // เปลี่ยนจาก startDate, endDate เป็น object ที่รวมตัวกรองทั้งหมด
   const [filters, setFilters] = useState({
@@ -444,15 +444,15 @@ function StatisticsAdmin() {
 
   const hasActiveFilters = startDate || endDate || selectedProvince || selectedDistrict;
 
-  // ฟังก์ชันเปิด/ปิด fullscreen
+  // อัพเดทฟังก์ชัน openFullscreen และ closeFullscreen
   const openFullscreen = (chartType) => {
     setFullscreenChart(chartType);
-    setZoomLevel(100); // รีเซ็ต zoom เมื่อเปิด fullscreen
+    setZoomLevel(100); // รีเซ็ตเป็น 100% เมื่อเปิด fullscreen
   };
 
   const closeFullscreen = () => {
     setFullscreenChart(null);
-    setZoomLevel(100); // รีเซ็ต zoom เมื่อปิด fullscreen
+    setZoomLevel(100); // รีเซ็ตเป็น 100% เมื่อปิด fullscreen
   };
 
   // ฟังก์ชันสร้างกราฟ PDF ที่ใช้สีเดียวกัน
@@ -1360,17 +1360,15 @@ function StatisticsAdmin() {
   };
 
   // Fullscreen
-  // แทนที่ FullscreenChart Component ด้วยเวอร์ชันที่มี debug
   const FullscreenChart = ({ type, onClose }) => {
-    // Remove debug useEffect
     const chartDataToShow = useMemo(() => {
       if (type === 'line') {
-        return cleanedTimelineData; // เปลี่ยนจาก timelineData
+        return cleanedTimelineData;
       }
       if (type === 'bar') return chartData;
       if (type === 'pie') return pieData;
       return [];
-    }, [type]); // เพิ่ม dependencies
+    }, [type]);
 
     const diseaseNames = useMemo(() => {
       return Object.keys(diseaseStats).sort();
@@ -1385,15 +1383,15 @@ function StatisticsAdmin() {
       height: `${Math.floor((450 * zoomLevel) / 100)}px`
     };
 
+    // อัพเดทฟังก์ชัน zoom ให้ใช้ increment 25% และขยายช่วง
     const handleZoomIn = useCallback(() => {
-      setZoomLevel(prev => Math.min(prev + 25, 300));
+      setZoomLevel(prev => Math.min(prev + 25, 400)); // เพิ่มสูงสุดเป็น 400%
     }, []);
 
     const handleZoomOut = useCallback(() => {
-      setZoomLevel(prev => Math.max(prev - 25, 50));
+      setZoomLevel(prev => Math.max(prev - 25, 25)); // ลดต่ำสุดเป็น 25%
     }, []);
 
-    // เพิ่ม inline styles เพื่อ override ปัญหาสีดำ
     const containerStyle = {
       backgroundColor: '#ffffff',
       background: '#ffffff'
@@ -1410,7 +1408,7 @@ function StatisticsAdmin() {
         className="fullscreen-overlay"
         onClick={onClose}
         style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.6)', // ลดความเข้ม
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
           background: 'rgba(0, 0, 0, 0.6)'
         }}
       >
@@ -1426,21 +1424,32 @@ function StatisticsAdmin() {
               {type === 'pie' && 'สัดส่วนโรคที่พบ'}
             </h2>
 
+            {/* อัพเดท zoom controls */}
             <div className="zoom-controls">
               <button
                 className="zoom-btn zoom-out"
                 onClick={handleZoomOut}
-                disabled={zoomLevel <= 50}
-                title="ซูมออก"
+                disabled={zoomLevel <= 25}
+                title="ซูมออก (-25%)"
               >
                 -
               </button>
-              <span className="zoom-level">{zoomLevel}%</span>
+              <span className="zoom-level" style={{
+                margin: '0 10px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                display: 'inline-block',
+                color: '#72d572',
+                fontSize: '12px',
+                marginTop: '10px'
+              }}>
+                {zoomLevel}%
+              </span>
               <button
                 className="zoom-btn zoom-in"
                 onClick={handleZoomIn}
-                disabled={zoomLevel >= 300}
-                title="ซูมเข้า"
+                disabled={zoomLevel >= 400}
+                title="ซูมเข้า (+25%)"
               >
                 +
               </button>
@@ -1450,15 +1459,12 @@ function StatisticsAdmin() {
           </div>
 
           <div className="fullscreen-chart" style={{ backgroundColor: '#ffffff' }}>
-
-
             {(type === 'bar' || type === 'line') ? (
               <div className="fullscreen-scrollable-chart" style={{ backgroundColor: '#ffffff' }}>
                 <div
                   className="fullscreen-chart-wrapper"
                   style={chartWrapperStyle}
                 >
-                  {/* White background div to ensure no dark areas */}
                   <div style={{
                     position: 'absolute',
                     top: 0,
@@ -1486,10 +1492,10 @@ function StatisticsAdmin() {
                           angle={-45}
                           textAnchor="end"
                           height={120}
-                          tick={{ fontSize: Math.max(10, 14 * zoomLevel / 100), fill: '#333333' }}
+                          tick={{ fontSize: Math.max(8, 14 * zoomLevel / 100), fill: '#333333' }}
                           interval={0}
                         />
-                        <YAxis tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100), fill: '#333333' }} />
+                        <YAxis tick={{ fontSize: Math.max(6, 12 * zoomLevel / 100), fill: '#333333' }} />
                         <Tooltip
                           formatter={(value, name) => [`${value} ครั้ง`, name]}
                           contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #ccc' }}
@@ -1517,13 +1523,10 @@ function StatisticsAdmin() {
                           angle={-45}
                           textAnchor="end"
                           height={80}
-                          tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100), fill: '#333333' }}
+                          tick={{ fontSize: Math.max(6, 12 * zoomLevel / 100), fill: '#333333' }}
                         />
-                        <YAxis tick={{ fontSize: Math.max(8, 12 * zoomLevel / 100), fill: '#333333' }} />
-
-                        {/* ใช้ Custom Tooltip */}
+                        <YAxis tick={{ fontSize: Math.max(6, 12 * zoomLevel / 100), fill: '#333333' }} />
                         <Tooltip content={<CustomTooltip />} />
-
                         <Legend wrapperStyle={{ color: '#333333' }} />
 
                         {diseaseNames.map((disease, index) => (
@@ -1532,17 +1535,17 @@ function StatisticsAdmin() {
                             type="linear"
                             dataKey={disease}
                             stroke={chartColors[index % chartColors.length]}
-                            strokeWidth={2}
+                            strokeWidth={Math.max(1, 2 * zoomLevel / 100)} // ปรับความหนาของเส้นตาม zoom
                             dot={{
                               fill: chartColors[index % chartColors.length],
-                              strokeWidth: 2,
-                              r: 4,
+                              strokeWidth: Math.max(1, 2 * zoomLevel / 100),
+                              r: Math.max(2, 4 * zoomLevel / 100), // ปรับขนาดจุดตาม zoom
                               stroke: '#fff'
                             }}
                             activeDot={{
-                              r: 6,
+                              r: Math.max(3, 6 * zoomLevel / 100),
                               stroke: chartColors[index % chartColors.length],
-                              strokeWidth: 2,
+                              strokeWidth: Math.max(1, 2 * zoomLevel / 100),
                               fill: '#fff'
                             }}
                             connectNulls={false}
@@ -1554,12 +1557,14 @@ function StatisticsAdmin() {
                 </div>
               </div>
             ) : (
+              // Pie Chart
               <div style={{
                 transform: `scale(${zoomLevel / 100})`,
                 transformOrigin: 'center center',
                 transition: 'transform 0.3s ease',
                 backgroundColor: '#ffffff',
-
+                padding: '20px',
+                borderRadius: '8px'
               }}>
                 <ResponsiveContainer width="100%" height={450}>
                   <PieChart style={{ backgroundColor: 'transparent' }}>
@@ -1567,10 +1572,19 @@ function StatisticsAdmin() {
                       data={chartDataToShow}
                       cx="50%"
                       cy="50%"
-                      outerRadius={120 * Math.min(zoomLevel / 100, 2)}
+                      outerRadius={Math.max(40, 120 * Math.min(zoomLevel / 100, 2))} // ปรับขนาดขั้นต่ำ
                       dataKey="value"
-                      label={({ name, percentage }) => `${name}: ${percentage}%`}
-                      labelLine={false}
+                      label={({ name, percentage }) => {
+                        // แสดง label ตามขนาด zoom
+                        if (zoomLevel < 50) {
+                          return `${percentage}%`; // แสดงแค่เปอร์เซ็นต์เมื่อซูมเล็ก
+                        } else if (zoomLevel < 75) {
+                          return `${name}\n${percentage}%`; // แสดงชื่อและเปอร์เซ็นต์
+                        } else {
+                          return `${name}\n${percentage}%`; // แสดงทั้งหมด
+                        }
+                      }}
+                      labelLine={zoomLevel >= 75} // แสดง label line เมื่อซูมใหญ่พอ
                     >
                       {chartDataToShow.map((entry, index) => {
                         const colorIndex = diseaseNames.indexOf(entry.name);
@@ -1578,13 +1592,29 @@ function StatisticsAdmin() {
                           <Cell
                             key={`cell-${index}`}
                             fill={chartColors[colorIndex % chartColors.length]}
+                            stroke="#ffffff"
+                            strokeWidth={Math.max(1, 2 * zoomLevel / 100)} // ปรับความหนาขอบตาม zoom
                           />
                         );
                       })}
                     </Pie>
                     <Tooltip
                       formatter={(value, name) => [`${value} ครั้ง`, name]}
-                      contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #ccc' }}
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #ccc',
+                        borderRadius: '8px',
+                        padding: '10px',
+                        fontSize: Math.max(10, 14 * zoomLevel / 100) // ปรับขนาดฟอนต์ tooltip ตาม zoom
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{
+                        color: '#333333',
+                        fontSize: Math.max(8, 12 * zoomLevel / 100), // ปรับขนาดฟอนต์ legend ตาม zoom
+                        paddingTop: '20px'
+                      }}
+                      formatter={(value) => value}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1887,7 +1917,7 @@ function StatisticsAdmin() {
                         <XAxis
                           dataKey="month"
                           interval={0}
-                          angle={-10}
+                          angle={-45}
                           textAnchor="end"
                           height={100}
                           tick={{ fontSize: 12 }}
@@ -1973,7 +2003,7 @@ function StatisticsAdmin() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
                           dataKey="locationLabel"
-                          angle={-10}
+                          angle={-45}
                           textAnchor="end"
                           interval={0}
                           height={120}
