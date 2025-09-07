@@ -203,9 +203,9 @@ function ImageUpload({ setPredictionResult }) {
         className="file-input"
       />
       <p className='warning'>
-        คำแนะนำ: ควรเป็นภาพของใบมะม่วงที่มีลักษณะโรคชัดเจน 
-        (ขนาดไฟล์ไม่เกิน 10MB, รองรับ JPG, PNG, WebP)
+        คำแนะนำ: ควรใช้ภาพใบมะม่วงที่มีลักษณะโรคชัดเจน ภาพต้องไม่เบลอ แสงเพียงพอ และควรถ่ายให้เห็นใบชัดเจนทั้งใบ
       </p>
+      <p className='warning'>(ขนาดไฟล์ไม่เกิน 10MB, รองรับไฟล์ภาพ .JPG, .JPEG, .PNG, .WebP)</p>
       
       {preview && (
         <div className="preview-container">
